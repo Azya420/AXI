@@ -851,6 +851,22 @@
       }
     });
 
+    // Mapa InPost (Leaflet pod spodem) musi się zainicjować DOPIERO gdy jej
+    // kontener jest już widoczny — zainicjowana wewnątrz display:none elementu
+    // zapamiętuje zerowy rozmiar i potem nie renderuje kafelków poprawnie,
+    // nawet po pokazaniu kontenera. Dlatego inicjalizujemy ją leniwie, przy
+    // pierwszym wybraniu dostawy do paczkomatu, gdy mapa jest już odsłonięta.
+    var geowidgetInitialized = false;
+    function initGeowidgetIfNeeded(){
+      if(geowidgetInitialized || !window.easyPack) return;
+      geowidgetInitialized = true;
+      easyPack.init({ defaultLocale: 'pl', points: { types: ['parcel_locker'] }, map: { initialTypes: ['parcel_locker'] } });
+      easyPack.mapWidget('easypack-map', function(point){
+        paczkomatHidden.value = point.name + ' — ' + point.address.line1 + ', ' + point.address.line2;
+        paczkomatStatus.textContent = 'Wybrany paczkomat: ' + point.name + ' (' + point.address.line1 + ')';
+      });
+    }
+
     // wybór sposobu dostawy (dzieje się PRZED płatnością)
     function setDeliveryMethod(method){
       document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
@@ -859,6 +875,7 @@
       if(method === 'Paczkomat InPost'){
         addressWrap.style.display = 'none';
         lockerWrap.style.display = 'block';
+        requestAnimationFrame(initGeowidgetIfNeeded);
       } else {
         addressWrap.style.display = 'block';
         lockerWrap.style.display = 'none';
@@ -869,14 +886,6 @@
         if(radio.checked) setDeliveryMethod(radio.value);
       });
     });
-
-    if(window.easyPack){
-      easyPack.init({ defaultLocale: 'pl', points: { types: ['parcel_locker'] }, map: { initialTypes: ['parcel_locker'] } });
-      easyPack.mapWidget('easypack-map', function(point){
-        paczkomatHidden.value = point.name + ' — ' + point.address.line1 + ', ' + point.address.line2;
-        paczkomatStatus.textContent = 'Wybrany paczkomat: ' + point.name + ' (' + point.address.line1 + ')';
-      });
-    }
 
     function shippingSummaryHtml(){
       var method = document.querySelector('input[name="dostawa"]:checked').value;
