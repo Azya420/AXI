@@ -742,20 +742,6 @@
             <label for="scale-custom">Podaj wysokość figurki (cm)</label>
             <input id="scale-custom" name="rozmiar_inny" type="text" placeholder="np. 30 cm">
           </div>
-          <button type="button" class="btn btn-primary" id="pay-btn">Zamów figurkę</button>
-          <p class="stage-hint">Dla wybranych rozmiarów płatność odbywa się od razu przez Stripe — po opłaceniu wrócisz na tę stronę, żeby dokończyć zamówienie (opis postaci, zdjęcia, dostawa). Rozmiar „Inna wysokość” wyceniamy indywidualnie przed płatnością.</p>
-        </div>
-
-        <div id="stage-details" style="display:none;">
-          <div class="paid-banner" id="paid-banner"></div>
-          <div>
-            <label for="desc">Opis postaci</label>
-            <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
-          </div>
-          <div>
-            <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
-            <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
-          </div>
           <div>
             <label>Sposób dostawy</label>
             <div class="ship-toggle">
@@ -784,6 +770,20 @@
             <div id="easypack-map"></div>
             <input type="hidden" name="paczkomat" id="paczkomat-hidden">
             <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="pay-btn">Zamów figurkę</button>
+          <p class="stage-hint">Dla wybranych rozmiarów płatność odbywa się od razu przez Stripe — po opłaceniu wrócisz na tę stronę, żeby dodać opis postaci i zdjęcia. Rozmiar „Inna wysokość” wyceniamy indywidualnie przed płatnością.</p>
+        </div>
+
+        <div id="stage-details" style="display:none;">
+          <div class="paid-banner" id="paid-banner"></div>
+          <div>
+            <label for="desc">Opis postaci</label>
+            <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
+          </div>
+          <div>
+            <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
+            <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
           </div>
           <button type="submit" class="btn btn-primary" id="commission-submit">Wyślij zamówienie</button>
         </div>
@@ -821,6 +821,13 @@
     var stageDetails = document.getElementById('stage-details');
     var paidBanner = document.getElementById('paid-banner');
     var statusHidden = document.getElementById('status-hidden');
+    var addressWrap = document.getElementById('address-wrap');
+    var lockerWrap = document.getElementById('locker-wrap');
+    var paczkomatHidden = document.getElementById('paczkomat-hidden');
+    var paczkomatStatus = document.getElementById('paczkomat-status');
+    var ulicaInput = document.getElementById('ulica');
+    var kodInput = document.getElementById('kod');
+    var miastoInput = document.getElementById('miasto');
 
     scaleSelect.addEventListener('change', function(){
       var opt = scaleSelect.options[scaleSelect.selectedIndex];
@@ -844,6 +851,42 @@
       }
     });
 
+    // wybór sposobu dostawy (dzieje się PRZED płatnością)
+    function setDeliveryMethod(method){
+      document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
+        radio.checked = (radio.value === method);
+      });
+      if(method === 'Paczkomat InPost'){
+        addressWrap.style.display = 'none';
+        lockerWrap.style.display = 'block';
+      } else {
+        addressWrap.style.display = 'block';
+        lockerWrap.style.display = 'none';
+      }
+    }
+    document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
+      radio.addEventListener('change', function(){
+        if(radio.checked) setDeliveryMethod(radio.value);
+      });
+    });
+
+    if(window.easyPack){
+      easyPack.init({ defaultLocale: 'pl', points: { types: ['parcel_locker'] }, map: { initialTypes: ['parcel_locker'] } });
+      easyPack.mapWidget('easypack-map', function(point){
+        paczkomatHidden.value = point.name + ' — ' + point.address.line1 + ', ' + point.address.line2;
+        paczkomatStatus.textContent = 'Wybrany paczkomat: ' + point.name + ' (' + point.address.line1 + ')';
+      });
+    }
+
+    function shippingSummaryHtml(){
+      var method = document.querySelector('input[name="dostawa"]:checked').value;
+      if(method === 'Paczkomat InPost'){
+        return 'Dostawa: paczkomat InPost' + (paczkomatHidden.value ? ' — ' + paczkomatHidden.value : ' (nie wybrano jeszcze paczkomatu)');
+      }
+      var addr = [ulicaInput.value, (kodInput.value + ' ' + miastoInput.value).trim()].filter(Boolean).join(', ');
+      return 'Dostawa: na adres' + (addr ? ' — ' + addr : '');
+    }
+
     function showDetails(bannerHtml){
       // pola w stage-order stają się niewidoczne, więc nie mogą pozostać "required"
       // (niewidoczne wymagane pole blokuje wysyłkę formularza bez żadnego komunikatu)
@@ -852,7 +895,7 @@
       emailInput.required = false;
       customInput.required = false;
       stageOrder.style.display = 'none';
-      paidBanner.innerHTML = bannerHtml;
+      paidBanner.innerHTML = bannerHtml + '<p>' + shippingSummaryHtml() + '</p>';
       stageDetails.style.display = 'block';
     }
 
@@ -863,6 +906,11 @@
       }
       if(!nameInput.value || !emailInput.value){
         alert('Podaj imię i nazwisko oraz e-mail przed przejściem dalej.');
+        return;
+      }
+      var lockerMethod = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
+      if(lockerMethod && !paczkomatHidden.value){
+        alert('Wybierz paczkomat na mapie przed przejściem dalej.');
         return;
       }
       if(scaleSelect.value === 'inna'){
@@ -877,10 +925,15 @@
       }
       sessionStorage.setItem('axi_name', nameInput.value);
       sessionStorage.setItem('axi_email', emailInput.value);
+      sessionStorage.setItem('axi_dostawa', document.querySelector('input[name="dostawa"]:checked').value);
+      sessionStorage.setItem('axi_ulica', ulicaInput.value);
+      sessionStorage.setItem('axi_kod', kodInput.value);
+      sessionStorage.setItem('axi_miasto', miastoInput.value);
+      sessionStorage.setItem('axi_paczkomat', paczkomatHidden.value);
       window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
     });
 
-    // powrót po udanej płatności Stripe: .../#zamow?paid=1&rozmiar=...&cena=...
+    // powrót po udanej płatności Stripe: .../?paid=1&rozmiar=...&cena=...#zamow
     (function checkPaidReturn(){
       var params = new URLSearchParams(window.location.search);
       if(params.get('paid') !== '1') return;
@@ -890,35 +943,21 @@
       statusHidden.value = 'Opłacone przez Stripe';
       nameInput.value = sessionStorage.getItem('axi_name') || '';
       emailInput.value = sessionStorage.getItem('axi_email') || '';
+      setDeliveryMethod(sessionStorage.getItem('axi_dostawa') || 'Na adres');
+      ulicaInput.value = sessionStorage.getItem('axi_ulica') || '';
+      kodInput.value = sessionStorage.getItem('axi_kod') || '';
+      miastoInput.value = sessionStorage.getItem('axi_miasto') || '';
+      paczkomatHidden.value = sessionStorage.getItem('axi_paczkomat') || '';
+      if(paczkomatHidden.value) paczkomatStatus.textContent = 'Wybrany paczkomat: ' + paczkomatHidden.value;
       sessionStorage.removeItem('axi_name');
       sessionStorage.removeItem('axi_email');
-      showDetails('<h3>Płatność przyjęta ✓</h3><p>Rozmiar: ' + rozmiar + ' — ' + cena + '. Uzupełnij poniżej opis postaci i dane do wysyłki.</p>');
+      sessionStorage.removeItem('axi_dostawa');
+      sessionStorage.removeItem('axi_ulica');
+      sessionStorage.removeItem('axi_kod');
+      sessionStorage.removeItem('axi_miasto');
+      sessionStorage.removeItem('axi_paczkomat');
+      showDetails('<h3>Płatność przyjęta ✓</h3><p>Rozmiar: ' + rozmiar + ' — ' + cena + '. Uzupełnij poniżej opis postaci i zdjęcia.</p>');
     })();
-
-    // wybór sposobu dostawy
-    var addressWrap = document.getElementById('address-wrap');
-    var lockerWrap = document.getElementById('locker-wrap');
-    var paczkomatHidden = document.getElementById('paczkomat-hidden');
-    var paczkomatStatus = document.getElementById('paczkomat-status');
-    document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
-      radio.addEventListener('change', function(){
-        if(radio.value === 'Paczkomat InPost' && radio.checked){
-          addressWrap.style.display = 'none';
-          lockerWrap.style.display = 'block';
-        } else if(radio.checked){
-          addressWrap.style.display = 'block';
-          lockerWrap.style.display = 'none';
-        }
-      });
-    });
-
-    if(window.easyPack){
-      easyPack.init({ defaultLocale: 'pl', points: { types: ['parcel_locker'] }, map: { initialTypes: ['parcel_locker'] } });
-      easyPack.mapWidget('easypack-map', function(point){
-        paczkomatHidden.value = point.name + ' — ' + point.address.line1 + ', ' + point.address.line2;
-        paczkomatStatus.textContent = 'Wybrany paczkomat: ' + point.name + ' (' + point.address.line1 + ')';
-      });
-    }
 
     var form = document.getElementById('commission-form');
     var submitBtn = document.getElementById('commission-submit');
