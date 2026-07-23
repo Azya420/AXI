@@ -396,7 +396,6 @@
     margin-bottom:12px;
   }
   .form-success p{ color:var(--ink-dim); font-size:0.95rem; }
-  #stage-order, #stage-details{ display:grid; gap:18px; }
   .stage-hint{
     color:var(--ink-faint);
     font-size:0.82rem;
@@ -417,18 +416,6 @@
     justify-self:start;
   }
   .change-locker:hover{ color:var(--bronze); }
-  .paid-banner{
-    border:1px solid var(--violet-bright);
-    background:var(--bg-elevated);
-    padding:18px 20px;
-  }
-  .paid-banner h3{
-    font-family:'Cinzel', serif;
-    font-size:1.1rem;
-    color:var(--violet-bright);
-    margin-bottom:6px;
-  }
-  .paid-banner p{ color:var(--ink-dim); font-size:0.88rem; }
   .ship-toggle{ display:flex; gap:24px; flex-wrap:wrap; }
   .ship-option{
     display:flex; align-items:center; gap:8px;
@@ -722,87 +709,80 @@
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
 
-        <div id="stage-order">
+        <div class="form-row">
+          <div>
+            <label for="name">Imię i nazwisko</label>
+            <input id="name" name="name" type="text" placeholder="Jan Kowalski" required>
+          </div>
+          <div>
+            <label for="email">E-mail</label>
+            <input id="email" name="email" type="email" placeholder="jan@przyklad.pl" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label for="scale">Rozmiar figurki</label>
+            <select id="scale" name="rozmiar" required>
+              <option value="" disabled selected>Wybierz rozmiar</option>
+              <option value="3–6 cm" data-price="200 zł">3–6 cm</option>
+              <option value="7–10 cm" data-price="220 zł">7–10 cm</option>
+              <option value="11–15 cm" data-price="250 zł">11–15 cm</option>
+              <option value="16–20 cm" data-price="280 zł">16–20 cm</option>
+              <option value="21–25 cm" data-price="340 zł">21–25 cm</option>
+              <option value="inna" data-price="">Inna wysokość</option>
+            </select>
+          </div>
+          <div>
+            <span class="price-box-label">Cena</span>
+            <div class="price-box" id="price-box">
+              <span class="price-value" id="price-value">wybierz rozmiar</span>
+            </div>
+          </div>
+        </div>
+        <div id="custom-scale-wrap" style="display:none;">
+          <label for="scale-custom">Podaj wysokość figurki (cm)</label>
+          <input id="scale-custom" name="rozmiar_inny" type="text" placeholder="np. 30 cm">
+        </div>
+        <div>
+          <label for="desc">Opis postaci</label>
+          <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
+        </div>
+        <div>
+          <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
+          <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
+        </div>
+        <div>
+          <label>Sposób dostawy</label>
+          <div class="ship-toggle">
+            <label class="ship-option"><input type="radio" name="dostawa" value="Na adres"> Na adres</label>
+            <label class="ship-option"><input type="radio" name="dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
+          </div>
+        </div>
+        <div id="address-wrap" style="display:none;">
           <div class="form-row">
             <div>
-              <label for="name">Imię i nazwisko</label>
-              <input id="name" name="name" type="text" placeholder="Jan Kowalski" required>
+              <label for="ulica">Ulica i numer</label>
+              <input id="ulica" name="ulica" type="text" placeholder="ul. Kwiatowa 12/3">
             </div>
             <div>
-              <label for="email">E-mail</label>
-              <input id="email" name="email" type="email" placeholder="jan@przyklad.pl" required>
+              <label for="kod">Kod pocztowy</label>
+              <input id="kod" name="kod_pocztowy" type="text" placeholder="00-000">
             </div>
-          </div>
-          <div class="form-row">
-            <div>
-              <label for="scale">Rozmiar figurki</label>
-              <select id="scale" name="rozmiar" required>
-                <option value="" disabled selected>Wybierz rozmiar</option>
-                <option value="3–6 cm" data-price="200 zł">3–6 cm</option>
-                <option value="7–10 cm" data-price="220 zł">7–10 cm</option>
-                <option value="11–15 cm" data-price="250 zł">11–15 cm</option>
-                <option value="16–20 cm" data-price="280 zł">16–20 cm</option>
-                <option value="21–25 cm" data-price="340 zł">21–25 cm</option>
-                <option value="inna" data-price="">Inna wysokość</option>
-              </select>
-            </div>
-            <div>
-              <span class="price-box-label">Cena</span>
-              <div class="price-box" id="price-box">
-                <span class="price-value" id="price-value">wybierz rozmiar</span>
-              </div>
-            </div>
-          </div>
-          <div id="custom-scale-wrap" style="display:none;">
-            <label for="scale-custom">Podaj wysokość figurki (cm)</label>
-            <input id="scale-custom" name="rozmiar_inny" type="text" placeholder="np. 30 cm">
           </div>
           <div>
-            <label>Sposób dostawy</label>
-            <div class="ship-toggle">
-              <label class="ship-option"><input type="radio" name="dostawa" value="Na adres"> Na adres</label>
-              <label class="ship-option"><input type="radio" name="dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
-            </div>
+            <label for="miasto">Miasto</label>
+            <input id="miasto" name="miasto" type="text" placeholder="Warszawa">
           </div>
-          <div id="address-wrap" style="display:none;">
-            <div class="form-row">
-              <div>
-                <label for="ulica">Ulica i numer</label>
-                <input id="ulica" name="ulica" type="text" placeholder="ul. Kwiatowa 12/3">
-              </div>
-              <div>
-                <label for="kod">Kod pocztowy</label>
-                <input id="kod" name="kod_pocztowy" type="text" placeholder="00-000">
-              </div>
-            </div>
-            <div>
-              <label for="miasto">Miasto</label>
-              <input id="miasto" name="miasto" type="text" placeholder="Warszawa">
-            </div>
-          </div>
-          <div id="locker-wrap">
-            <label>Wybierz paczkomat na mapie</label>
-            <div id="easypack-map"></div>
-            <input type="hidden" name="paczkomat" id="paczkomat-hidden">
-            <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
-            <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
-          </div>
-          <button type="button" class="btn btn-primary" id="pay-btn">Zamów figurkę</button>
-          <p class="stage-hint">Dla wybranych rozmiarów płatność odbywa się od razu przez Stripe — po opłaceniu wrócisz na tę stronę, żeby dodać opis postaci i zdjęcia. Rozmiar „Inna wysokość” wyceniamy indywidualnie przed płatnością.</p>
         </div>
-
-        <div id="stage-details" style="display:none;">
-          <div class="paid-banner" id="paid-banner"></div>
-          <div>
-            <label for="desc">Opis postaci</label>
-            <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
-          </div>
-          <div>
-            <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
-            <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
-          </div>
-          <button type="submit" class="btn btn-primary" id="commission-submit">Wyślij zamówienie</button>
+        <div id="locker-wrap">
+          <label>Wybierz paczkomat na mapie</label>
+          <div id="easypack-map"></div>
+          <input type="hidden" name="paczkomat" id="paczkomat-hidden">
+          <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
+          <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
         </div>
+        <button type="submit" class="btn btn-primary" id="commission-submit">Zamów figurkę</button>
+        <p class="stage-hint">Po wysłaniu zgłoszenia zostaniesz przekierowany do bezpiecznej płatności Stripe za wybrany rozmiar. Rozmiar „Inna wysokość” wyceniamy indywidualnie przed płatnością — bez przekierowania.</p>
       </form>
 
       <div class="form-success" id="form-success" style="display:none;">
@@ -814,15 +794,17 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', function(){
-    // Adres przekierowania "po opłaceniu" dla każdego z tych 5 linków ustawia się
-    // w panelu Stripe (Payment Links → dany link → edytuj → "After payment").
-    // WAŻNE: parametry (?paid=1&...) muszą być PRZED znakiem #zamow, nie po nim.
+    // Klient wype­łnia jeden formularz (dane, rozmiar, opis, zdjęcia, dostawa)
+    // i wysyła go od razu — dopiero PO udanej wysyłce zgłoszenia przekierowujemy
+    // do płatności Stripe za wybrany rozmiar. Zdjęcia nie przetrwałyby
+    // przekierowania na Stripe i z powrotem, dlatego kolejność jest odwrócona
+    // względem typowego "najpierw zapłać": tu najpierw wysyłamy zgłoszenie.
     var STRIPE_LINKS = {
-      '3–6 cm':   'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200', // redirect po płatności: https://axi3d.pl/?paid=1&rozmiar=3%E2%80%936%20cm&cena=200%20z%C5%82#zamow
-      '7–10 cm':  'https://buy.stripe.com/8x2bJ23jK0nH8X504teZ201', // redirect po płatności: https://axi3d.pl/?paid=1&rozmiar=7%E2%80%9310%20cm&cena=220%20z%C5%82#zamow
-      '11–15 cm': 'https://buy.stripe.com/00w14oaMc3zTddlg3reZ202', // redirect po płatności: https://axi3d.pl/?paid=1&rozmiar=11%E2%80%9315%20cm&cena=250%20z%C5%82#zamow
-      '16–20 cm': 'https://buy.stripe.com/14AdRadYofiBfltaJ7eZ204', // redirect po płatności: https://axi3d.pl/?paid=1&rozmiar=16%E2%80%9320%20cm&cena=280%20z%C5%82#zamow
-      '21–25 cm': 'https://buy.stripe.com/8x2dRa07y4DXehpaJ7eZ205'  // redirect po płatności: https://axi3d.pl/?paid=1&rozmiar=21%E2%80%9325%20cm&cena=340%20z%C5%82#zamow
+      '3–6 cm':   'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200',
+      '7–10 cm':  'https://buy.stripe.com/8x2bJ23jK0nH8X504teZ201',
+      '11–15 cm': 'https://buy.stripe.com/00w14oaMc3zTddlg3reZ202',
+      '16–20 cm': 'https://buy.stripe.com/14AdRadYofiBfltaJ7eZ204',
+      '21–25 cm': 'https://buy.stripe.com/8x2dRa07y4DXehpaJ7eZ205'
     };
 
     var scaleSelect = document.getElementById('scale');
@@ -832,9 +814,6 @@
     var customInput = document.getElementById('scale-custom');
     var nameInput = document.getElementById('name');
     var emailInput = document.getElementById('email');
-    var stageOrder = document.getElementById('stage-order');
-    var stageDetails = document.getElementById('stage-details');
-    var paidBanner = document.getElementById('paid-banner');
     var statusHidden = document.getElementById('status-hidden');
     var addressWrap = document.getElementById('address-wrap');
     var lockerWrap = document.getElementById('locker-wrap');
@@ -842,9 +821,6 @@
     var paczkomatStatus = document.getElementById('paczkomat-status');
     var easypackMapEl = document.getElementById('easypack-map');
     var changeLockerBtn = document.getElementById('change-locker-btn');
-    var ulicaInput = document.getElementById('ulica');
-    var kodInput = document.getElementById('kod');
-    var miastoInput = document.getElementById('miasto');
 
     scaleSelect.addEventListener('change', function(){
       var opt = scaleSelect.options[scaleSelect.selectedIndex];
@@ -930,97 +906,25 @@
       });
     });
 
-    function shippingSummaryHtml(){
-      var method = document.querySelector('input[name="dostawa"]:checked').value;
-      if(method === 'Paczkomat InPost'){
-        return 'Dostawa: paczkomat InPost' + (paczkomatHidden.value ? ' — ' + paczkomatHidden.value : ' (nie wybrano jeszcze paczkomatu)');
-      }
-      var addr = [ulicaInput.value, (kodInput.value + ' ' + miastoInput.value).trim()].filter(Boolean).join(', ');
-      return 'Dostawa: na adres' + (addr ? ' — ' + addr : '');
-    }
-
-    function showDetails(bannerHtml){
-      // pola w stage-order stają się niewidoczne, więc nie mogą pozostać "required"
-      // (niewidoczne wymagane pole blokuje wysyłkę formularza bez żadnego komunikatu)
-      scaleSelect.required = false;
-      nameInput.required = false;
-      emailInput.required = false;
-      customInput.required = false;
-      stageOrder.style.display = 'none';
-      paidBanner.innerHTML = bannerHtml + '<p>' + shippingSummaryHtml() + '</p>';
-      stageDetails.style.display = 'block';
-    }
-
-    document.getElementById('pay-btn').addEventListener('click', function(){
-      if(!scaleSelect.value){
-        alert('Najpierw wybierz rozmiar figurki.');
-        return;
-      }
-      if(!nameInput.value || !emailInput.value){
-        alert('Podaj imię i nazwisko oraz e-mail przed przejściem dalej.');
-        return;
-      }
-      var lockerMethod = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
-      if(lockerMethod && !paczkomatHidden.value){
-        alert('Wybierz paczkomat na mapie przed przejściem dalej.');
-        return;
-      }
-      if(scaleSelect.value === 'inna'){
-        statusHidden.value = 'Rozmiar niestandardowy — wycena i płatność ustalane indywidualnie mailem';
-        showDetails('<h3>Zapytanie o niestandardowy rozmiar</h3><p>Prześlemy Ci wycenę i link do płatności mailem po sprawdzeniu szczegółów — poniżej opisz postać.</p>');
-        return;
-      }
-      var link = STRIPE_LINKS[scaleSelect.value];
-      if(!link || link.indexOf('PODMIEN') !== -1){
-        alert('Płatność online nie jest jeszcze skonfigurowana przez właściciela strony. Napisz bezpośrednio na kontaktaxi3d@gmail.com.');
-        return;
-      }
-      sessionStorage.setItem('axi_name', nameInput.value);
-      sessionStorage.setItem('axi_email', emailInput.value);
-      sessionStorage.setItem('axi_dostawa', document.querySelector('input[name="dostawa"]:checked').value);
-      sessionStorage.setItem('axi_ulica', ulicaInput.value);
-      sessionStorage.setItem('axi_kod', kodInput.value);
-      sessionStorage.setItem('axi_miasto', miastoInput.value);
-      sessionStorage.setItem('axi_paczkomat', paczkomatHidden.value);
-      window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
-    });
-
-    // powrót po udanej płatności Stripe: .../?paid=1&rozmiar=...&cena=...#zamow
-    (function checkPaidReturn(){
-      var params = new URLSearchParams(window.location.search);
-      if(params.get('paid') !== '1') return;
-      var rozmiar = params.get('rozmiar') || '';
-      var cena = params.get('cena') || '';
-      priceHidden.value = cena;
-      statusHidden.value = 'Opłacone przez Stripe';
-      nameInput.value = sessionStorage.getItem('axi_name') || '';
-      emailInput.value = sessionStorage.getItem('axi_email') || '';
-      setDeliveryMethod(sessionStorage.getItem('axi_dostawa') || 'Na adres');
-      ulicaInput.value = sessionStorage.getItem('axi_ulica') || '';
-      kodInput.value = sessionStorage.getItem('axi_kod') || '';
-      miastoInput.value = sessionStorage.getItem('axi_miasto') || '';
-      paczkomatHidden.value = sessionStorage.getItem('axi_paczkomat') || '';
-      if(paczkomatHidden.value) paczkomatStatus.textContent = 'Wybrany paczkomat: ' + paczkomatHidden.value;
-      sessionStorage.removeItem('axi_name');
-      sessionStorage.removeItem('axi_email');
-      sessionStorage.removeItem('axi_dostawa');
-      sessionStorage.removeItem('axi_ulica');
-      sessionStorage.removeItem('axi_kod');
-      sessionStorage.removeItem('axi_miasto');
-      sessionStorage.removeItem('axi_paczkomat');
-      showDetails('<h3>Płatność przyjęta ✓</h3><p>Rozmiar: ' + rozmiar + ' — ' + cena + '. Uzupełnij poniżej opis postaci i zdjęcia.</p>');
-    })();
-
     var form = document.getElementById('commission-form');
     var submitBtn = document.getElementById('commission-submit');
     var successBox = document.getElementById('form-success');
     form.addEventListener('submit', function(e){
       e.preventDefault();
+      if(!scaleSelect.value){
+        alert('Wybierz rozmiar figurki.');
+        return;
+      }
       var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
       if(lockerSelected && !paczkomatHidden.value){
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
         return;
       }
+      var isCustomSize = scaleSelect.value === 'inna';
+      statusHidden.value = isCustomSize
+        ? 'Rozmiar niestandardowy — wycena i płatność ustalane indywidualnie mailem'
+        : 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia';
+
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
       fetch(form.action, {
@@ -1029,11 +933,21 @@
         headers: { 'Accept': 'application/json' }
       }).then(function(res){
         if(!res.ok) throw new Error('Wysyłka nieudana');
-        form.style.display = 'none';
-        successBox.style.display = 'block';
+        if(isCustomSize){
+          form.style.display = 'none';
+          successBox.style.display = 'block';
+          return;
+        }
+        var link = STRIPE_LINKS[scaleSelect.value];
+        if(!link || link.indexOf('PODMIEN') !== -1){
+          form.style.display = 'none';
+          successBox.style.display = 'block';
+          return;
+        }
+        window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
       }).catch(function(){
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Wyślij zamówienie';
+        submitBtn.textContent = 'Zamów figurkę';
         alert('Coś poszło nie tak przy wysyłaniu zamówienia. Spróbuj ponownie albo napisz do nas bezpośrednio na kontaktaxi3d@gmail.com.');
       });
     });
