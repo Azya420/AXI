@@ -402,6 +402,21 @@
     font-size:0.82rem;
     margin-top:-4px;
   }
+  .change-locker{
+    background:none;
+    border:none;
+    padding:0;
+    margin-top:-6px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem;
+    letter-spacing:0.04em;
+    color:var(--violet-bright);
+    text-decoration:underline;
+    text-underline-offset:3px;
+    cursor:pointer;
+    justify-self:start;
+  }
+  .change-locker:hover{ color:var(--bronze); }
   .paid-banner{
     border:1px solid var(--violet-bright);
     background:var(--bg-elevated);
@@ -745,11 +760,11 @@
           <div>
             <label>Sposób dostawy</label>
             <div class="ship-toggle">
-              <label class="ship-option"><input type="radio" name="dostawa" value="Na adres" checked> Na adres</label>
-              <label class="ship-option"><input type="radio" name="dostawa" value="Paczkomat InPost"> Paczkomat InPost</label>
+              <label class="ship-option"><input type="radio" name="dostawa" value="Na adres"> Na adres</label>
+              <label class="ship-option"><input type="radio" name="dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
             </div>
           </div>
-          <div id="address-wrap">
+          <div id="address-wrap" style="display:none;">
             <div class="form-row">
               <div>
                 <label for="ulica">Ulica i numer</label>
@@ -765,12 +780,12 @@
               <input id="miasto" name="miasto" type="text" placeholder="Warszawa">
             </div>
           </div>
-          <div id="locker-wrap" style="display:none;">
+          <div id="locker-wrap">
             <label>Wybierz paczkomat na mapie</label>
             <div id="easypack-map"></div>
             <input type="hidden" name="paczkomat" id="paczkomat-hidden">
             <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
-            <button type="button" class="btn btn-ghost" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
+            <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
           </div>
           <button type="button" class="btn btn-primary" id="pay-btn">Zamów figurkę</button>
           <p class="stage-hint">Dla wybranych rozmiarów płatność odbywa się od razu przez Stripe — po opłaceniu wrócisz na tę stronę, żeby dodać opis postaci i zdjęcia. Rozmiar „Inna wysokość” wyceniamy indywidualnie przed płatnością.</p>
@@ -882,6 +897,18 @@
       easypackMapEl.style.display = 'block';
       changeLockerBtn.style.display = 'none';
     });
+
+    // Paczkomat jest domyślnie zaznaczony, więc nic nie wywoła zdarzenia
+    // "change" na starcie — ładujemy widget, gdy sekcja zamówienia faktycznie
+    // wjedzie w widok (a nie natychmiast po wejściu na stronę).
+    if('IntersectionObserver' in window){
+      var zamowObserver = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting) initGeowidgetIfNeeded();
+        });
+      }, { rootMargin: '200px' });
+      zamowObserver.observe(document.getElementById('zamow'));
+    }
 
     // wybór sposobu dostawy (dzieje się PRZED płatnością)
     function setDeliveryMethod(method){
