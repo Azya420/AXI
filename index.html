@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AXI — Custom figurki RPG i kolekcjonerskie</title>
+<link rel="icon" type="image/png" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -87,6 +88,7 @@
   .logo-mark{
     width:26px; height:26px;
     display:inline-block;
+    object-fit:contain;
   }
   .navlinks{
     display:flex; gap:36px;
@@ -515,10 +517,7 @@
 <header>
   <nav class="wrap">
     <div class="logo">
-      <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 2L29 9V23L16 30L3 23V9L16 2Z" stroke="#a78bfa" stroke-width="1.4"/>
-        <path d="M16 2V30M3 9L29 23M29 9L3 23" stroke="#c9a24b" stroke-width="0.8" opacity="0.7"/>
-      </svg>
+      <img class="logo-mark" src="logo.png" alt="AXI">
       AXI
     </div>
     <div class="navlinks">
@@ -695,7 +694,7 @@
     <div class="wrap commission-grid">
       <div class="commission-copy">
         <div class="eyebrow">Zamówienie indywidualne</div>
-        <h2 style="margin-top:14px; font-size:clamp(1.7rem,2.6vw,2.3rem);">Opisz swoją postać<br>— resztą zajmiemy się my</h2>
+        <h2 style="margin-top:14px; font-size:clamp(1.7rem,2.6vw,2.3rem);">Opisz swoją postać — resztą zajmiemy się my</h2>
         <p>Im więcej szczegółów, tym wierniejsza figurka. Karta postaci, opis wyglądu, ulubione zdjęcie referencyjne — wszystko się przyda.</p>
         <ul class="trust-list">
           <li>Model poglądowy 3D do akceptacji przed drukiem</li>
@@ -986,7 +985,10 @@
   <div class="wrap">
     <div class="footer-grid">
       <div>
-        <div class="logo" style="margin-bottom:14px;">AXI</div>
+        <div class="logo" style="margin-bottom:14px;">
+          <img class="logo-mark" src="logo.png" alt="AXI">
+          AXI
+        </div>
         <p style="color:var(--ink-faint); font-size:0.86rem; max-width:28ch;">Custom figurki RPG i kolekcjonerskie, rzeźbione i drukowane na zamówienie.</p>
       </div>
       <div class="footer-cols">
