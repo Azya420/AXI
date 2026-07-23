@@ -719,29 +719,21 @@
             <input id="email" name="email" type="email" placeholder="jan@przyklad.pl" required>
           </div>
         </div>
+        <div>
+          <label for="phone">Numer telefonu</label>
+          <input id="phone" name="telefon" type="tel" placeholder="600 123 456" required>
+        </div>
         <div class="form-row">
           <div>
-            <label for="scale">Rozmiar figurki</label>
-            <select id="scale" name="rozmiar" required>
-              <option value="" disabled selected>Wybierz rozmiar</option>
-              <option value="3–6 cm" data-price="200 zł">3–6 cm</option>
-              <option value="7–10 cm" data-price="220 zł">7–10 cm</option>
-              <option value="11–15 cm" data-price="250 zł">11–15 cm</option>
-              <option value="16–20 cm" data-price="280 zł">16–20 cm</option>
-              <option value="21–25 cm" data-price="340 zł">21–25 cm</option>
-              <option value="inna" data-price="">Inna wysokość</option>
-            </select>
+            <label for="scale">Rozmiar figurki (cm)</label>
+            <input id="scale" name="rozmiar" type="number" min="1" step="1" placeholder="np. 12" required>
           </div>
           <div>
             <span class="price-box-label">Cena</span>
             <div class="price-box" id="price-box">
-              <span class="price-value" id="price-value">wybierz rozmiar</span>
+              <span class="price-value" id="price-value">wpisz rozmiar</span>
             </div>
           </div>
-        </div>
-        <div id="custom-scale-wrap" style="display:none;">
-          <label for="scale-custom">Podaj wysokość figurki (cm)</label>
-          <input id="scale-custom" name="rozmiar_inny" type="text" placeholder="np. 30 cm">
         </div>
         <div>
           <label for="desc">Opis postaci</label>
@@ -754,8 +746,8 @@
         <div>
           <label>Sposób dostawy</label>
           <div class="ship-toggle">
-            <label class="ship-option"><input type="radio" name="dostawa" value="Na adres"> Na adres</label>
             <label class="ship-option"><input type="radio" name="dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
+            <label class="ship-option"><input type="radio" name="dostawa" value="Na adres"> Na adres</label>
           </div>
         </div>
         <div id="address-wrap" style="display:none;">
@@ -782,7 +774,6 @@
           <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
         </div>
         <button type="submit" class="btn btn-primary" id="commission-submit">Zamów figurkę</button>
-        <p class="stage-hint">Po wysłaniu zgłoszenia zostaniesz przekierowany do bezpiecznej płatności Stripe za wybrany rozmiar. Rozmiar „Inna wysokość” wyceniamy indywidualnie przed płatnością — bez przekierowania.</p>
       </form>
 
       <div class="form-success" id="form-success" style="display:none;">
@@ -810,8 +801,6 @@
     var scaleSelect = document.getElementById('scale');
     var priceValue = document.getElementById('price-value');
     var priceHidden = document.getElementById('price-hidden');
-    var customWrap = document.getElementById('custom-scale-wrap');
-    var customInput = document.getElementById('scale-custom');
     var nameInput = document.getElementById('name');
     var emailInput = document.getElementById('email');
     var statusHidden = document.getElementById('status-hidden');
@@ -822,25 +811,37 @@
     var easypackMapEl = document.getElementById('easypack-map');
     var changeLockerBtn = document.getElementById('change-locker-btn');
 
-    scaleSelect.addEventListener('change', function(){
-      var opt = scaleSelect.options[scaleSelect.selectedIndex];
-      var price = opt.getAttribute('data-price');
-      if(scaleSelect.value === 'inna'){
-        customWrap.style.display = 'block';
-        customInput.required = true;
+    // Klient wpisuje rozmiar w cm ręcznie — cena zawsze dopasowuje się do
+    // jednego z pięciu ustalonych przedziałów; poza przedziałem 3–25 cm
+    // traktujemy to jako niestandardowy rozmiar wyceniany indywidualnie.
+    var PRICE_BRACKETS = [
+      { min: 3,  max: 6,  label: '3–6 cm',   price: '200 zł' },
+      { min: 7,  max: 10, label: '7–10 cm',  price: '220 zł' },
+      { min: 11, max: 15, label: '11–15 cm', price: '250 zł' },
+      { min: 16, max: 20, label: '16–20 cm', price: '280 zł' },
+      { min: 21, max: 25, label: '21–25 cm', price: '340 zł' }
+    ];
+    function getBracket(cm){
+      for(var i = 0; i < PRICE_BRACKETS.length; i++){
+        if(cm >= PRICE_BRACKETS[i].min && cm <= PRICE_BRACKETS[i].max) return PRICE_BRACKETS[i];
+      }
+      return null;
+    }
+
+    scaleSelect.addEventListener('input', function(){
+      var cm = Math.round(parseFloat(scaleSelect.value));
+      if(!scaleSelect.value || isNaN(cm)){
+        priceValue.textContent = 'wpisz rozmiar';
+        priceHidden.value = '';
+        return;
+      }
+      var bracket = getBracket(cm);
+      if(bracket){
+        priceValue.textContent = bracket.price;
+        priceHidden.value = bracket.price;
+      } else {
         priceValue.textContent = 'wycena indywidualna';
         priceHidden.value = 'Wycena indywidualna';
-      } else {
-        customWrap.style.display = 'none';
-        customInput.required = false;
-        customInput.value = '';
-        if(price){
-          priceValue.textContent = price;
-          priceHidden.value = price;
-        } else {
-          priceValue.textContent = 'wybierz rozmiar';
-          priceHidden.value = '';
-        }
       }
     });
 
@@ -911,8 +912,9 @@
     var successBox = document.getElementById('form-success');
     form.addEventListener('submit', function(e){
       e.preventDefault();
-      if(!scaleSelect.value){
-        alert('Wybierz rozmiar figurki.');
+      var cm = Math.round(parseFloat(scaleSelect.value));
+      if(!scaleSelect.value || isNaN(cm)){
+        alert('Podaj rozmiar figurki w centymetrach.');
         return;
       }
       var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
@@ -920,10 +922,10 @@
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
         return;
       }
-      var isCustomSize = scaleSelect.value === 'inna';
-      statusHidden.value = isCustomSize
-        ? 'Rozmiar niestandardowy — wycena i płatność ustalane indywidualnie mailem'
-        : 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia';
+      var bracket = getBracket(cm);
+      statusHidden.value = bracket
+        ? 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia'
+        : 'Rozmiar niestandardowy — wycena i płatność ustalane indywidualnie mailem';
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
@@ -933,12 +935,12 @@
         headers: { 'Accept': 'application/json' }
       }).then(function(res){
         if(!res.ok) throw new Error('Wysyłka nieudana');
-        if(isCustomSize){
+        if(!bracket){
           form.style.display = 'none';
           successBox.style.display = 'block';
           return;
         }
-        var link = STRIPE_LINKS[scaleSelect.value];
+        var link = STRIPE_LINKS[bracket.label];
         if(!link || link.indexOf('PODMIEN') !== -1){
           form.style.display = 'none';
           successBox.style.display = 'block';
