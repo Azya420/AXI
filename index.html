@@ -799,16 +799,14 @@
   <script src="https://geowidget.easypack24.net/js/sdk-for-javascript.js" defer></script>
   <script>
   document.addEventListener('DOMContentLoaded', function(){
-    // TODO (właściciel strony): podmień poniższe adresy na prawdziwe Stripe Payment Links
-    // (Stripe → Payment Links → utwórz jeden link na każdy rozmiar, kwota jak w cenniku).
-    // Dla każdego linku w Stripe ustaw "po opłaceniu przekieruj do" na adres tej strony
-    // z dopiskiem podanym w komentarzu przy danym rozmiarze poniżej.
+    // Adres przekierowania "po opłaceniu" dla każdego z tych 5 linków ustawia się
+    // w panelu Stripe (Payment Links → dany link → edytuj → "After payment").
     var STRIPE_LINKS = {
-      '3–6 cm':   'https://buy.stripe.com/PODMIEN_3_6cm',   // redirect po płatności: .../#zamow?paid=1&rozmiar=3%E2%80%936%20cm&cena=200%20z%C5%82
-      '7–10 cm':  'https://buy.stripe.com/PODMIEN_7_10cm',  // redirect po płatności: .../#zamow?paid=1&rozmiar=7%E2%80%9310%20cm&cena=220%20z%C5%82
-      '11–15 cm': 'https://buy.stripe.com/PODMIEN_11_15cm', // redirect po płatności: .../#zamow?paid=1&rozmiar=11%E2%80%9315%20cm&cena=250%20z%C5%82
-      '16–20 cm': 'https://buy.stripe.com/PODMIEN_16_20cm', // redirect po płatności: .../#zamow?paid=1&rozmiar=16%E2%80%9320%20cm&cena=280%20z%C5%82
-      '21–25 cm': 'https://buy.stripe.com/PODMIEN_21_25cm'  // redirect po płatności: .../#zamow?paid=1&rozmiar=21%E2%80%9325%20cm&cena=340%20z%C5%82
+      '3–6 cm':   'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200', // redirect po płatności: .../#zamow?paid=1&rozmiar=3%E2%80%936%20cm&cena=200%20z%C5%82
+      '7–10 cm':  'https://buy.stripe.com/8x2bJ23jK0nH8X504teZ201', // redirect po płatności: .../#zamow?paid=1&rozmiar=7%E2%80%9310%20cm&cena=220%20z%C5%82
+      '11–15 cm': 'https://buy.stripe.com/00w14oaMc3zTddlg3reZ202', // redirect po płatności: .../#zamow?paid=1&rozmiar=11%E2%80%9315%20cm&cena=250%20z%C5%82
+      '16–20 cm': 'https://buy.stripe.com/14AdRadYofiBfltaJ7eZ204', // redirect po płatności: .../#zamow?paid=1&rozmiar=16%E2%80%9320%20cm&cena=280%20z%C5%82
+      '21–25 cm': 'https://buy.stripe.com/8x2dRa07y4DXehpaJ7eZ205'  // redirect po płatności: .../#zamow?paid=1&rozmiar=21%E2%80%9325%20cm&cena=340%20z%C5%82
     };
 
     var scaleSelect = document.getElementById('scale');
