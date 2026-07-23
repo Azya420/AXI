@@ -723,11 +723,11 @@
               <label for="scale">Rozmiar figurki</label>
               <select id="scale" name="rozmiar" required>
                 <option value="" disabled selected>Wybierz rozmiar</option>
-                <option value="3–6 cm" data-price="200 zł">3–6 cm — 200 zł</option>
-                <option value="7–10 cm" data-price="220 zł">7–10 cm — 220 zł</option>
-                <option value="11–15 cm" data-price="250 zł">11–15 cm — 250 zł</option>
-                <option value="16–20 cm" data-price="280 zł">16–20 cm — 280 zł</option>
-                <option value="21–25 cm" data-price="340 zł">21–25 cm — 340 zł</option>
+                <option value="3–6 cm" data-price="200 zł">3–6 cm</option>
+                <option value="7–10 cm" data-price="220 zł">7–10 cm</option>
+                <option value="11–15 cm" data-price="250 zł">11–15 cm</option>
+                <option value="16–20 cm" data-price="280 zł">16–20 cm</option>
+                <option value="21–25 cm" data-price="340 zł">21–25 cm</option>
                 <option value="inna" data-price="">Inna wysokość</option>
               </select>
             </div>
@@ -770,6 +770,7 @@
             <div id="easypack-map"></div>
             <input type="hidden" name="paczkomat" id="paczkomat-hidden">
             <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
+            <button type="button" class="btn btn-ghost" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
           </div>
           <button type="button" class="btn btn-primary" id="pay-btn">Zamów figurkę</button>
           <p class="stage-hint">Dla wybranych rozmiarów płatność odbywa się od razu przez Stripe — po opłaceniu wrócisz na tę stronę, żeby dodać opis postaci i zdjęcia. Rozmiar „Inna wysokość” wyceniamy indywidualnie przed płatnością.</p>
@@ -796,7 +797,6 @@
     </div>
   </section>
 
-  <script src="https://geowidget.easypack24.net/js/sdk-for-javascript.js" defer></script>
   <script>
   document.addEventListener('DOMContentLoaded', function(){
     // Adres przekierowania "po opłaceniu" dla każdego z tych 5 linków ustawia się
@@ -825,6 +825,8 @@
     var lockerWrap = document.getElementById('locker-wrap');
     var paczkomatHidden = document.getElementById('paczkomat-hidden');
     var paczkomatStatus = document.getElementById('paczkomat-status');
+    var easypackMapEl = document.getElementById('easypack-map');
+    var changeLockerBtn = document.getElementById('change-locker-btn');
     var ulicaInput = document.getElementById('ulica');
     var kodInput = document.getElementById('kod');
     var miastoInput = document.getElementById('miasto');
@@ -851,21 +853,35 @@
       }
     });
 
-    // Mapa InPost (Leaflet pod spodem) musi się zainicjować DOPIERO gdy jej
-    // kontener jest już widoczny — zainicjowana wewnątrz display:none elementu
+    // Skrypt widgetu InPost (i przeglądarkowe pytanie o lokalizację, które on
+    // wywołuje) wczytujemy dopiero na żądanie — dopiero gdy klient faktycznie
+    // wybierze dostawę do paczkomatu, a nie od razu po wejściu na stronę.
+    // Mapa (Leaflet pod spodem) musi się zainicjować DOPIERO gdy jej kontener
+    // jest już widoczny — zainicjowana wewnątrz display:none elementu
     // zapamiętuje zerowy rozmiar i potem nie renderuje kafelków poprawnie,
-    // nawet po pokazaniu kontenera. Dlatego inicjalizujemy ją leniwie, przy
-    // pierwszym wybraniu dostawy do paczkomatu, gdy mapa jest już odsłonięta.
+    // nawet po pokazaniu kontenera.
     var geowidgetInitialized = false;
     function initGeowidgetIfNeeded(){
-      if(geowidgetInitialized || !window.easyPack) return;
+      if(geowidgetInitialized) return;
       geowidgetInitialized = true;
-      easyPack.init({ defaultLocale: 'pl', points: { types: ['parcel_locker'] }, map: { initialTypes: ['parcel_locker'] } });
-      easyPack.mapWidget('easypack-map', function(point){
-        paczkomatHidden.value = point.name + ' — ' + point.address.line1 + ', ' + point.address.line2;
-        paczkomatStatus.textContent = 'Wybrany paczkomat: ' + point.name + ' (' + point.address.line1 + ')';
-      });
+      var script = document.createElement('script');
+      script.src = 'https://geowidget.easypack24.net/js/sdk-for-javascript.js';
+      script.onload = function(){
+        easyPack.init({ defaultLocale: 'pl', points: { types: ['parcel_locker'] }, map: { initialTypes: ['parcel_locker'] } });
+        easyPack.mapWidget('easypack-map', function(point){
+          paczkomatHidden.value = point.name + ' — ' + point.address.line1 + ', ' + point.address.line2;
+          paczkomatStatus.textContent = 'Wybrany paczkomat: ' + point.name + ' (' + point.address.line1 + ')';
+          // mapa znika po wyborze, żeby było jasne że paczkomat już wybrano
+          easypackMapEl.style.display = 'none';
+          changeLockerBtn.style.display = 'inline-block';
+        });
+      };
+      document.body.appendChild(script);
     }
+    changeLockerBtn.addEventListener('click', function(){
+      easypackMapEl.style.display = 'block';
+      changeLockerBtn.style.display = 'none';
+    });
 
     // wybór sposobu dostawy (dzieje się PRZED płatnością)
     function setDeliveryMethod(method){
