@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dziękujemy za zamówienie — AXI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #100916;
+    --bg-elevated: #1b0f28;
+    --violet-deep: #3b1461;
+    --violet: #6d28d9;
+    --violet-bright: #a78bfa;
+    --bronze: #c9a24b;
+    --ink: #f4eefb;
+    --ink-dim: #b7a8c9;
+    --ink-faint: #7c6c93;
+    --line: rgba(167,139,250,0.16);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Sora', sans-serif;
+    line-height:1.6;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(109,40,217,0.20), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,162,75,0.07), transparent 60%);
+    pointer-events:none;
+    z-index:0;
+  }
+  h1,h2{ font-family:'Cinzel', serif; font-weight:600; }
+  a{ color:inherit; }
+  .wrap{ max-width:720px; margin:0 auto; padding:0 32px; width:100%; }
+  header{
+    position:relative; z-index:1;
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{
+    display:flex; align-items:center;
+    height:76px;
+  }
+  .logo{
+    font-family:'Cinzel', serif;
+    font-size:1.5rem;
+    font-weight:700;
+    letter-spacing:0.14em;
+    text-decoration:none;
+    display:flex; align-items:center; gap:10px;
+  }
+  .logo-mark{ width:26px; height:26px; display:block; }
+  main{
+    position:relative; z-index:1;
+    flex:1;
+    display:flex;
+    align-items:center;
+    padding:64px 0;
+  }
+  .confirm{
+    text-align:center;
+    display:grid;
+    gap:22px;
+    justify-items:center;
+  }
+  .checkmark{
+    width:72px; height:72px;
+    border:1px solid var(--violet-bright);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--violet-bright);
+    font-size:2rem;
+    box-shadow:0 0 40px rgba(109,40,217,0.35);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.74rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--bronze);
+  }
+  .confirm h1{
+    font-size:clamp(1.8rem, 3.4vw, 2.5rem);
+    color:var(--ink);
+  }
+  .confirm p{
+    color:var(--ink-dim);
+    max-width:48ch;
+    font-size:1.02rem;
+  }
+  .next-steps{
+    list-style:none;
+    display:grid;
+    gap:14px;
+    text-align:left;
+    max-width:44ch;
+    margin-top:6px;
+  }
+  .next-steps li{
+    display:flex; gap:12px; align-items:flex-start;
+    font-size:0.92rem; color:var(--ink-dim);
+  }
+  .next-steps li::before{
+    content:"◆";
+    color:var(--bronze);
+    font-size:0.6rem;
+    margin-top:6px;
+  }
+  .btn{
+    display:inline-block;
+    padding:14px 28px;
+    text-decoration:none;
+    font-size:0.92rem;
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:0.03em;
+    background:var(--violet);
+    color:#fff;
+    border:1px solid var(--violet);
+    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    margin-top:8px;
+  }
+  .btn:hover{ background:var(--violet-bright); border-color:var(--violet-bright); color:#150a22; transform:translateY(-2px); }
+  footer{
+    position:relative; z-index:1;
+    padding:24px 0;
+    border-top:1px solid var(--line);
+    text-align:center;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem;
+    color:var(--ink-faint);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a class="logo" href="/">
+      <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 2L29 9V23L16 30L3 23V9L16 2Z" stroke="#a78bfa" stroke-width="1.4"/>
+        <path d="M16 2V30M3 9L29 23M29 9L3 23" stroke="#c9a24b" stroke-width="0.8" opacity="0.7"/>
+      </svg>
+      AXI
+    </a>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap confirm">
+    <div class="checkmark">✓</div>
+    <div class="eyebrow">Płatność przyjęta</div>
+    <h1>Dziękujemy za zamówienie!</h1>
+    <p>Twoja płatność została przyjęta. W ciągu 5 dni roboczych otrzymasz na maila nagranie poglądowe swojej figurki — na tym etapie będzie można zgłosić ewentualne zmiany, zanim model trafi do druku.</p>
+    <ul class="next-steps">
+      <li><span>Nagranie poglądowe figurki na e-mail w ciągu 5 dni roboczych</span></li>
+      <li><span>Możliwość zgłoszenia poprawek przed drukiem</span></li>
+      <li><span>Pytania w międzyczasie? Pisz na <a href="mailto:kontaktaxi3d@gmail.com" style="color:var(--violet-bright); text-decoration:underline;">kontaktaxi3d@gmail.com</a></span></li>
+    </ul>
+    <a class="btn" href="/">Wróć na stronę główną</a>
+  </div>
+</main>
+
+<footer>
+  © 2026 AXI. Wszystkie prawa zastrzeżone.
+</footer>
+
+</body>
+</html>

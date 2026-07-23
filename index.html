@@ -349,6 +349,9 @@
     box-shadow:0 0 0 3px rgba(167,139,250,0.15);
   }
   textarea{ resize:vertical; min-height:110px; }
+  input[type="number"]{ -moz-appearance:textfield; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   form .btn-primary{ border:none; cursor:pointer; justify-self:start; margin-top:6px;}
   input[type="file"]{ padding:10px 14px; cursor:pointer; }
   input[type="file"]::-webkit-file-upload-button{
@@ -709,6 +712,26 @@
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
 
+        <div>
+          <label for="desc">Opis postaci</label>
+          <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
+        </div>
+        <div>
+          <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
+          <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
+        </div>
+        <div class="form-row">
+          <div>
+            <label for="scale">Rozmiar figurki (cm)</label>
+            <input id="scale" name="rozmiar" type="number" min="2" max="25" step="1" placeholder="np. 12" required>
+          </div>
+          <div>
+            <span class="price-box-label">Cena</span>
+            <div class="price-box" id="price-box">
+              <span class="price-value" id="price-value">wpisz rozmiar</span>
+            </div>
+          </div>
+        </div>
         <div class="form-row">
           <div>
             <label for="name">Imię i nazwisko</label>
@@ -722,26 +745,6 @@
         <div>
           <label for="phone">Numer telefonu</label>
           <input id="phone" name="telefon" type="tel" placeholder="600 123 456" required>
-        </div>
-        <div class="form-row">
-          <div>
-            <label for="scale">Rozmiar figurki (cm)</label>
-            <input id="scale" name="rozmiar" type="number" min="1" step="1" placeholder="np. 12" required>
-          </div>
-          <div>
-            <span class="price-box-label">Cena</span>
-            <div class="price-box" id="price-box">
-              <span class="price-value" id="price-value">wpisz rozmiar</span>
-            </div>
-          </div>
-        </div>
-        <div>
-          <label for="desc">Opis postaci</label>
-          <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
-        </div>
-        <div>
-          <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
-          <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
         </div>
         <div>
           <label>Sposób dostawy</label>
@@ -791,7 +794,7 @@
     // przekierowania na Stripe i z powrotem, dlatego kolejność jest odwrócona
     // względem typowego "najpierw zapłać": tu najpierw wysyłamy zgłoszenie.
     var STRIPE_LINKS = {
-      '3–6 cm':   'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200',
+      '2–6 cm':   'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200',
       '7–10 cm':  'https://buy.stripe.com/8x2bJ23jK0nH8X504teZ201',
       '11–15 cm': 'https://buy.stripe.com/00w14oaMc3zTddlg3reZ202',
       '16–20 cm': 'https://buy.stripe.com/14AdRadYofiBfltaJ7eZ204',
@@ -811,11 +814,12 @@
     var easypackMapEl = document.getElementById('easypack-map');
     var changeLockerBtn = document.getElementById('change-locker-btn');
 
-    // Klient wpisuje rozmiar w cm ręcznie — cena zawsze dopasowuje się do
-    // jednego z pięciu ustalonych przedziałów; poza przedziałem 3–25 cm
-    // traktujemy to jako niestandardowy rozmiar wyceniany indywidualnie.
+    // Klient wpisuje rozmiar w cm ręcznie (2–25 cm) — cena zawsze dopasowuje
+    // się do jednego z pięciu ustalonych przedziałów.
+    var SIZE_MIN = 2;
+    var SIZE_MAX = 25;
     var PRICE_BRACKETS = [
-      { min: 3,  max: 6,  label: '3–6 cm',   price: '200 zł' },
+      { min: 2,  max: 6,  label: '2–6 cm',   price: '200 zł' },
       { min: 7,  max: 10, label: '7–10 cm',  price: '220 zł' },
       { min: 11, max: 15, label: '11–15 cm', price: '250 zł' },
       { min: 16, max: 20, label: '16–20 cm', price: '280 zł' },
@@ -840,8 +844,8 @@
         priceValue.textContent = bracket.price;
         priceHidden.value = bracket.price;
       } else {
-        priceValue.textContent = 'wycena indywidualna';
-        priceHidden.value = 'Wycena indywidualna';
+        priceValue.textContent = 'rozmiar 2–25 cm';
+        priceHidden.value = '';
       }
     });
 
@@ -917,15 +921,17 @@
         alert('Podaj rozmiar figurki w centymetrach.');
         return;
       }
+      if(cm < SIZE_MIN || cm > SIZE_MAX){
+        alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' cm.');
+        return;
+      }
       var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
       if(lockerSelected && !paczkomatHidden.value){
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
         return;
       }
       var bracket = getBracket(cm);
-      statusHidden.value = bracket
-        ? 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia'
-        : 'Rozmiar niestandardowy — wycena i płatność ustalane indywidualnie mailem';
+      statusHidden.value = 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia';
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
@@ -935,11 +941,6 @@
         headers: { 'Accept': 'application/json' }
       }).then(function(res){
         if(!res.ok) throw new Error('Wysyłka nieudana');
-        if(!bracket){
-          form.style.display = 'none';
-          successBox.style.display = 'block';
-          return;
-        }
         var link = STRIPE_LINKS[bracket.label];
         if(!link || link.indexOf('PODMIEN') !== -1){
           form.style.display = 'none';
