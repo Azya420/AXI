@@ -184,6 +184,15 @@
     animation: hover-rotate 12s ease-in-out infinite;
     transform-origin:center bottom;
   }
+  .hero-photo{
+    height:440px;
+    width:auto;
+    max-width:340px;
+    object-fit:contain;
+    filter:drop-shadow(0 10px 30px rgba(109,40,217,0.55)) drop-shadow(0 0 40px rgba(167,139,250,0.25));
+    -webkit-mask-image:radial-gradient(ellipse 65% 78% at 50% 52%, #000 35%, transparent 92%);
+    mask-image:radial-gradient(ellipse 65% 78% at 50% 52%, #000 35%, transparent 92%);
+  }
   @media (prefers-reduced-motion: reduce){
     .figure-orbit{ animation:none; }
   }
@@ -555,30 +564,8 @@
       <div class="pedestal-stage">
         <div class="spotlight"></div>
         <div class="figure-orbit">
-          <svg width="220" height="360" viewBox="0 0 220 360" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- cloak -->
-            <path d="M110 60 C70 90 55 160 60 250 C62 280 80 300 110 300 C140 300 158 280 160 250 C165 160 150 90 110 60Z" fill="url(#cloak)" stroke="#a78bfa" stroke-width="1.2"/>
-            <!-- head -->
-            <circle cx="110" cy="42" r="24" fill="#2a1740" stroke="#a78bfa" stroke-width="1.4"/>
-            <path d="M90 34 C96 20 124 20 130 34" stroke="#c9a24b" stroke-width="1.2" fill="none"/>
-            <!-- staff -->
-            <line x1="168" y1="70" x2="150" y2="270" stroke="#c9a24b" stroke-width="2.4"/>
-            <circle cx="170" cy="60" r="10" fill="none" stroke="#c9a24b" stroke-width="1.6"/>
-            <circle cx="170" cy="60" r="4" fill="#a78bfa"/>
-            <!-- arm -->
-            <path d="M120 110 C140 120 155 100 168 72" stroke="#a78bfa" stroke-width="1.2" fill="none"/>
-            <!-- base -->
-            <ellipse cx="110" cy="300" rx="46" ry="10" fill="#150a22" stroke="#c9a24b" stroke-width="1.2"/>
-            <defs>
-              <linearGradient id="cloak" x1="60" y1="60" x2="160" y2="300" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#3b1461"/>
-                <stop offset="1" stop-color="#160a24"/>
-              </linearGradient>
-            </defs>
-          </svg>
+          <img class="hero-photo" src="zdj77.png" alt="Rycerz Śmierci">
         </div>
-        <div class="pedestal-plate"></div>
-        <div class="pedestal-base"></div>
       </div>
     </div>
   </section>
