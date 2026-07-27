@@ -181,21 +181,50 @@
     pointer-events:none;
   }
   .figure-orbit{
+    position:relative;
+    width:340px;
+    height:440px;
     animation: hover-rotate 12s ease-in-out infinite;
     transform-origin:center bottom;
   }
   .hero-photo{
-    height:440px;
-    width:auto;
-    max-width:340px;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
     object-fit:contain;
+    opacity:0;
+    transition:opacity 0.9s ease;
     filter:drop-shadow(0 10px 30px rgba(109,40,217,0.55)) drop-shadow(0 0 40px rgba(167,139,250,0.25));
     -webkit-mask-image:radial-gradient(ellipse 65% 78% at 50% 52%, #000 35%, transparent 92%);
     mask-image:radial-gradient(ellipse 65% 78% at 50% 52%, #000 35%, transparent 92%);
   }
+  .hero-photo.active{ opacity:1; }
   @media (prefers-reduced-motion: reduce){
     .figure-orbit{ animation:none; }
   }
+  .hero-nav{
+    display:flex;
+    justify-content:center;
+    gap:16px;
+    margin-top:20px;
+    position:relative;
+    z-index:1;
+  }
+  .hero-nav-btn{
+    width:40px; height:40px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:rgba(16,9,22,0.6);
+    color:var(--ink-dim);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    font-family:'JetBrains Mono', monospace;
+    font-size:1.15rem;
+    line-height:1;
+    transition:border-color .2s, color .2s, transform .2s;
+  }
+  .hero-nav-btn:hover{ border-color:var(--violet-bright); color:var(--ink); transform:translateY(-2px); }
   @keyframes hover-rotate{
     0%,100%{ transform:rotate(-2.2deg) translateY(0); }
     50%{ transform:rotate(2.2deg) translateY(-6px); }
@@ -561,14 +590,54 @@
         </div>
       </div>
 
-      <div class="pedestal-stage">
-        <div class="spotlight"></div>
-        <div class="figure-orbit">
-          <img class="hero-photo" src="zdj77.png" alt="Rycerz Śmierci">
+      <div>
+        <div class="pedestal-stage">
+          <div class="spotlight"></div>
+          <div class="figure-orbit">
+            <img class="hero-photo active" src="zdj77.png" alt="Rycerz Śmierci">
+            <img class="hero-photo" src="zdj22.png" alt="Piechur">
+            <img class="hero-photo" src="zdj33.png" alt="Mistyk">
+          </div>
+        </div>
+        <div class="hero-nav">
+          <button type="button" class="hero-nav-btn" id="hero-prev" aria-label="Poprzednie zdjęcie">‹</button>
+          <button type="button" class="hero-nav-btn" id="hero-next" aria-label="Następne zdjęcie">›</button>
         </div>
       </div>
     </div>
   </section>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    var slides = document.querySelectorAll('.hero-photo');
+    if(!slides.length) return;
+    var current = 0;
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var timer;
+
+    function show(index){
+      slides[current].classList.remove('active');
+      current = (index + slides.length) % slides.length;
+      slides[current].classList.add('active');
+    }
+    function startAutoplay(){
+      if(reduceMotion) return;
+      clearInterval(timer);
+      timer = setInterval(function(){ show(current + 1); }, 5000);
+    }
+
+    document.getElementById('hero-prev').addEventListener('click', function(){
+      show(current - 1);
+      startAutoplay();
+    });
+    document.getElementById('hero-next').addEventListener('click', function(){
+      show(current + 1);
+      startAutoplay();
+    });
+
+    startAutoplay();
+  });
+  </script>
 
   <!-- PROCESS -->
   <section id="proces">
