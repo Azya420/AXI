@@ -498,21 +498,22 @@
   }
   .testi-photos{
     grid-template-columns:repeat(2,1fr);
-    gap:24px;
+    gap:36px;
     background:none;
     border:none;
   }
   .testi-photo-card{
     background:var(--bg-card);
-    border:1px solid var(--line);
+    border:1px solid rgba(167,139,250,0.32);
     padding:22px;
     display:flex;
     flex-direction:column;
     align-items:center;
     gap:16px;
-    transition:border-color .2s ease, transform .2s ease;
+    box-shadow:0 12px 30px rgba(0,0,0,0.35);
+    transition:border-color .2s ease, transform .2s ease, box-shadow .2s ease;
   }
-  .testi-photo-card:hover{ border-color:var(--violet-bright); transform:translateY(-4px); }
+  .testi-photo-card:hover{ border-color:var(--violet-bright); transform:translateY(-4px); box-shadow:0 16px 36px rgba(0,0,0,0.45); }
   .testi-photo-card img{
     width:100%;
     max-width:420px;
