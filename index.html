@@ -496,9 +496,38 @@
     color:var(--bronze);
     letter-spacing:0.04em;
   }
-  .testi-photos{ grid-template-columns:repeat(2,1fr); }
-  .testi-photo-card{ background:var(--bg); display:flex; align-items:center; }
-  .testi-photo-card img{ width:100%; height:auto; display:block; }
+  .testi-photos{
+    grid-template-columns:repeat(2,1fr);
+    gap:24px;
+    background:none;
+    border:none;
+  }
+  .testi-photo-card{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+    transition:border-color .2s ease, transform .2s ease;
+  }
+  .testi-photo-card:hover{ border-color:var(--violet-bright); transform:translateY(-4px); }
+  .testi-photo-card img{
+    width:100%;
+    max-width:420px;
+    height:auto;
+    display:block;
+    border:1px solid var(--line);
+    box-shadow:0 0 30px rgba(109,40,217,0.16);
+  }
+  .testi-source{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.74rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--bronze);
+  }
 
   /* ---------- FOOTER ---------- */
   footer{
@@ -1025,8 +1054,14 @@
         <p>Kilka opinii od osób, które mają już swoją figurkę AXI na stole.</p>
       </div>
       <div class="testi-grid testi-photos">
-        <div class="testi-photo-card"><img src="op11.png" alt="Opinia klienta poleca stronę AXI"></div>
-        <div class="testi-photo-card"><img src="op22.png" alt="Opinia klienta poleca stronę AXI"></div>
+        <div class="testi-photo-card">
+          <img src="op11.png" alt="Opinia klienta poleca stronę AXI">
+          <span class="testi-source">Facebook · Zweryfikowana opinia</span>
+        </div>
+        <div class="testi-photo-card">
+          <img src="op22.png" alt="Opinia klienta poleca stronę AXI">
+          <span class="testi-source">Facebook · Zweryfikowana opinia</span>
+        </div>
       </div>
     </div>
   </section>
