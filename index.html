@@ -298,9 +298,11 @@
     border:1px solid var(--line);
     padding:0;
     overflow:hidden;
+    cursor:pointer;
     transition:border-color .2s, transform .2s;
   }
   .fig-card:hover{ border-color:var(--violet-bright); transform:translateY(-4px); }
+  .fig-card:focus-visible{ outline:2px solid var(--violet-bright); outline-offset:2px; }
   .fig-stage{
     height:210px;
     position:relative;
@@ -337,6 +339,79 @@
     font-size:1.15rem;
     font-weight:600;
     color:var(--violet-bright);
+  }
+
+  /* ---------- GALLERY LIGHTBOX ---------- */
+  .lightbox{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:100;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .lightbox.active{ display:flex; }
+  .lightbox-backdrop{
+    position:absolute;
+    inset:0;
+    background:rgba(8,4,12,0.82);
+    backdrop-filter:blur(6px);
+  }
+  .lightbox-panel{
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:1.1fr 1fr;
+    max-width:880px;
+    width:100%;
+    max-height:82vh;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    box-shadow:0 24px 60px rgba(0,0,0,0.5), 0 0 60px rgba(109,40,217,0.2);
+    overflow:hidden;
+  }
+  .lightbox-media{
+    background:
+      radial-gradient(circle at 50% 30%, rgba(167,139,250,0.22), transparent 60%),
+      var(--bg-elevated);
+    display:flex; align-items:center; justify-content:center;
+    min-height:280px;
+  }
+  .lightbox-media img{ width:100%; height:100%; object-fit:contain; }
+  .lightbox-info{
+    padding:36px 34px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    overflow-y:auto;
+  }
+  .lightbox-info .fig-scale-label{ font-family:'JetBrains Mono', monospace; }
+  .lightbox-info h3{
+    font-family:'Cinzel', serif;
+    font-size:1.4rem;
+    color:var(--ink);
+  }
+  .lightbox-info p{ color:var(--ink-dim); font-size:0.98rem; }
+  .lightbox-close{
+    position:absolute;
+    top:14px; right:14px;
+    z-index:2;
+    width:36px; height:36px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:rgba(16,9,22,0.7);
+    color:var(--ink);
+    font-size:1.3rem;
+    line-height:1;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .2s, color .2s;
+  }
+  .lightbox-close:hover{ border-color:var(--violet-bright); color:var(--violet-bright); }
+  @media (max-width: 700px){
+    .lightbox-panel{ grid-template-columns:1fr; max-height:88vh; overflow-y:auto; }
+    .lightbox-media{ min-height:220px; }
   }
 
   /* ---------- COMMISSION FORM ---------- */
@@ -739,11 +814,11 @@
     <div class="wrap">
       <div class="section-head">
         <h2>Wybrane realizacje</h2>
-        <p>Przykłady postaci wykonanych dla graczy i kolekcjonerów.</p>
+        <p>Przykłady postaci wykonanych dla graczy i kolekcjonerów. Kliknij kartę, aby zobaczyć opis.</p>
       </div>
       <div class="gallery-grid">
 
-        <div class="fig-card">
+        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Boss finałowej sesji w stylu lovecraftiańskiego horroru — macki zamiast twarzy i groźna sylwetka, która miała zmrozić krew całej drużynie.">
           <div class="fig-stage">
             <img src="cthulhu.png" alt="Przedwieczny" style="object-position:center 45%;">
           </div>
@@ -753,7 +828,7 @@
           </div>
         </div>
 
-        <div class="fig-card">
+        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Barbarzyński wódz orków z toporem na ramieniu — pancerz z kości i trofeów, gotowy do szarży na pierwszej linii.">
           <div class="fig-stage">
             <img src="topornik.png" alt="Ork Wojownik" style="object-position:center 51%;">
           </div>
@@ -763,7 +838,7 @@
           </div>
         </div>
 
-        <div class="fig-card">
+        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Portret prawdziwego kota klienta przeniesiony w klimat science-fiction — kapsuła transportowa zamiast kuwety.">
           <div class="fig-stage">
             <img src="zdj88.png" alt="Kosmiczny Kot Klienta">
           </div>
@@ -773,7 +848,7 @@
           </div>
         </div>
 
-        <div class="fig-card">
+        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Krasnoludzki strażnik w kapturze, wsparty na toporze bojowym — zbroja zdobiona runami rodu.">
           <div class="fig-stage">
             <img src="krasnolud.png" alt="Krasnolud" style="object-position:center 55%;">
           </div>
@@ -783,7 +858,7 @@
           </div>
         </div>
 
-        <div class="fig-card">
+        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Dowódca kawalerii w płaszczu i hełmie z pióropuszem, na koniu w marszu — zamówienie na finałową bitwę kampanii.">
           <div class="fig-stage">
             <img src="zdj66.png" alt="Wojownik na koniu" style="object-position:center 56%;">
           </div>
@@ -793,7 +868,7 @@
           </div>
         </div>
 
-        <div class="fig-card">
+        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Cała drużyna z domowej kampanii — pięć postaci graczy wyrzeźbionych w jednym zamówieniu, każda z osobnym uzbrojeniem i pozą.">
           <div class="fig-stage">
             <img src="zdj11.png" alt="Drużyna RPG dla całej rodziny">
           </div>
@@ -806,6 +881,69 @@
       </div>
     </div>
   </section>
+
+  <div class="lightbox" id="fig-lightbox" aria-hidden="true">
+    <div class="lightbox-backdrop" id="lightbox-backdrop"></div>
+    <div class="lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="lightbox-title">
+      <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Zamknij">×</button>
+      <div class="lightbox-media">
+        <img id="lightbox-img" src="" alt="">
+      </div>
+      <div class="lightbox-info">
+        <span class="fig-scale-label" id="lightbox-scale"></span>
+        <h3 id="lightbox-title"></h3>
+        <p id="lightbox-desc"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    var lightbox = document.getElementById('fig-lightbox');
+    var lbImg = document.getElementById('lightbox-img');
+    var lbTitle = document.getElementById('lightbox-title');
+    var lbDesc = document.getElementById('lightbox-desc');
+    var lbScale = document.getElementById('lightbox-scale');
+    var closeBtn = document.getElementById('lightbox-close');
+    var backdrop = document.getElementById('lightbox-backdrop');
+    var lastFocused = null;
+
+    function openLightbox(card){
+      var img = card.querySelector('img');
+      var scaleValue = card.querySelector('.fig-scale-value');
+      lbImg.src = img.src;
+      lbImg.alt = img.alt;
+      lbTitle.textContent = card.querySelector('h3').textContent;
+      lbScale.textContent = scaleValue ? scaleValue.textContent : '';
+      lbDesc.textContent = card.getAttribute('data-desc') || '';
+      lastFocused = document.activeElement;
+      lightbox.classList.add('active');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    }
+    function closeLightbox(){
+      lightbox.classList.remove('active');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if(lastFocused) lastFocused.focus();
+    }
+    document.querySelectorAll('.fig-card').forEach(function(card){
+      card.addEventListener('click', function(){ openLightbox(card); });
+      card.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          openLightbox(card);
+        }
+      });
+    });
+    closeBtn.addEventListener('click', closeLightbox);
+    backdrop.addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && lightbox.classList.contains('active')) closeLightbox();
+    });
+  });
+  </script>
 
   <!-- COMMISSION FORM -->
   <section class="commission" id="zamow">
