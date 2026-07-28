@@ -522,6 +522,40 @@
     border:1px solid var(--line);
     box-shadow:0 0 30px rgba(109,40,217,0.16);
   }
+
+  /* ---------- CONTACT / SOCIAL ---------- */
+  .social-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+  }
+  .social-card{
+    background:var(--bg);
+    padding:32px 28px;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+    text-decoration:none;
+    color:var(--ink);
+    transition:background .2s ease;
+  }
+  .social-card:hover{ background:var(--bg-card); }
+  .social-card:hover .social-name{ color:var(--violet-bright); }
+  .social-icon{ width:30px; height:30px; color:var(--violet-bright); }
+  .social-name{
+    font-family:'Cinzel', serif;
+    font-size:1.05rem;
+    font-weight:600;
+    transition:color .2s ease;
+  }
+  .social-handle{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.82rem;
+    color:var(--ink-dim);
+  }
   /* ---------- FOOTER ---------- */
   footer{
     padding:56px 0 40px;
@@ -567,6 +601,7 @@
     .gallery-grid{ grid-template-columns:repeat(2,1fr); }
     .commission-grid{ grid-template-columns:1fr; gap:40px; }
     .testi-grid{ grid-template-columns:1fr; }
+    .social-grid{ grid-template-columns:1fr; }
     .form-row{ grid-template-columns:1fr; }
   }
   @media (max-width: 560px){
@@ -590,6 +625,7 @@
       <a href="#prace">Realizacje</a>
       <a href="#zamow">Zamów</a>
       <a href="#opinie">Opinie</a>
+      <a href="#kontakt">Kontakt</a>
     </div>
     <a class="nav-cta" href="#zamow">Zamów figurkę</a>
   </nav>
@@ -1056,6 +1092,33 @@
       </div>
     </div>
   </section>
+
+  <!-- CONTACT / SOCIAL -->
+  <section id="kontakt">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Napisz do nas</h2>
+        <p>Masz pytanie zanim złożysz zamówienie? Najszybciej odpowiadamy w social mediach.</p>
+      </div>
+      <div class="social-grid">
+        <a class="social-card" href="https://www.facebook.com/Axi3D" target="_blank" rel="noopener">
+          <svg class="social-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 8.5h2V5.5h-2c-2.2 0-3.5 1.4-3.5 3.6V11H9.5v3H11.5v6h3v-6h2.3l.4-3H14.5V9.4c0-.6.3-.9.9-.9z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          <span class="social-name">Facebook</span>
+          <span class="social-handle">facebook.com/Axi3D</span>
+        </a>
+        <a class="social-card" href="https://www.instagram.com/axi.3d/" target="_blank" rel="noopener">
+          <svg class="social-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" stroke-width="1.3"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.3"/><circle cx="16.6" cy="7.4" r="0.9" fill="currentColor"/></svg>
+          <span class="social-name">Instagram</span>
+          <span class="social-handle">instagram.com/axi.3d</span>
+        </a>
+        <a class="social-card" href="mailto:kontaktaxi3d@gmail.com">
+          <svg class="social-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.5l8 6 8-6" stroke="currentColor" stroke-width="1.3"/></svg>
+          <span class="social-name">E-mail</span>
+          <span class="social-handle">kontaktaxi3d@gmail.com</span>
+        </a>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -1075,12 +1138,13 @@
           <a href="#prace">Realizacje</a>
           <a href="#zamow">Zamów</a>
           <a href="#opinie">Opinie</a>
+          <a href="#kontakt">Kontakt</a>
         </div>
         <div class="footer-col">
           <h4>Kontakt</h4>
-          <a href="mailto:kontakt@axi-figurki.pl">kontakt@axi-figurki.pl</a>
-          <a href="#">Instagram</a>
-          <a href="#">Discord</a>
+          <a href="mailto:kontaktaxi3d@gmail.com">kontaktaxi3d@gmail.com</a>
+          <a href="https://www.facebook.com/Axi3D" target="_blank" rel="noopener">Facebook</a>
+          <a href="https://www.instagram.com/axi.3d/" target="_blank" rel="noopener">Instagram</a>
         </div>
       </div>
     </div>
