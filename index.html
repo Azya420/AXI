@@ -393,6 +393,19 @@
     color:var(--ink);
   }
   .lightbox-info p{ color:var(--ink-dim); font-size:0.98rem; }
+  .lightbox-desc-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--bronze);
+    margin-top:8px;
+  }
+  .lightbox-desc{
+    font-style:italic;
+    border-left:2px solid var(--violet-bright);
+    padding-left:14px;
+  }
   .lightbox-close{
     position:absolute;
     top:14px; right:14px;
@@ -892,7 +905,8 @@
       <div class="lightbox-info">
         <span class="fig-scale-label" id="lightbox-scale"></span>
         <h3 id="lightbox-title"></h3>
-        <p id="lightbox-desc"></p>
+        <span class="lightbox-desc-label">Opis przesłany przez klienta</span>
+        <p id="lightbox-desc" class="lightbox-desc"></p>
       </div>
     </div>
   </div>
