@@ -811,8 +811,8 @@
         </div>
         <div class="form-row">
           <div>
-            <label for="scale">Rozmiar figurki (cm)</label>
-            <input id="scale" name="rozmiar" type="number" min="2" max="25" step="1" placeholder="np. 12" required>
+            <label for="scale">Rozmiar figurki (mm)</label>
+            <input id="scale" name="rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 120" required>
           </div>
           <div>
             <span class="price-box-label">Cena</span>
@@ -876,11 +876,11 @@
     // przekierowania na Stripe i z powrotem, dlatego kolejność jest odwrócona
     // względem typowego "najpierw zapłać": tu najpierw wysyłamy zgłoszenie.
     var STRIPE_LINKS = {
-      '2–6 cm':   'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200',
-      '7–10 cm':  'https://buy.stripe.com/8x2bJ23jK0nH8X504teZ201',
-      '11–15 cm': 'https://buy.stripe.com/00w14oaMc3zTddlg3reZ202',
-      '16–20 cm': 'https://buy.stripe.com/14AdRadYofiBfltaJ7eZ204',
-      '21–25 cm': 'https://buy.stripe.com/8x2dRa07y4DXehpaJ7eZ205'
+      '20–60 mm':   'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200',
+      '70–100 mm':  'https://buy.stripe.com/8x2bJ23jK0nH8X504teZ201',
+      '110–150 mm': 'https://buy.stripe.com/00w14oaMc3zTddlg3reZ202',
+      '160–200 mm': 'https://buy.stripe.com/14AdRadYofiBfltaJ7eZ204',
+      '210–250 mm': 'https://buy.stripe.com/8x2dRa07y4DXehpaJ7eZ205'
     };
 
     var scaleSelect = document.getElementById('scale');
@@ -896,37 +896,37 @@
     var easypackMapEl = document.getElementById('easypack-map');
     var changeLockerBtn = document.getElementById('change-locker-btn');
 
-    // Klient wpisuje rozmiar w cm ręcznie (2–25 cm) — cena zawsze dopasowuje
+    // Klient wpisuje rozmiar w mm ręcznie (20–250 mm) — cena zawsze dopasowuje
     // się do jednego z pięciu ustalonych przedziałów.
-    var SIZE_MIN = 2;
-    var SIZE_MAX = 25;
+    var SIZE_MIN = 20;
+    var SIZE_MAX = 250;
     var PRICE_BRACKETS = [
-      { min: 2,  max: 6,  label: '2–6 cm',   price: '200 zł' },
-      { min: 7,  max: 10, label: '7–10 cm',  price: '220 zł' },
-      { min: 11, max: 15, label: '11–15 cm', price: '250 zł' },
-      { min: 16, max: 20, label: '16–20 cm', price: '280 zł' },
-      { min: 21, max: 25, label: '21–25 cm', price: '340 zł' }
+      { min: 20,  max: 60,  label: '20–60 mm',   price: '200 zł' },
+      { min: 70,  max: 100, label: '70–100 mm',  price: '220 zł' },
+      { min: 110, max: 150, label: '110–150 mm', price: '250 zł' },
+      { min: 160, max: 200, label: '160–200 mm', price: '280 zł' },
+      { min: 210, max: 250, label: '210–250 mm', price: '340 zł' }
     ];
-    function getBracket(cm){
+    function getBracket(mm){
       for(var i = 0; i < PRICE_BRACKETS.length; i++){
-        if(cm >= PRICE_BRACKETS[i].min && cm <= PRICE_BRACKETS[i].max) return PRICE_BRACKETS[i];
+        if(mm >= PRICE_BRACKETS[i].min && mm <= PRICE_BRACKETS[i].max) return PRICE_BRACKETS[i];
       }
       return null;
     }
 
     scaleSelect.addEventListener('input', function(){
-      var cm = Math.round(parseFloat(scaleSelect.value));
-      if(!scaleSelect.value || isNaN(cm)){
+      var mm = Math.round(parseFloat(scaleSelect.value));
+      if(!scaleSelect.value || isNaN(mm)){
         priceValue.textContent = 'wpisz rozmiar';
         priceHidden.value = '';
         return;
       }
-      var bracket = getBracket(cm);
+      var bracket = getBracket(mm);
       if(bracket){
         priceValue.textContent = bracket.price;
         priceHidden.value = bracket.price;
       } else {
-        priceValue.textContent = 'rozmiar 2–25 cm';
+        priceValue.textContent = 'rozmiar 20–250 mm';
         priceHidden.value = '';
       }
     });
@@ -998,13 +998,13 @@
     var successBox = document.getElementById('form-success');
     form.addEventListener('submit', function(e){
       e.preventDefault();
-      var cm = Math.round(parseFloat(scaleSelect.value));
-      if(!scaleSelect.value || isNaN(cm)){
-        alert('Podaj rozmiar figurki w centymetrach.');
+      var mm = Math.round(parseFloat(scaleSelect.value));
+      if(!scaleSelect.value || isNaN(mm)){
+        alert('Podaj rozmiar figurki w milimetrach.');
         return;
       }
-      if(cm < SIZE_MIN || cm > SIZE_MAX){
-        alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' cm.');
+      if(mm < SIZE_MIN || mm > SIZE_MAX){
+        alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' mm.');
         return;
       }
       var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
@@ -1012,7 +1012,7 @@
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
         return;
       }
-      var bracket = getBracket(cm);
+      var bracket = getBracket(mm);
       statusHidden.value = 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia';
 
       submitBtn.disabled = true;
