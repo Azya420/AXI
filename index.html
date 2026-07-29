@@ -288,10 +288,20 @@
   .process-icon{ width:34px; height:34px; margin-bottom:20px; color:var(--violet-bright); }
 
   /* ---------- GALLERY / spec cards ---------- */
-  .gallery-grid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
+  .gallery-track{
+    display:flex;
     gap:22px;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    padding-bottom:4px;
+    scrollbar-width:none;
+  }
+  .gallery-track::-webkit-scrollbar{ display:none; }
+  .gallery-nav{
+    display:flex;
+    justify-content:center;
+    gap:16px;
+    margin-top:28px;
   }
   .fig-card{
     background:var(--bg-card);
@@ -299,6 +309,8 @@
     padding:0;
     overflow:hidden;
     cursor:pointer;
+    flex:0 0 357px;
+    scroll-snap-align:start;
     transition:border-color .2s, transform .2s;
   }
   .fig-card:hover{ border-color:var(--violet-bright); transform:translateY(-4px); }
@@ -375,10 +387,32 @@
     background:
       radial-gradient(circle at 50% 30%, rgba(167,139,250,0.22), transparent 60%),
       var(--bg-elevated);
-    display:flex; align-items:center; justify-content:center;
+    display:flex;
+    flex-direction:column;
     min-height:280px;
+    max-height:82vh;
+    overflow-y:auto;
   }
+  .lightbox-media-item{
+    position:relative;
+    flex:1;
+    display:flex; align-items:center; justify-content:center;
+    min-height:220px;
+  }
+  .lightbox-media-item + .lightbox-media-item{ border-top:1px solid var(--line); }
   .lightbox-media img{ width:100%; height:100%; object-fit:contain; }
+  .lightbox-media-label{
+    position:absolute;
+    top:10px; left:10px;
+    z-index:1;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--bronze);
+    background:rgba(16,9,22,0.75);
+    padding:4px 9px;
+  }
   .lightbox-info{
     padding:36px 34px;
     display:flex;
@@ -686,7 +720,6 @@
     .case-frame{ grid-template-columns:1fr; }
     .pedestal-stage{ height:340px; }
     .process-grid{ grid-template-columns:repeat(2,1fr); }
-    .gallery-grid{ grid-template-columns:repeat(2,1fr); }
     .commission-grid{ grid-template-columns:1fr; gap:40px; }
     .testi-grid{ grid-template-columns:1fr; }
     .social-grid{ grid-template-columns:1fr; }
@@ -695,7 +728,6 @@
   @media (max-width: 560px){
     .wrap{ padding:0 20px; }
     .process-grid{ grid-template-columns:1fr; }
-    .gallery-grid{ grid-template-columns:1fr; }
     .hero{ padding:64px 0 40px; }
   }
 </style>
@@ -829,7 +861,7 @@
         <h2>Wybrane realizacje</h2>
         <p>Przykłady postaci wykonanych dla graczy i kolekcjonerów. Kliknij kartę, aby zobaczyć opis.</p>
       </div>
-      <div class="gallery-grid">
+      <div class="gallery-track" id="gallery-track">
 
         <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Boss finałowej sesji w stylu lovecraftiańskiego horroru — macki zamiast twarzy i groźna sylwetka, która miała zmrozić krew całej drużynie.">
           <div class="fig-stage">
@@ -891,6 +923,20 @@
           </div>
         </div>
 
+        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Chodzi o odkrywcę, koniecznie z plecakiem i kapeluszem z szerokim rondem. W ręku może trzymać mapę lub księgę. Figurka fantasy, więc bez żadnych &quot;nowoczesnych&quot; elementów, choć np. luneta czy jakiś kompas są dopuszczalne." data-ref="podroznik-material-klienta.jpg">
+          <div class="fig-stage">
+            <img src="podroznik-zdjecie-figurki.png" alt="Podróżnik" style="object-position:center 58%;">
+          </div>
+          <div class="fig-info">
+            <h3>Podróżnik</h3>
+            <div class="fig-scale"><span class="fig-scale-label">Skala</span><span class="fig-scale-value">32 mm</span></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="gallery-nav">
+        <button type="button" class="hero-nav-btn" id="gallery-prev" aria-label="Poprzednie realizacje">‹</button>
+        <button type="button" class="hero-nav-btn" id="gallery-next" aria-label="Następne realizacje">›</button>
       </div>
     </div>
   </section>
@@ -899,8 +945,15 @@
     <div class="lightbox-backdrop" id="lightbox-backdrop"></div>
     <div class="lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="lightbox-title">
       <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Zamknij">×</button>
-      <div class="lightbox-media">
-        <img id="lightbox-img" src="" alt="">
+      <div class="lightbox-media" id="lightbox-media">
+        <div class="lightbox-media-item" id="lightbox-ref-wrap" style="display:none;">
+          <span class="lightbox-media-label">Materiał od klienta</span>
+          <img id="lightbox-ref-img" src="" alt="">
+        </div>
+        <div class="lightbox-media-item">
+          <span class="lightbox-media-label" id="lightbox-img-label" style="display:none;">Finalna figurka</span>
+          <img id="lightbox-img" src="" alt="">
+        </div>
       </div>
       <div class="lightbox-info">
         <span class="fig-scale-label" id="lightbox-scale"></span>
@@ -915,6 +968,9 @@
   document.addEventListener('DOMContentLoaded', function(){
     var lightbox = document.getElementById('fig-lightbox');
     var lbImg = document.getElementById('lightbox-img');
+    var lbImgLabel = document.getElementById('lightbox-img-label');
+    var lbRefWrap = document.getElementById('lightbox-ref-wrap');
+    var lbRefImg = document.getElementById('lightbox-ref-img');
     var lbTitle = document.getElementById('lightbox-title');
     var lbDesc = document.getElementById('lightbox-desc');
     var lbScale = document.getElementById('lightbox-scale');
@@ -925,11 +981,21 @@
     function openLightbox(card){
       var img = card.querySelector('img');
       var scaleValue = card.querySelector('.fig-scale-value');
+      var refSrc = card.getAttribute('data-ref');
       lbImg.src = img.src;
       lbImg.alt = img.alt;
       lbTitle.textContent = card.querySelector('h3').textContent;
       lbScale.textContent = scaleValue ? scaleValue.textContent : '';
       lbDesc.textContent = card.getAttribute('data-desc') || '';
+      if(refSrc){
+        lbRefImg.src = refSrc;
+        lbRefImg.alt = 'Materiał referencyjny od klienta';
+        lbRefWrap.style.display = '';
+        lbImgLabel.style.display = '';
+      } else {
+        lbRefWrap.style.display = 'none';
+        lbImgLabel.style.display = 'none';
+      }
       lastFocused = document.activeElement;
       lightbox.classList.add('active');
       lightbox.setAttribute('aria-hidden', 'false');
@@ -956,6 +1022,69 @@
     document.addEventListener('keydown', function(e){
       if(e.key === 'Escape' && lightbox.classList.contains('active')) closeLightbox();
     });
+
+    // Karuzela realizacji: strzałki do ręcznego przewijania + powolny,
+    // samoistny dryf w prawo/lewo (odbijający się na końcach), tak żeby
+    // klient od razu widział, że realizacji jest więcej niż mieści się
+    // na ekranie. Auto-przewijanie pauzuje przy najechaniu/dotknięciu,
+    // żeby nie uciekało spod kursora podczas czytania czy klikania.
+    var track = document.getElementById('gallery-track');
+    var galleryPrev = document.getElementById('gallery-prev');
+    var galleryNext = document.getElementById('gallery-next');
+    var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function gallerySlideStep(){
+      var card = track.querySelector('.fig-card');
+      if(!card) return 360;
+      var style = window.getComputedStyle(track);
+      var gap = parseFloat(style.columnGap || style.gap) || 0;
+      return card.getBoundingClientRect().width + gap;
+    }
+    // Odpalamy przewijanie ręcznie przez requestAnimationFrame zamiast
+    // scrollBy({behavior:'smooth'}) — natywne płynne przewijanie bywa
+    // wyciszane (np. reduced-motion, część silników headless), przez co
+    // strzałki potrafiłyby nic nie robić bez żadnego błędu w konsoli.
+    function animateScrollBy(el, delta, duration){
+      var startX = el.scrollLeft;
+      var startTime = null;
+      function step(ts){
+        if(startTime === null) startTime = ts;
+        var progress = Math.min((ts - startTime) / duration, 1);
+        var eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        el.scrollLeft = startX + delta * eased;
+        if(progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    galleryPrev.addEventListener('click', function(){
+      animateScrollBy(track, -gallerySlideStep(), 400);
+    });
+    galleryNext.addEventListener('click', function(){
+      animateScrollBy(track, gallerySlideStep(), 400);
+    });
+
+    if(!prefersReducedMotion){
+      // Auto-przewijanie o jedną kartę co kilka sekund (odbijając się na
+      // końcach) zamiast ciągłego dryfu co piksel — mandatory scroll-snap
+      // i tak resetowałby każdy drobny, ułamkowy przyrost z powrotem do
+      // najbliższego punktu przyciągania, więc dryf nigdy by nie ruszył.
+      var autoDirection = 1;
+      var autoPaused = false;
+      function autoAdvance(){
+        if(autoPaused) return;
+        var maxScroll = track.scrollWidth - track.clientWidth;
+        if(maxScroll <= 1) return;
+        if(track.scrollLeft >= maxScroll - 2) autoDirection = -1;
+        else if(track.scrollLeft <= 2) autoDirection = 1;
+        animateScrollBy(track, autoDirection * gallerySlideStep(), 900);
+      }
+      setInterval(autoAdvance, 3500);
+
+      track.addEventListener('mouseenter', function(){ autoPaused = true; });
+      track.addEventListener('mouseleave', function(){ autoPaused = false; });
+      track.addEventListener('touchstart', function(){ autoPaused = true; }, { passive: true });
+      track.addEventListener('touchend', function(){ autoPaused = false; });
+    }
   });
   </script>
 
