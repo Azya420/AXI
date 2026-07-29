@@ -1129,10 +1129,8 @@
         </div>
       </div>
 
-      <form id="commission-form" action="https://api.web3forms.com/submit" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="access_key" value="7aec3f1d-9e95-428e-a129-e96c45644d3a">
+      <form id="commission-form" action="https://forminit.com/f/a509qbo318j" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="subject" value="Nowe zapytanie o figurkę — AXI">
-        <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
 
@@ -1357,7 +1355,7 @@
         body: new FormData(form),
         headers: { 'Accept': 'application/json' }
       }).then(function(res){
-        // TYMCZASOWY DEBUG — pokazuje dokładną odpowiedź Web3Forms (albo
+        // TYMCZASOWY DEBUG — pokazuje dokładną odpowiedź Forminit (albo
         // powód, dla którego nie dało się jej odczytać jako JSON), żeby
         // zdiagnozować błąd wysyłki. Usunąć po diagnozie.
         return res.text().then(function(txt){
