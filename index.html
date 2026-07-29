@@ -292,7 +292,6 @@
     display:flex;
     gap:22px;
     overflow-x:auto;
-    scroll-snap-type:x mandatory;
     padding-bottom:4px;
     scrollbar-width:none;
   }
@@ -310,7 +309,6 @@
     overflow:hidden;
     cursor:pointer;
     flex:0 0 357px;
-    scroll-snap-align:start;
     transition:border-color .2s, transform .2s;
   }
   .fig-card:hover{ border-color:var(--violet-bright); transform:translateY(-4px); }
@@ -1029,9 +1027,25 @@
     // na ekranie. Auto-przewijanie pauzuje przy najechaniu/dotknięciu,
     // żeby nie uciekało spod kursora podczas czytania czy klikania.
     var track = document.getElementById('gallery-track');
+    var galleryNavEl = document.querySelector('.gallery-nav');
     var galleryPrev = document.getElementById('gallery-prev');
     var galleryNext = document.getElementById('gallery-next');
     var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Ciągły, powolny dryf w tle (a nie skok o całą kartę co kilka
+    // sekund), żeby ruch wyglądał na płynne przewijanie, a nie
+    // przeskakiwanie. scrollLeft zaokrągla się do pełnego piksela przy
+    // każdym odczycie, więc doliczanie ułamków piksela (0.4) w oparciu
+    // o odczyt z powrotem z DOM nigdy by się nie uzbierało (0+0.4
+    // zaokrąglone znowu do 0, w kółko) — dlatego pozycję trzymamy we
+    // własnej zmiennej z pełną precyzją i tylko zapisujemy ją do
+    // scrollLeft, nigdy nie licząc od tego, co z niego odczytamy.
+    var driftPos = track.scrollLeft;
+    var autoDirection = 1;
+    var autoPaused = false;
+    function syncDriftPos(){ driftPos = track.scrollLeft; }
+    function pauseDrift(){ autoPaused = true; }
+    function resumeDrift(){ syncDriftPos(); autoPaused = false; }
 
     function gallerySlideStep(){
       var card = track.querySelector('.fig-card');
@@ -1044,7 +1058,10 @@
     // scrollBy({behavior:'smooth'}) — natywne płynne przewijanie bywa
     // wyciszane (np. reduced-motion, część silników headless), przez co
     // strzałki potrafiłyby nic nie robić bez żadnego błędu w konsoli.
+    // Dryf w tle jest pauzowany na czas tej animacji, żeby obie ze sobą
+    // nie walczyły o tę samą wartość scrollLeft.
     function animateScrollBy(el, delta, duration){
+      pauseDrift();
       var startX = el.scrollLeft;
       var startTime = null;
       function step(ts){
@@ -1053,6 +1070,7 @@
         var eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
         el.scrollLeft = startX + delta * eased;
         if(progress < 1) requestAnimationFrame(step);
+        else resumeDrift();
       }
       requestAnimationFrame(step);
     }
@@ -1064,26 +1082,26 @@
     });
 
     if(!prefersReducedMotion){
-      // Auto-przewijanie o jedną kartę co kilka sekund (odbijając się na
-      // końcach) zamiast ciągłego dryfu co piksel — mandatory scroll-snap
-      // i tak resetowałby każdy drobny, ułamkowy przyrost z powrotem do
-      // najbliższego punktu przyciągania, więc dryf nigdy by nie ruszył.
-      var autoDirection = 1;
-      var autoPaused = false;
-      function autoAdvance(){
-        if(autoPaused) return;
-        var maxScroll = track.scrollWidth - track.clientWidth;
-        if(maxScroll <= 1) return;
-        if(track.scrollLeft >= maxScroll - 2) autoDirection = -1;
-        else if(track.scrollLeft <= 2) autoDirection = 1;
-        animateScrollBy(track, autoDirection * gallerySlideStep(), 900);
+      function autoTick(){
+        if(!autoPaused){
+          var maxScroll = track.scrollWidth - track.clientWidth;
+          if(maxScroll > 1){
+            driftPos += autoDirection * 0.4;
+            if(driftPos >= maxScroll){ driftPos = maxScroll; autoDirection = -1; }
+            else if(driftPos <= 0){ driftPos = 0; autoDirection = 1; }
+            track.scrollLeft = driftPos;
+          }
+        }
+        requestAnimationFrame(autoTick);
       }
-      setInterval(autoAdvance, 3500);
+      requestAnimationFrame(autoTick);
 
-      track.addEventListener('mouseenter', function(){ autoPaused = true; });
-      track.addEventListener('mouseleave', function(){ autoPaused = false; });
-      track.addEventListener('touchstart', function(){ autoPaused = true; }, { passive: true });
-      track.addEventListener('touchend', function(){ autoPaused = false; });
+      track.addEventListener('mouseenter', pauseDrift);
+      track.addEventListener('mouseleave', resumeDrift);
+      track.addEventListener('touchstart', pauseDrift, { passive: true });
+      track.addEventListener('touchend', resumeDrift);
+      galleryNavEl.addEventListener('mouseenter', pauseDrift);
+      galleryNavEl.addEventListener('mouseleave', resumeDrift);
     }
   });
   </script>
