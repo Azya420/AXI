@@ -1358,14 +1358,19 @@
         body: new FormData(form),
         headers: { 'Accept': 'application/json' }
       }).then(function(res){
-        if(!res.ok) throw new Error('Wysyłka nieudana');
-        var link = STRIPE_LINKS[bracket.label];
-        if(!link || link.indexOf('PODMIEN') !== -1){
-          form.style.display = 'none';
-          successBox.style.display = 'block';
-          return;
-        }
-        window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
+        // TYMCZASOWY DEBUG — pokazuje surową odpowiedź FormSubmit, żeby
+        // zdiagnozować dlaczego maile nie docierają. Usunąć po diagnozie.
+        return res.text().then(function(txt){
+          alert('DEBUG — status ' + res.status + ':\n\n' + txt.slice(0, 600));
+          if(!res.ok) throw new Error('Wysyłka nieudana');
+          var link = STRIPE_LINKS[bracket.label];
+          if(!link || link.indexOf('PODMIEN') !== -1){
+            form.style.display = 'none';
+            successBox.style.display = 'block';
+            return;
+          }
+          window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
+        });
       }).catch(function(){
         submitBtn.disabled = false;
         submitBtn.textContent = 'Zamów figurkę';
