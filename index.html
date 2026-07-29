@@ -1361,7 +1361,12 @@
         // TYMCZASOWY DEBUG — pokazuje surową odpowiedź FormSubmit, żeby
         // zdiagnozować dlaczego maile nie docierają. Usunąć po diagnozie.
         return res.text().then(function(txt){
-          alert('DEBUG — status ' + res.status + ':\n\n' + txt.slice(0, 600));
+          var readable = txt;
+          try{
+            var parsed = new DOMParser().parseFromString(txt, 'text/html');
+            readable = (parsed.body && parsed.body.innerText ? parsed.body.innerText : txt).trim();
+          }catch(e){}
+          alert('DEBUG — status ' + res.status + ':\n\n' + readable.slice(0, 1200));
           if(!res.ok) throw new Error('Wysyłka nieudana');
           var link = STRIPE_LINKS[bracket.label];
           if(!link || link.indexOf('PODMIEN') !== -1){
