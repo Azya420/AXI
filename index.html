@@ -1123,29 +1123,29 @@
         <div id="locker-wrap">
           <label>Wybierz paczkomat na mapie</label>
           <div id="easypack-map"></div>
-          <input type="hidden" name="paczkomat" id="paczkomat-hidden" form="commission-form">
+          <input type="hidden" name="fi-text-paczkomat" id="paczkomat-hidden" form="commission-form">
           <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
           <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
         </div>
       </div>
 
       <form id="commission-form" action="https://forminit.com/f/a509qbo318j" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="subject" value="Nowe zapytanie o figurkę — AXI">
-        <input type="hidden" name="cena" id="price-hidden" value="">
-        <input type="hidden" name="status_platnosci" id="status-hidden" value="">
+        <input type="hidden" name="fi-text-subject" value="Nowe zapytanie o figurkę — AXI">
+        <input type="hidden" name="fi-text-cena" id="price-hidden" value="">
+        <input type="hidden" name="fi-text-status_platnosci" id="status-hidden" value="">
 
         <div>
           <label for="desc">Opis postaci</label>
-          <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
+          <textarea id="desc" name="fi-text-message" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
         </div>
         <div>
           <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
-          <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
+          <input id="photos" name="fi-file-attachments[]" type="file" accept="image/*" multiple>
         </div>
         <div class="form-row">
           <div>
             <label for="scale">Rozmiar figurki (mm)</label>
-            <input id="scale" name="rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 32" required>
+            <input id="scale" name="fi-number-rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 32" required>
           </div>
           <div>
             <span class="price-box-label">Cena</span>
@@ -1157,38 +1157,38 @@
         <div class="form-row">
           <div>
             <label for="name">Imię i nazwisko</label>
-            <input id="name" name="name" type="text" placeholder="Jan Kowalski" required>
+            <input id="name" name="fi-sender-fullName" type="text" placeholder="Jan Kowalski" required>
           </div>
           <div>
             <label for="email">E-mail</label>
-            <input id="email" name="email" type="email" placeholder="jan@przyklad.pl" required>
+            <input id="email" name="fi-sender-email" type="email" placeholder="jan@przyklad.pl" required>
           </div>
         </div>
         <div>
           <label for="phone">Numer telefonu</label>
-          <input id="phone" name="telefon" type="tel" placeholder="600 123 456" required>
+          <input id="phone" name="fi-sender-phone" type="tel" placeholder="600 123 456" required>
         </div>
         <div>
           <label>Sposób dostawy</label>
           <div class="ship-toggle">
-            <label class="ship-option"><input type="radio" name="dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
-            <label class="ship-option"><input type="radio" name="dostawa" value="Na adres"> Na adres</label>
+            <label class="ship-option"><input type="radio" name="fi-radio-dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
+            <label class="ship-option"><input type="radio" name="fi-radio-dostawa" value="Na adres"> Na adres</label>
           </div>
         </div>
         <div id="address-wrap" style="display:none;">
           <div class="form-row">
             <div>
               <label for="ulica">Ulica i numer</label>
-              <input id="ulica" name="ulica" type="text" placeholder="ul. Kwiatowa 12/3">
+              <input id="ulica" name="fi-sender-address" type="text" placeholder="ul. Kwiatowa 12/3">
             </div>
             <div>
               <label for="kod">Kod pocztowy</label>
-              <input id="kod" name="kod_pocztowy" type="text" placeholder="00-000">
+              <input id="kod" name="fi-sender-postcode" type="text" placeholder="00-000">
             </div>
           </div>
           <div>
             <label for="miasto">Miasto</label>
-            <input id="miasto" name="miasto" type="text" placeholder="Warszawa">
+            <input id="miasto" name="fi-sender-city" type="text" placeholder="Warszawa">
           </div>
         </div>
         <button type="submit" class="btn btn-primary" id="commission-submit">Zamów figurkę</button>
@@ -1308,7 +1308,7 @@
 
     // wybór sposobu dostawy (dzieje się PRZED płatnością)
     function setDeliveryMethod(method){
-      document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
+      document.querySelectorAll('input[name="fi-radio-dostawa"]').forEach(function(radio){
         radio.checked = (radio.value === method);
       });
       if(method === 'Paczkomat InPost'){
@@ -1320,7 +1320,7 @@
         lockerWrap.style.display = 'none';
       }
     }
-    document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
+    document.querySelectorAll('input[name="fi-radio-dostawa"]').forEach(function(radio){
       radio.addEventListener('change', function(){
         if(radio.checked) setDeliveryMethod(radio.value);
       });
@@ -1340,7 +1340,7 @@
         alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' mm.');
         return;
       }
-      var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
+      var lockerSelected = document.querySelector('input[name="fi-radio-dostawa"]:checked').value === 'Paczkomat InPost';
       if(lockerSelected && !paczkomatHidden.value){
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
         return;
