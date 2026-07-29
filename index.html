@@ -1129,11 +1129,8 @@
         </div>
       </div>
 
-      <form id="commission-form" action="https://formsubmit.co/kontaktaxi3d@gmail.com" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="_subject" value="Nowe zapytanie o figurkę — AXI">
-        <input type="hidden" name="_template" value="table">
-        <input type="hidden" name="_captcha" value="false">
-        <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
+      <form id="commission-form" action="https://forminit.com/f/a509qbo318j" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="subject" value="Nowe zapytanie o figurkę — AXI">
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
 
@@ -1358,18 +1355,29 @@
         body: new FormData(form),
         headers: { 'Accept': 'application/json' }
       }).then(function(res){
-        if(!res.ok) throw new Error('Wysyłka nieudana');
-        var link = STRIPE_LINKS[bracket.label];
-        if(!link || link.indexOf('PODMIEN') !== -1){
-          form.style.display = 'none';
-          successBox.style.display = 'block';
-          return;
-        }
-        window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
-      }).catch(function(){
+        // TYMCZASOWY DEBUG — pokazuje dokładną odpowiedź Forminit (albo
+        // powód, dla którego nie dało się jej odczytać jako JSON), żeby
+        // zdiagnozować błąd wysyłki. Usunąć po diagnozie.
+        return res.text().then(function(txt){
+          var data = null;
+          var parseError = null;
+          try{ data = JSON.parse(txt); }catch(e){ parseError = e.message; }
+          alert('DEBUG — status ' + res.status + ' ' + res.statusText + ':\n\n' +
+            (parseError ? 'Nie udało się odczytać jako JSON (' + parseError + ').\nSurowa odpowiedź:\n' + txt.slice(0, 800)
+                        : JSON.stringify(data, null, 2).slice(0, 800)));
+          if(!res.ok) throw new Error((data && data.message) || 'Wysyłka nieudana');
+          var link = STRIPE_LINKS[bracket.label];
+          if(!link || link.indexOf('PODMIEN') !== -1){
+            form.style.display = 'none';
+            successBox.style.display = 'block';
+            return;
+          }
+          window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
+        });
+      }).catch(function(err){
         submitBtn.disabled = false;
         submitBtn.textContent = 'Zamów figurkę';
-        alert('Coś poszło nie tak przy wysyłaniu zamówienia. Spróbuj ponownie albo napisz do nas bezpośrednio na kontaktaxi3d@gmail.com.');
+        alert('DEBUG błąd: ' + (err && err.message ? err.message : err) + '\n\nCoś poszło nie tak przy wysyłaniu zamówienia. Spróbuj ponownie albo napisz do nas bezpośrednio na kontaktaxi3d@gmail.com.');
       });
     });
   });
