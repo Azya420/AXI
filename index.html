@@ -517,6 +517,19 @@
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   form .btn-primary{ border:none; cursor:pointer; justify-self:start; margin-top:6px;}
+  .phone-input{ display:flex; }
+  .phone-input .phone-prefix{
+    display:flex; align-items:center;
+    padding:12px 10px 12px 14px;
+    border:1px solid var(--line);
+    border-right:none;
+    color:var(--ink-dim);
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.92rem;
+    background:var(--bg);
+    white-space:nowrap;
+  }
+  .phone-input input{ border-left:none; }
   input[type="file"]{ padding:10px 14px; cursor:pointer; }
   input[type="file"]::-webkit-file-upload-button{
     background:var(--violet);
@@ -1166,7 +1179,10 @@
         </div>
         <div>
           <label for="phone">Numer telefonu</label>
-          <input id="phone" name="fi-sender-phone" type="tel" placeholder="600 123 456" required>
+          <div class="phone-input">
+            <span class="phone-prefix">+48</span>
+            <input id="phone" name="fi-sender-phone" type="tel" placeholder="600 123 456" required>
+          </div>
         </div>
         <div>
           <label>Sposób dostawy</label>
@@ -1221,6 +1237,7 @@
     var priceHidden = document.getElementById('price-hidden');
     var nameInput = document.getElementById('name');
     var emailInput = document.getElementById('email');
+    var phoneInput = document.getElementById('phone');
     var statusHidden = document.getElementById('status-hidden');
     var addressWrap = document.getElementById('address-wrap');
     var lockerWrap = document.getElementById('locker-wrap');
@@ -1347,6 +1364,12 @@
       }
       var bracket = getBracket(mm);
       statusHidden.value = 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia';
+
+      // Forminit wymaga numeru telefonu w formacie E.164 (+48...) —
+      // pole pokazuje klientowi tylko lokalny numer, prefiks +48 doklejamy
+      // tuż przed wysyłką.
+      var phoneDigits = phoneInput.value.replace(/[^\d]/g, '').replace(/^0+/, '');
+      phoneInput.value = '+48' + phoneDigits;
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
