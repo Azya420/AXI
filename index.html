@@ -258,6 +258,24 @@
   .section-head h2{ font-size:clamp(1.7rem, 2.6vw, 2.3rem); }
   .section-head p{ color:var(--ink-dim); max-width:42ch; font-size:0.95rem; }
 
+  /* ---------- ABOUT ---------- */
+  .about-grid{
+    display:grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap:60px;
+    align-items:center;
+  }
+  .about-copy .eyebrow{ margin-bottom:18px; }
+  .about-copy h2{ font-size:clamp(1.7rem, 2.6vw, 2.3rem); margin-bottom:18px; }
+  .about-copy p{ color:var(--ink-dim); max-width:52ch; font-size:1rem; }
+  .about-copy p + p{ margin-top:14px; }
+  .about-photo{
+    border:1px solid var(--line);
+    overflow:hidden;
+    background:var(--bg-card);
+  }
+  .about-photo img{ width:100%; height:100%; object-fit:cover; display:block; aspect-ratio: 4/5; }
+
   /* ---------- PROCESS ---------- */
   .process-grid{
     display:grid;
@@ -722,6 +740,7 @@
     .navlinks{ display:none; }
     .case-frame{ grid-template-columns:1fr; }
     .pedestal-stage{ height:390px; }
+    .about-grid{ grid-template-columns:1fr; gap:32px; }
     .process-grid{ grid-template-columns:repeat(2,1fr); }
     .commission-grid{ grid-template-columns:1fr; gap:40px; }
     .social-grid{ grid-template-columns:1fr; }
@@ -743,6 +762,7 @@
       AXI
     </div>
     <div class="navlinks">
+      <a href="#o-nas">O nas</a>
       <a href="#proces">Proces</a>
       <a href="#prace">Realizacje</a>
       <a href="#zamow">Zamów</a>
@@ -814,6 +834,21 @@
     startAutoplay();
   });
   </script>
+
+  <!-- ABOUT -->
+  <section id="o-nas">
+    <div class="wrap about-grid">
+      <div class="about-copy">
+        <div class="eyebrow">Kim jesteśmy</div>
+        <h2>Pasja do miniaturek, rzemiosło od pierwszego szkicu</h2>
+        <p>AXI to niewielki zespół twórców, dla których figurki RPG i kolekcjonerskie to coś więcej niż zlecenie — sami gramy, siedzimy przy stole i wiemy, jak wiele znaczy trzymać w dłoni postać dokładnie taką, jaką wymyśliliśmy.</p>
+        <p>Każdy projekt przechodzi przez nasze ręce od pierwszego szkicu 3D, przez akceptację modelu, aż po druk i wykończenie — bez pośredników, bez masowej produkcji. Dzięki temu możemy poświęcić czas na detale, które naprawdę oddają charakter Twojej postaci.</p>
+      </div>
+      <div class="about-photo">
+        <img src="zdj44.png" alt="Figurka wykonana przez AXI">
+      </div>
+    </div>
+  </section>
 
   <!-- PROCESS -->
   <section id="proces">
