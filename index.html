@@ -1319,8 +1319,13 @@
         }
         requestAnimationFrame(autoTick);
 
-        trackEl.addEventListener('mouseenter', pauseDrift);
-        trackEl.addEventListener('mouseleave', resumeDrift);
+        // Pauzujemy dryf tylko przy najechaniu bezpośrednio na kartę, a nie
+        // na cały (szerszy) kontener karuzeli — inaczej ruch zatrzymywałby
+        // się już przy kursorze w przerwach między kartami.
+        trackEl.querySelectorAll(cardSelector).forEach(function(card){
+          card.addEventListener('mouseenter', pauseDrift);
+          card.addEventListener('mouseleave', resumeDrift);
+        });
         trackEl.addEventListener('touchstart', pauseDrift, { passive: true });
         trackEl.addEventListener('touchend', resumeDrift);
         navEl.addEventListener('mouseenter', pauseDrift);
