@@ -1033,7 +1033,8 @@
     // dla realizacji, jak i dla zrzutów opinii.
     var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function initDriftCarousel(trackEl, navEl, prevBtn, nextBtn, cardSelector){
+    function initDriftCarousel(trackEl, navEl, prevBtn, nextBtn, cardSelector, driftSpeed){
+      driftSpeed = driftSpeed || 0.4;
       // Ciągły, powolny dryf w tle (a nie skok o całą kartę co kilka
       // sekund), żeby ruch wyglądał na płynne przewijanie, a nie
       // przeskakiwanie. scrollLeft zaokrągla się do pełnego piksela przy
@@ -1084,7 +1085,7 @@
           if(!autoPaused){
             var maxScroll = trackEl.scrollWidth - trackEl.clientWidth;
             if(maxScroll > 1){
-              driftPos += autoDirection * 0.4;
+              driftPos += autoDirection * driftSpeed;
               if(driftPos >= maxScroll){ driftPos = maxScroll; autoDirection = -1; }
               else if(driftPos <= 0){ driftPos = 0; autoDirection = 1; }
               trackEl.scrollLeft = driftPos;
@@ -1115,7 +1116,8 @@
       document.querySelector('.testi-nav'),
       document.getElementById('testi-prev'),
       document.getElementById('testi-next'),
-      '.testi-msg-card'
+      '.testi-msg-card',
+      0.7
     );
   });
   </script>
