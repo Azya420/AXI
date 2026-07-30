@@ -327,6 +327,11 @@
     padding-bottom:4px;
     scrollbar-width:none;
   }
+  .gallery-track.expanded{
+    flex-wrap:wrap;
+    overflow-x:visible;
+    justify-content:center;
+  }
   .gallery-track::-webkit-scrollbar{ display:none; }
   .gallery-nav{
     display:flex;
@@ -994,6 +999,9 @@
         <button type="button" class="hero-nav-btn" id="gallery-prev" aria-label="Poprzednie realizacje">‹</button>
         <button type="button" class="hero-nav-btn" id="gallery-next" aria-label="Następne realizacje">›</button>
       </div>
+      <div style="text-align:center; margin-top:24px;">
+        <button type="button" class="btn btn-ghost" id="gallery-expand-btn">Zobacz więcej</button>
+      </div>
     </div>
   </section>
 
@@ -1156,15 +1164,26 @@
         navEl.addEventListener('mouseenter', pauseDrift);
         navEl.addEventListener('mouseleave', resumeDrift);
       }
+
+      return { pause: pauseDrift };
     }
 
-    initDriftCarousel(
+    var galleryCarousel = initDriftCarousel(
       document.getElementById('gallery-track'),
       document.querySelector('.gallery-nav'),
       document.getElementById('gallery-prev'),
       document.getElementById('gallery-next'),
       '.fig-card'
     );
+    var galleryTrack = document.getElementById('gallery-track');
+    var galleryNav = document.querySelector('.gallery-nav');
+    var galleryExpandBtn = document.getElementById('gallery-expand-btn');
+    galleryExpandBtn.addEventListener('click', function(){
+      galleryCarousel.pause();
+      galleryTrack.classList.add('expanded');
+      galleryNav.style.display = 'none';
+      galleryExpandBtn.style.display = 'none';
+    });
     initDriftCarousel(
       document.getElementById('testi-track'),
       document.querySelector('.testi-nav'),
