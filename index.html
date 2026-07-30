@@ -259,6 +259,20 @@
   }
   .section-head h2{ font-size:clamp(1.7rem, 2.6vw, 2.3rem); }
   .section-head p{ color:var(--ink-dim); max-width:42ch; font-size:0.95rem; }
+  .section-head-side{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .see-more-link{
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.82rem;
+    letter-spacing:0.03em;
+    color:var(--violet-bright);
+    white-space:nowrap;
+    transition:color .2s;
+  }
+  .see-more-link:hover{ color:var(--ink); }
 
   /* ---------- ABOUT ---------- */
   .about-section{
@@ -920,7 +934,10 @@
     <div class="wrap">
       <div class="section-head">
         <h2>Wybrane realizacje</h2>
-        <p>Przykłady postaci wykonanych dla graczy i kolekcjonerów. Kliknij kartę, aby zobaczyć opis.</p>
+        <div class="section-head-side">
+          <p>Przykłady postaci wykonanych dla graczy i kolekcjonerów. Kliknij kartę, aby zobaczyć opis.</p>
+          <button type="button" class="see-more-link" id="gallery-expand-btn">Zobacz więcej →</button>
+        </div>
       </div>
       <div class="gallery-track" id="gallery-track">
 
@@ -998,9 +1015,6 @@
       <div class="gallery-nav">
         <button type="button" class="hero-nav-btn" id="gallery-prev" aria-label="Poprzednie realizacje">‹</button>
         <button type="button" class="hero-nav-btn" id="gallery-next" aria-label="Następne realizacje">›</button>
-      </div>
-      <div style="text-align:center; margin-top:24px;">
-        <button type="button" class="btn btn-ghost" id="gallery-expand-btn">Zobacz więcej</button>
       </div>
     </div>
   </section>
