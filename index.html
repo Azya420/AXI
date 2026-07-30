@@ -1142,8 +1142,11 @@
         </div>
       </div>
 
-      <form id="commission-form" action="https://usebasin.com/f/8821ed0dbd34" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="subject" value="Nowe zapytanie o figurkę — AXI">
+      <form id="commission-form" action="https://formsubmit.co/ajax/kontaktaxi3d@gmail.com" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="_subject" value="Nowe zapytanie o figurkę — AXI">
+        <input type="hidden" name="_template" value="table">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="hidden" name="_replyto" id="replyto-hidden" value="">
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
 
@@ -1238,6 +1241,7 @@
     var nameInput = document.getElementById('name');
     var emailInput = document.getElementById('email');
     var phoneInput = document.getElementById('phone');
+    var replytoHidden = document.getElementById('replyto-hidden');
     var statusHidden = document.getElementById('status-hidden');
     var addressWrap = document.getElementById('address-wrap');
     var lockerWrap = document.getElementById('locker-wrap');
@@ -1369,6 +1373,7 @@
       // tuż przed wysyłką, żeby w zgłoszeniu był pełny numer.
       var phoneDigits = phoneInput.value.replace(/[^\d]/g, '').replace(/^0+/, '');
       phoneInput.value = '+48' + phoneDigits;
+      replytoHidden.value = emailInput.value;
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
@@ -1381,10 +1386,10 @@
           var data = null;
           var parseError = null;
           try{ data = JSON.parse(txt); }catch(e){ parseError = e.message; }
-          // TYMCZASOWY DEBUG — pokazuje dokładną odpowiedź Basin, żeby
+          // TYMCZASOWY DEBUG — pokazuje dokładną odpowiedź FormSubmit, żeby
           // zdiagnozować błąd wysyłki. Usunąć po diagnozie.
-          console.log('Basin response:', res.status, data || txt);
-          alert('DEBUG — Basin, status ' + res.status + ':\n\n' +
+          console.log('FormSubmit response:', res.status, data || txt);
+          alert('DEBUG — FormSubmit, status ' + res.status + ':\n\n' +
             (parseError ? 'Nie udało się odczytać jako JSON (' + parseError + ').\nSurowa odpowiedź:\n' + txt
                         : JSON.stringify(data, null, 2)));
           if(!res.ok) throw new Error((data && (data.error || data.message)) || 'Wysyłka nieudana');
