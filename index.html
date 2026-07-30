@@ -560,7 +560,6 @@
   }
   .commission-copy p{ color:var(--ink-dim); margin-top:18px; max-width:40ch; font-size:0.95rem;}
   .trust-list{ list-style:none; margin-top:32px; display:grid; gap:14px; }
-  #locker-wrap{ margin-top:32px; }
   .trust-list li{
     display:flex; gap:12px; align-items:flex-start;
     font-size:0.88rem; color:var(--ink-dim);
@@ -572,6 +571,28 @@
     margin-top:6px;
   }
   form{ display:grid; gap:18px; }
+  .shipping-modal-panel{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:560px;
+    max-height:86vh;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    box-shadow:0 24px 60px rgba(0,0,0,0.5), 0 0 60px rgba(109,40,217,0.2);
+    padding:44px;
+    overflow-y:auto;
+    display:grid;
+    gap:18px;
+  }
+  .shipping-modal-panel h3{
+    font-family:'Cinzel', serif;
+    font-size:1.4rem;
+    color:var(--ink);
+  }
+  @media (max-width: 700px){
+    .shipping-modal-panel{ padding:28px 20px; max-height:88vh; }
+  }
   .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
   label{
     display:block;
@@ -1327,14 +1348,6 @@
           <li>Darmowe modyfikacje modelu</li>
           <li>Bezpieczna wysyłka w twardym opakowaniu</li>
         </ul>
-
-        <div id="locker-wrap">
-          <label>Wybierz paczkomat na mapie</label>
-          <div id="easypack-map"></div>
-          <input type="hidden" name="paczkomat" id="paczkomat-hidden" form="commission-form">
-          <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
-          <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
-        </div>
       </div>
 
       <form id="commission-form" action="https://usebasin.com/f/8821ed0dbd34" method="POST" enctype="multipart/form-data">
@@ -1362,47 +1375,7 @@
             </div>
           </div>
         </div>
-        <div class="form-row">
-          <div>
-            <label for="name">Imię i nazwisko</label>
-            <input id="name" name="name" type="text" placeholder="Jan Kowalski" required>
-          </div>
-          <div>
-            <label for="email">E-mail</label>
-            <input id="email" name="email" type="email" placeholder="jan@przyklad.pl" required>
-          </div>
-        </div>
-        <div>
-          <label for="phone">Numer telefonu</label>
-          <div class="phone-input">
-            <span class="phone-prefix">+48</span>
-            <input id="phone" name="telefon" type="tel" placeholder="600 123 456" required>
-          </div>
-        </div>
-        <div>
-          <label>Sposób dostawy</label>
-          <div class="ship-toggle">
-            <label class="ship-option"><input type="radio" name="dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
-            <label class="ship-option"><input type="radio" name="dostawa" value="Na adres"> Na adres</label>
-          </div>
-        </div>
-        <div id="address-wrap" style="display:none;">
-          <div class="form-row">
-            <div>
-              <label for="ulica">Ulica i numer</label>
-              <input id="ulica" name="ulica" type="text" placeholder="ul. Kwiatowa 12/3">
-            </div>
-            <div>
-              <label for="kod">Kod pocztowy</label>
-              <input id="kod" name="kod_pocztowy" type="text" placeholder="00-000">
-            </div>
-          </div>
-          <div>
-            <label for="miasto">Miasto</label>
-            <input id="miasto" name="miasto" type="text" placeholder="Warszawa">
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary" id="commission-submit">Zamów figurkę</button>
+        <button type="button" class="btn btn-primary" id="open-shipping-btn">Zamów figurkę</button>
       </form>
 
       <div class="form-success" id="form-success" style="display:none;">
@@ -1411,6 +1384,64 @@
       </div>
     </div>
   </section>
+
+  <div class="lightbox" id="shipping-modal" aria-hidden="true">
+    <div class="lightbox-backdrop" id="shipping-modal-backdrop"></div>
+    <div class="shipping-modal-panel" role="dialog" aria-modal="true" aria-labelledby="shipping-modal-title">
+      <button type="button" class="lightbox-close" id="shipping-modal-close" aria-label="Zamknij">×</button>
+      <h3 id="shipping-modal-title">Dane do wysyłki</h3>
+
+      <div class="form-row">
+        <div>
+          <label for="name">Imię i nazwisko</label>
+          <input id="name" name="name" form="commission-form" type="text" placeholder="Jan Kowalski" required>
+        </div>
+        <div>
+          <label for="email">E-mail</label>
+          <input id="email" name="email" form="commission-form" type="email" placeholder="jan@przyklad.pl" required>
+        </div>
+      </div>
+      <div>
+        <label for="phone">Numer telefonu</label>
+        <div class="phone-input">
+          <span class="phone-prefix">+48</span>
+          <input id="phone" name="telefon" form="commission-form" type="tel" placeholder="600 123 456" required>
+        </div>
+      </div>
+      <div>
+        <label>Sposób dostawy</label>
+        <div class="ship-toggle">
+          <label class="ship-option"><input type="radio" name="dostawa" form="commission-form" value="Paczkomat InPost" checked> Paczkomat InPost</label>
+          <label class="ship-option"><input type="radio" name="dostawa" form="commission-form" value="Na adres"> Na adres</label>
+        </div>
+      </div>
+      <div id="locker-wrap">
+        <label>Wybierz paczkomat na mapie</label>
+        <div id="easypack-map"></div>
+        <input type="hidden" name="paczkomat" id="paczkomat-hidden" form="commission-form">
+        <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
+        <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
+      </div>
+      <div id="address-wrap" style="display:none;">
+        <div class="form-row">
+          <div>
+            <label for="ulica">Ulica i numer</label>
+            <input id="ulica" name="ulica" form="commission-form" type="text" placeholder="ul. Kwiatowa 12/3">
+          </div>
+          <div>
+            <label for="kod">Kod pocztowy</label>
+            <input id="kod" name="kod_pocztowy" form="commission-form" type="text" placeholder="00-000">
+          </div>
+        </div>
+        <div>
+          <label for="miasto">Miasto</label>
+          <input id="miasto" name="miasto" form="commission-form" type="text" placeholder="Warszawa">
+        </div>
+      </div>
+
+      <button type="submit" form="commission-form" class="btn btn-primary" id="commission-submit">Zamów figurkę</button>
+    </div>
+  </div>
 
   <script>
   document.addEventListener('DOMContentLoaded', function(){
@@ -1506,16 +1537,17 @@
       changeLockerBtn.style.display = 'none';
     });
 
-    // Paczkomat jest domyślnie zaznaczony, więc nic nie wywoła zdarzenia
-    // "change" na starcie — ładujemy widget, gdy sekcja zamówienia faktycznie
-    // wjedzie w widok (a nie natychmiast po wejściu na stronę).
-    if('IntersectionObserver' in window){
-      var zamowObserver = new IntersectionObserver(function(entries){
-        entries.forEach(function(entry){
-          if(entry.isIntersecting) initGeowidgetIfNeeded();
-        });
-      }, { rootMargin: '200px' });
-      zamowObserver.observe(document.getElementById('zamow'));
+    function validateSize(){
+      var mm = Math.round(parseFloat(scaleSelect.value));
+      if(!scaleSelect.value || isNaN(mm)){
+        alert('Podaj rozmiar figurki w milimetrach.');
+        return null;
+      }
+      if(mm < SIZE_MIN || mm > SIZE_MAX){
+        alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' mm.');
+        return null;
+      }
+      return mm;
     }
 
     // wybór sposobu dostawy (dzieje się PRZED płatnością)
@@ -1538,20 +1570,51 @@
       });
     });
 
+    // Formularz jest podzielony na dwie części: dane o figurce zostają na
+    // stronie, a dane do wysyłki (adresowe) wpisuje się dopiero w osobnym
+    // oknie modalnym, otwieranym przyciskiem "Zamów figurkę". Oba zestawy
+    // pól należą jednak do TEGO SAMEGO <form id="commission-form"> — pola
+    // w modalu są z nim powiązane atrybutem form="commission-form", mimo
+    // że fizycznie nie są jego potomkami w DOM (to standardowe zachowanie
+    // HTML, ten sam trik już wcześniej stosowaliśmy dla ukrytego pola
+    // paczkomatu).
+    var shippingModal = document.getElementById('shipping-modal');
+    var shippingModalBackdrop = document.getElementById('shipping-modal-backdrop');
+    var shippingModalClose = document.getElementById('shipping-modal-close');
+    var openShippingBtn = document.getElementById('open-shipping-btn');
+    var shippingLastFocused = null;
+
+    function openShippingModal(){
+      if(validateSize() === null) return;
+      shippingLastFocused = document.activeElement;
+      shippingModal.classList.add('active');
+      shippingModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      if(document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost'){
+        requestAnimationFrame(initGeowidgetIfNeeded);
+      }
+      shippingModalClose.focus();
+    }
+    function closeShippingModal(){
+      shippingModal.classList.remove('active');
+      shippingModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if(shippingLastFocused) shippingLastFocused.focus();
+    }
+    openShippingBtn.addEventListener('click', openShippingModal);
+    shippingModalClose.addEventListener('click', closeShippingModal);
+    shippingModalBackdrop.addEventListener('click', closeShippingModal);
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && shippingModal.classList.contains('active')) closeShippingModal();
+    });
+
     var form = document.getElementById('commission-form');
     var submitBtn = document.getElementById('commission-submit');
     var successBox = document.getElementById('form-success');
     form.addEventListener('submit', function(e){
       e.preventDefault();
-      var mm = Math.round(parseFloat(scaleSelect.value));
-      if(!scaleSelect.value || isNaN(mm)){
-        alert('Podaj rozmiar figurki w milimetrach.');
-        return;
-      }
-      if(mm < SIZE_MIN || mm > SIZE_MAX){
-        alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' mm.');
-        return;
-      }
+      var mm = validateSize();
+      if(mm === null) return;
       var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
       if(lockerSelected && !paczkomatHidden.value){
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
@@ -1590,6 +1653,7 @@
       }).then(function(){
         var link = STRIPE_LINKS[bracket.label];
         if(!link || link.indexOf('PODMIEN') !== -1){
+          closeShippingModal();
           form.style.display = 'none';
           successBox.style.display = 'block';
           return;
