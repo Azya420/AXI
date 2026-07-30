@@ -251,6 +251,8 @@
 
   /* ---------- SECTION shell ---------- */
   section{ position:relative; z-index:1; padding:110px 0; }
+  #prace{ padding-bottom:48px; }
+  #opinie{ padding-top:48px; }
   .section-head{
     display:flex; justify-content:space-between; align-items:flex-end;
     gap:24px; margin-bottom:56px;
@@ -338,6 +340,7 @@
     display:flex;
     gap:22px;
     overflow-x:auto;
+    padding-top:6px;
     padding-bottom:4px;
     scrollbar-width:none;
   }
@@ -486,6 +489,13 @@
     border-left:2px solid var(--violet-bright);
     padding-left:14px;
   }
+  .lightbox-ref{
+    position:relative;
+    margin-top:8px;
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .lightbox-ref img{ width:100%; max-height:260px; object-fit:contain; display:block; background:var(--bg-elevated); }
   .lightbox-close{
     position:absolute;
     top:14px; right:14px;
@@ -692,6 +702,7 @@
     display:flex;
     gap:22px;
     overflow-x:auto;
+    padding-top:6px;
     padding-bottom:4px;
     scrollbar-width:none;
   }
@@ -1048,12 +1059,7 @@
     <div class="lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="lightbox-title">
       <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Zamknij">×</button>
       <div class="lightbox-media" id="lightbox-media">
-        <div class="lightbox-media-item" id="lightbox-ref-wrap" style="display:none;">
-          <span class="lightbox-media-label">Materiał od klienta</span>
-          <img id="lightbox-ref-img" src="" alt="">
-        </div>
         <div class="lightbox-media-item">
-          <span class="lightbox-media-label" id="lightbox-img-label" style="display:none;">Finalna figurka</span>
           <img id="lightbox-img" src="" alt="">
         </div>
       </div>
@@ -1062,6 +1068,10 @@
         <h3 id="lightbox-title"></h3>
         <span class="lightbox-desc-label">Opis przesłany przez klienta</span>
         <p id="lightbox-desc" class="lightbox-desc"></p>
+        <div class="lightbox-ref" id="lightbox-ref-wrap" style="display:none;">
+          <span class="lightbox-media-label">Materiał od klienta</span>
+          <img id="lightbox-ref-img" src="" alt="">
+        </div>
       </div>
     </div>
   </div>
@@ -1079,7 +1089,6 @@
   document.addEventListener('DOMContentLoaded', function(){
     var lightbox = document.getElementById('fig-lightbox');
     var lbImg = document.getElementById('lightbox-img');
-    var lbImgLabel = document.getElementById('lightbox-img-label');
     var lbRefWrap = document.getElementById('lightbox-ref-wrap');
     var lbRefImg = document.getElementById('lightbox-ref-img');
     var lbTitle = document.getElementById('lightbox-title');
@@ -1139,10 +1148,8 @@
         lbRefImg.src = refSrc;
         lbRefImg.alt = 'Materiał referencyjny od klienta';
         lbRefWrap.style.display = '';
-        lbImgLabel.style.display = '';
       } else {
         lbRefWrap.style.display = 'none';
-        lbImgLabel.style.display = 'none';
       }
       lastFocused = document.activeElement;
       lightbox.classList.add('active');
