@@ -603,6 +603,41 @@
     color:var(--ink-faint);
     margin-bottom:8px;
   }
+  .info-tip{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:16px; height:16px;
+    flex-shrink:0;
+    border-radius:50%;
+    border:1px solid var(--ink-faint);
+    color:var(--ink-faint);
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.62rem;
+    cursor:help;
+  }
+  .info-tip:hover, .info-tip:focus-visible{ border-color:var(--violet-bright); color:var(--violet-bright); outline:none; }
+  .info-tip-text{
+    display:none;
+    position:absolute;
+    bottom:calc(100% + 8px);
+    left:50%;
+    transform:translateX(-50%);
+    width:240px;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    font-family:'Sora', sans-serif;
+    font-size:0.78rem;
+    text-transform:none;
+    letter-spacing:normal;
+    padding:10px 12px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    z-index:5;
+    line-height:1.4;
+  }
+  .info-tip:hover .info-tip-text, .info-tip:focus-visible .info-tip-text{ display:block; }
   input, select, textarea{
     width:100%;
     background:var(--bg);
@@ -1340,7 +1375,7 @@
   <section class="commission" id="zamow">
     <div class="wrap commission-grid">
       <div class="commission-copy">
-        <div class="eyebrow">Zamówienie indywidualne</div>
+        <div class="eyebrow">Formularz</div>
         <h2 style="margin-top:14px; font-size:clamp(1.7rem,2.6vw,2.3rem);">Opisz swoją postać - resztą zajmiemy się my</h2>
         <p>Im więcej szczegółów, tym wierniejsza figurka. Karta postaci, opis wyglądu, zdjęcie referencyjne - wszystko się przyda.</p>
         <ul class="trust-list">
@@ -1365,7 +1400,13 @@
         </div>
         <div class="form-row">
           <div>
-            <label for="scale">Rozmiar figurki (mm)</label>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+              <label for="scale" style="margin-bottom:0;">Rozmiar figurki (mm)</label>
+              <span class="info-tip" tabindex="0" role="button" aria-label="Informacja o rozmiarze figurki">
+                i
+                <span class="info-tip-text">Każda figurka będzie zawierać podstawkę — wysokość oznacza wysokość samej postaci, od stóp do czubka głowy, bez podstawki.</span>
+              </span>
+            </div>
             <input id="scale" name="rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 32" required>
           </div>
           <div>
