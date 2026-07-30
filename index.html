@@ -341,11 +341,6 @@
     padding-bottom:4px;
     scrollbar-width:none;
   }
-  .gallery-track.expanded{
-    flex-wrap:wrap;
-    overflow-x:visible;
-    justify-content:center;
-  }
   .gallery-track::-webkit-scrollbar{ display:none; }
   .gallery-nav{
     display:flex;
@@ -510,6 +505,35 @@
   @media (max-width: 700px){
     .lightbox-panel{ grid-template-columns:1fr; max-height:88vh; overflow-y:auto; }
     .lightbox-media{ min-height:220px; }
+  }
+
+  /* ---------- ALL-REALIZATIONS MODAL ---------- */
+  .gallery-all-overlay{ z-index:90; }
+  .gallery-modal-panel{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:1160px;
+    max-height:86vh;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    box-shadow:0 24px 60px rgba(0,0,0,0.5), 0 0 60px rgba(109,40,217,0.2);
+    padding:44px;
+    overflow-y:auto;
+  }
+  .gallery-modal-panel h3{
+    font-family:'Cinzel', serif;
+    font-size:1.5rem;
+    color:var(--ink);
+    margin-bottom:28px;
+  }
+  .gallery-modal-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+    gap:22px;
+  }
+  @media (max-width: 700px){
+    .gallery-modal-panel{ padding:28px 20px; max-height:88vh; }
   }
 
   /* ---------- COMMISSION FORM ---------- */
@@ -1042,6 +1066,15 @@
     </div>
   </div>
 
+  <div class="lightbox gallery-all-overlay" id="gallery-all-modal" aria-hidden="true">
+    <div class="lightbox-backdrop" id="gallery-modal-backdrop"></div>
+    <div class="gallery-modal-panel" role="dialog" aria-modal="true" aria-labelledby="gallery-modal-title">
+      <button type="button" class="lightbox-close" id="gallery-modal-close" aria-label="Zamknij">×</button>
+      <h3 id="gallery-modal-title">Wszystkie realizacje</h3>
+      <div class="gallery-modal-grid" id="gallery-modal-grid"></div>
+    </div>
+  </div>
+
   <script>
   document.addEventListener('DOMContentLoaded', function(){
     var lightbox = document.getElementById('fig-lightbox');
@@ -1055,6 +1088,43 @@
     var closeBtn = document.getElementById('lightbox-close');
     var backdrop = document.getElementById('lightbox-backdrop');
     var lastFocused = null;
+
+    var galleryModal = document.getElementById('gallery-all-modal');
+    var galleryModalGrid = document.getElementById('gallery-modal-grid');
+    var galleryModalClose = document.getElementById('gallery-modal-close');
+    var galleryModalBackdrop = document.getElementById('gallery-modal-backdrop');
+    var galleryExpandBtn = document.getElementById('gallery-expand-btn');
+    var galleryLastFocused = null;
+
+    // Kopiujemy karty z przewijanej karuzeli do osobnego okna modalnego
+    // (zanim podepniemy poniżej nasłuchiwanie kliknięć na .fig-card), żeby
+    // te same kliknięcia otwierające lightbox ze szczegółami zadziałały
+    // też na kopiach w oknie "Wszystkie realizacje".
+    document.querySelectorAll('#gallery-track .fig-card').forEach(function(card){
+      galleryModalGrid.appendChild(card.cloneNode(true));
+    });
+
+    function updateBodyScrollLock(){
+      document.body.style.overflow =
+        (lightbox.classList.contains('active') || galleryModal.classList.contains('active')) ? 'hidden' : '';
+    }
+
+    function openGalleryModal(){
+      galleryLastFocused = document.activeElement;
+      galleryModal.classList.add('active');
+      galleryModal.setAttribute('aria-hidden', 'false');
+      updateBodyScrollLock();
+      galleryModalClose.focus();
+    }
+    function closeGalleryModal(){
+      galleryModal.classList.remove('active');
+      galleryModal.setAttribute('aria-hidden', 'true');
+      updateBodyScrollLock();
+      if(galleryLastFocused) galleryLastFocused.focus();
+    }
+    galleryExpandBtn.addEventListener('click', openGalleryModal);
+    galleryModalClose.addEventListener('click', closeGalleryModal);
+    galleryModalBackdrop.addEventListener('click', closeGalleryModal);
 
     function openLightbox(card){
       var img = card.querySelector('img');
@@ -1077,13 +1147,13 @@
       lastFocused = document.activeElement;
       lightbox.classList.add('active');
       lightbox.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
+      updateBodyScrollLock();
       closeBtn.focus();
     }
     function closeLightbox(){
       lightbox.classList.remove('active');
       lightbox.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
+      updateBodyScrollLock();
       if(lastFocused) lastFocused.focus();
     }
     document.querySelectorAll('.fig-card').forEach(function(card){
@@ -1098,7 +1168,9 @@
     closeBtn.addEventListener('click', closeLightbox);
     backdrop.addEventListener('click', closeLightbox);
     document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape' && lightbox.classList.contains('active')) closeLightbox();
+      if(e.key !== 'Escape') return;
+      if(lightbox.classList.contains('active')) closeLightbox();
+      else if(galleryModal.classList.contains('active')) closeGalleryModal();
     });
 
     // Karuzela przewijalna: strzałki do ręcznego przewijania + powolny,
@@ -1182,22 +1254,13 @@
       return { pause: pauseDrift };
     }
 
-    var galleryCarousel = initDriftCarousel(
+    initDriftCarousel(
       document.getElementById('gallery-track'),
       document.querySelector('.gallery-nav'),
       document.getElementById('gallery-prev'),
       document.getElementById('gallery-next'),
       '.fig-card'
     );
-    var galleryTrack = document.getElementById('gallery-track');
-    var galleryNav = document.querySelector('.gallery-nav');
-    var galleryExpandBtn = document.getElementById('gallery-expand-btn');
-    galleryExpandBtn.addEventListener('click', function(){
-      galleryCarousel.pause();
-      galleryTrack.classList.add('expanded');
-      galleryNav.style.display = 'none';
-      galleryExpandBtn.style.display = 'none';
-    });
     initDriftCarousel(
       document.getElementById('testi-track'),
       document.querySelector('.testi-nav'),
