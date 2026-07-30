@@ -1364,9 +1364,12 @@
       // fetch/AJAX — pliki działają tylko przy natywnym POST przeglądarki.
       // Dlatego tu NIE wołamy e.preventDefault(): walidacja powyżej może
       // przerwać wysyłkę (return), ale gdy dojdzie do tego miejsca, formularz
-      // wysyła się normalnie, a FormSubmit sam przekieruje przeglądarkę
-      // pod adres z _next po przetworzeniu zgłoszenia.
-      nextHidden.value = STRIPE_LINKS[bracket.label] + '?prefilled_email=' + encodeURIComponent(emailInput.value);
+      // wysyła się normalnie, a FormSubmit przekieruje przeglądarkę pod _next.
+      // _next celowo wskazuje na naszą własną domenę (nie bezpośrednio na
+      // Stripe) — FormSubmit odrzuca/ignoruje przekierowania poza domenę
+      // zgłoszenia i przy okazji ubija wysyłkę maila, więc platnosc.html
+      // pośredniczy i dopiero stamtąd JS odsyła klienta do Stripe.
+      nextHidden.value = 'https://axi3d.pl/platnosc.html?bracket=' + encodeURIComponent(bracket.label) + '&email=' + encodeURIComponent(emailInput.value);
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
