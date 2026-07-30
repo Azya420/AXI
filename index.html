@@ -1136,29 +1136,29 @@
         <div id="locker-wrap">
           <label>Wybierz paczkomat na mapie</label>
           <div id="easypack-map"></div>
-          <input type="hidden" name="fi-text-paczkomat" id="paczkomat-hidden" form="commission-form">
+          <input type="hidden" name="paczkomat" id="paczkomat-hidden" form="commission-form">
           <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
           <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
         </div>
       </div>
 
-      <form id="commission-form" action="https://forminit.com/f/a509qbo318j" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="fi-text-subject" value="Nowe zapytanie o figurkę — AXI">
-        <input type="hidden" name="fi-text-cena" id="price-hidden" value="">
-        <input type="hidden" name="fi-text-status_platnosci" id="status-hidden" value="">
+      <form id="commission-form" action="https://usebasin.com/f/8821ed0dbd34" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="subject" value="Nowe zapytanie o figurkę — AXI">
+        <input type="hidden" name="cena" id="price-hidden" value="">
+        <input type="hidden" name="status_platnosci" id="status-hidden" value="">
 
         <div>
           <label for="desc">Opis postaci</label>
-          <textarea id="desc" name="fi-text-message" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
+          <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
         </div>
         <div>
           <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
-          <input id="photos" name="fi-file-attachments[]" type="file" accept="image/*" multiple>
+          <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
         </div>
         <div class="form-row">
           <div>
             <label for="scale">Rozmiar figurki (mm)</label>
-            <input id="scale" name="fi-number-rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 32" required>
+            <input id="scale" name="rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 32" required>
           </div>
           <div>
             <span class="price-box-label">Cena</span>
@@ -1170,41 +1170,41 @@
         <div class="form-row">
           <div>
             <label for="name">Imię i nazwisko</label>
-            <input id="name" name="fi-sender-fullName" type="text" placeholder="Jan Kowalski" required>
+            <input id="name" name="name" type="text" placeholder="Jan Kowalski" required>
           </div>
           <div>
             <label for="email">E-mail</label>
-            <input id="email" name="fi-sender-email" type="email" placeholder="jan@przyklad.pl" required>
+            <input id="email" name="email" type="email" placeholder="jan@przyklad.pl" required>
           </div>
         </div>
         <div>
           <label for="phone">Numer telefonu</label>
           <div class="phone-input">
             <span class="phone-prefix">+48</span>
-            <input id="phone" name="fi-sender-phone" type="tel" placeholder="600 123 456" required>
+            <input id="phone" name="telefon" type="tel" placeholder="600 123 456" required>
           </div>
         </div>
         <div>
           <label>Sposób dostawy</label>
           <div class="ship-toggle">
-            <label class="ship-option"><input type="radio" name="fi-radio-dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
-            <label class="ship-option"><input type="radio" name="fi-radio-dostawa" value="Na adres"> Na adres</label>
+            <label class="ship-option"><input type="radio" name="dostawa" value="Paczkomat InPost" checked> Paczkomat InPost</label>
+            <label class="ship-option"><input type="radio" name="dostawa" value="Na adres"> Na adres</label>
           </div>
         </div>
         <div id="address-wrap" style="display:none;">
           <div class="form-row">
             <div>
               <label for="ulica">Ulica i numer</label>
-              <input id="ulica" name="fi-sender-address" type="text" placeholder="ul. Kwiatowa 12/3">
+              <input id="ulica" name="ulica" type="text" placeholder="ul. Kwiatowa 12/3">
             </div>
             <div>
               <label for="kod">Kod pocztowy</label>
-              <input id="kod" name="fi-sender-postcode" type="text" placeholder="00-000">
+              <input id="kod" name="kod_pocztowy" type="text" placeholder="00-000">
             </div>
           </div>
           <div>
             <label for="miasto">Miasto</label>
-            <input id="miasto" name="fi-sender-city" type="text" placeholder="Warszawa">
+            <input id="miasto" name="miasto" type="text" placeholder="Warszawa">
           </div>
         </div>
         <button type="submit" class="btn btn-primary" id="commission-submit">Zamów figurkę</button>
@@ -1217,11 +1217,8 @@
     </div>
   </section>
 
-  <script src="https://forminit.com/sdk/v1/forminit.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', function(){
-    var forminit = new Forminit();
-    var FORMINIT_FORM_ID = 'a509qbo318j';
     // Klient wype­łnia jeden formularz (dane, rozmiar, opis, zdjęcia, dostawa)
     // i wysyła go od razu — dopiero PO udanej wysyłce zgłoszenia przekierowujemy
     // do płatności Stripe za wybrany rozmiar. Zdjęcia nie przetrwałyby
@@ -1328,7 +1325,7 @@
 
     // wybór sposobu dostawy (dzieje się PRZED płatnością)
     function setDeliveryMethod(method){
-      document.querySelectorAll('input[name="fi-radio-dostawa"]').forEach(function(radio){
+      document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
         radio.checked = (radio.value === method);
       });
       if(method === 'Paczkomat InPost'){
@@ -1340,7 +1337,7 @@
         lockerWrap.style.display = 'none';
       }
     }
-    document.querySelectorAll('input[name="fi-radio-dostawa"]').forEach(function(radio){
+    document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
       radio.addEventListener('change', function(){
         if(radio.checked) setDeliveryMethod(radio.value);
       });
@@ -1360,7 +1357,7 @@
         alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' mm.');
         return;
       }
-      var lockerSelected = document.querySelector('input[name="fi-radio-dostawa"]:checked').value === 'Paczkomat InPost';
+      var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
       if(lockerSelected && !paczkomatHidden.value){
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
         return;
@@ -1368,32 +1365,37 @@
       var bracket = getBracket(mm);
       statusHidden.value = 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia';
 
-      // Forminit wymaga numeru telefonu w formacie E.164 (+48...) —
-      // pole pokazuje klientowi tylko lokalny numer, prefiks +48 doklejamy
-      // tuż przed wysyłką.
+      // Pole pokazuje klientowi tylko lokalny numer, prefiks +48 doklejamy
+      // tuż przed wysyłką, żeby w zgłoszeniu był pełny numer.
       var phoneDigits = phoneInput.value.replace(/[^\d]/g, '').replace(/^0+/, '');
       phoneInput.value = '+48' + phoneDigits;
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
-      forminit.submit(FORMINIT_FORM_ID, new FormData(form)).then(function(result){
-        // TYMCZASOWY DEBUG — pokazuje dokładną odpowiedź Forminit, żeby
-        // zdiagnozować błąd wysyłki. Usunąć po diagnozie.
-        console.log('Forminit response:', result);
-        alert('DEBUG — Forminit (pełna odpowiedź w konsoli przeglądarki, F12):\n\n' + JSON.stringify({ data: result.data, error: result.error, redirectUrl: result.redirectUrl }, null, 2));
-        if(result.error){
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Zamów figurkę';
-          alert('Coś poszło nie tak przy wysyłaniu zamówienia: ' + result.error.message + '\n\nSpróbuj ponownie albo napisz do nas bezpośrednio na kontaktaxi3d@gmail.com.');
-          return;
-        }
-        var link = STRIPE_LINKS[bracket.label];
-        if(!link || link.indexOf('PODMIEN') !== -1){
-          form.style.display = 'none';
-          successBox.style.display = 'block';
-          return;
-        }
-        window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'Accept': 'application/json' }
+      }).then(function(res){
+        return res.text().then(function(txt){
+          var data = null;
+          var parseError = null;
+          try{ data = JSON.parse(txt); }catch(e){ parseError = e.message; }
+          // TYMCZASOWY DEBUG — pokazuje dokładną odpowiedź Basin, żeby
+          // zdiagnozować błąd wysyłki. Usunąć po diagnozie.
+          console.log('Basin response:', res.status, data || txt);
+          alert('DEBUG — Basin, status ' + res.status + ':\n\n' +
+            (parseError ? 'Nie udało się odczytać jako JSON (' + parseError + ').\nSurowa odpowiedź:\n' + txt
+                        : JSON.stringify(data, null, 2)));
+          if(!res.ok) throw new Error((data && (data.error || data.message)) || 'Wysyłka nieudana');
+          var link = STRIPE_LINKS[bracket.label];
+          if(!link || link.indexOf('PODMIEN') !== -1){
+            form.style.display = 'none';
+            successBox.style.display = 'block';
+            return;
+          }
+          window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
+        });
       }).catch(function(err){
         submitBtn.disabled = false;
         submitBtn.textContent = 'Zamów figurkę';
