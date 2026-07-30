@@ -1257,8 +1257,9 @@
     // dla realizacji, jak i dla zrzutów opinii.
     var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function initDriftCarousel(trackEl, navEl, prevBtn, nextBtn, cardSelector, driftSpeed){
+    function initDriftCarousel(trackEl, navEl, prevBtn, nextBtn, cardSelector, driftSpeed, pauseOnNavHover){
       driftSpeed = driftSpeed || 0.4;
+      if(pauseOnNavHover === undefined) pauseOnNavHover = true;
       // Ciągły, powolny dryf w tle (a nie skok o całą kartę co kilka
       // sekund), żeby ruch wyglądał na płynne przewijanie, a nie
       // przeskakiwanie. scrollLeft zaokrągla się do pełnego piksela przy
@@ -1328,8 +1329,10 @@
         // automatyczny dryf.
         trackEl.addEventListener('touchstart', pauseDrift, { passive: true });
         trackEl.addEventListener('touchend', resumeDrift);
-        navEl.addEventListener('mouseenter', pauseDrift);
-        navEl.addEventListener('mouseleave', resumeDrift);
+        if(pauseOnNavHover){
+          navEl.addEventListener('mouseenter', pauseDrift);
+          navEl.addEventListener('mouseleave', resumeDrift);
+        }
       }
 
       return { pause: pauseDrift };
@@ -1348,7 +1351,8 @@
       document.getElementById('testi-prev'),
       document.getElementById('testi-next'),
       '.testi-msg-card',
-      0.7
+      0.7,
+      false
     );
   });
   </script>
