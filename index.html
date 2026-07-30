@@ -564,18 +564,6 @@
     font-size:1.05rem;
     color:var(--violet-bright);
   }
-  .form-success{
-    border:1px solid var(--violet-bright);
-    background:var(--bg);
-    padding:32px;
-  }
-  .form-success h3{
-    font-family:'Cinzel', serif;
-    font-size:1.3rem;
-    color:var(--violet-bright);
-    margin-bottom:12px;
-  }
-  .form-success p{ color:var(--ink-dim); font-size:0.95rem; }
   .stage-hint{
     color:var(--ink-faint);
     font-size:0.82rem;
@@ -1142,11 +1130,12 @@
         </div>
       </div>
 
-      <form id="commission-form" action="https://formsubmit.co/ajax/kontaktaxi3d@gmail.com" method="POST" enctype="multipart/form-data">
+      <form id="commission-form" action="https://formsubmit.co/kontaktaxi3d@gmail.com" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="_subject" value="Nowe zapytanie o figurkę — AXI">
         <input type="hidden" name="_template" value="table">
         <input type="hidden" name="_captcha" value="false">
         <input type="hidden" name="_replyto" id="replyto-hidden" value="">
+        <input type="hidden" name="_next" id="next-hidden" value="">
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
 
@@ -1212,11 +1201,6 @@
         </div>
         <button type="submit" class="btn btn-primary" id="commission-submit">Zamów figurkę</button>
       </form>
-
-      <div class="form-success" id="form-success" style="display:none;">
-        <h3>Zamówienie zostało złożone!</h3>
-        <p>Dziękujemy — w ciągu 5 dni otrzymasz od nas model poglądowy swojej figurki do akceptacji.</p>
-      </div>
     </div>
   </section>
 
@@ -1242,6 +1226,7 @@
     var emailInput = document.getElementById('email');
     var phoneInput = document.getElementById('phone');
     var replytoHidden = document.getElementById('replyto-hidden');
+    var nextHidden = document.getElementById('next-hidden');
     var statusHidden = document.getElementById('status-hidden');
     var addressWrap = document.getElementById('address-wrap');
     var lockerWrap = document.getElementById('locker-wrap');
@@ -1349,20 +1334,21 @@
 
     var form = document.getElementById('commission-form');
     var submitBtn = document.getElementById('commission-submit');
-    var successBox = document.getElementById('form-success');
     form.addEventListener('submit', function(e){
-      e.preventDefault();
       var mm = Math.round(parseFloat(scaleSelect.value));
       if(!scaleSelect.value || isNaN(mm)){
+        e.preventDefault();
         alert('Podaj rozmiar figurki w milimetrach.');
         return;
       }
       if(mm < SIZE_MIN || mm > SIZE_MAX){
+        e.preventDefault();
         alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' mm.');
         return;
       }
       var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
       if(lockerSelected && !paczkomatHidden.value){
+        e.preventDefault();
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
         return;
       }
@@ -1374,38 +1360,16 @@
       var phoneDigits = phoneInput.value.replace(/[^\d]/g, '').replace(/^0+/, '');
       phoneInput.value = '+48' + phoneDigits;
       replytoHidden.value = emailInput.value;
+      // FormSubmit nie obsługuje załączników plikowych przy wysyłce przez
+      // fetch/AJAX — pliki działają tylko przy natywnym POST przeglądarki.
+      // Dlatego tu NIE wołamy e.preventDefault(): walidacja powyżej może
+      // przerwać wysyłkę (return), ale gdy dojdzie do tego miejsca, formularz
+      // wysyła się normalnie, a FormSubmit sam przekieruje przeglądarkę
+      // pod adres z _next po przetworzeniu zgłoszenia.
+      nextHidden.value = STRIPE_LINKS[bracket.label] + '?prefilled_email=' + encodeURIComponent(emailInput.value);
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
-      fetch(form.action, {
-        method: 'POST',
-        body: new FormData(form),
-        headers: { 'Accept': 'application/json' }
-      }).then(function(res){
-        return res.text().then(function(txt){
-          var data = null;
-          var parseError = null;
-          try{ data = JSON.parse(txt); }catch(e){ parseError = e.message; }
-          // TYMCZASOWY DEBUG — pokazuje dokładną odpowiedź FormSubmit, żeby
-          // zdiagnozować błąd wysyłki. Usunąć po diagnozie.
-          console.log('FormSubmit response:', res.status, data || txt);
-          alert('DEBUG — FormSubmit, status ' + res.status + ':\n\n' +
-            (parseError ? 'Nie udało się odczytać jako JSON (' + parseError + ').\nSurowa odpowiedź:\n' + txt
-                        : JSON.stringify(data, null, 2)));
-          if(!res.ok) throw new Error((data && (data.error || data.message)) || 'Wysyłka nieudana');
-          var link = STRIPE_LINKS[bracket.label];
-          if(!link || link.indexOf('PODMIEN') !== -1){
-            form.style.display = 'none';
-            successBox.style.display = 'block';
-            return;
-          }
-          window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
-        });
-      }).catch(function(err){
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Zamów figurkę';
-        alert('DEBUG błąd: ' + (err && err.message ? err.message : err) + '\n\nCoś poszło nie tak przy wysyłaniu zamówienia. Spróbuj ponownie albo napisz do nas bezpośrednio na kontaktaxi3d@gmail.com.');
-      });
     });
   });
   </script>
