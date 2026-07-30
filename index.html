@@ -1142,7 +1142,7 @@
         </div>
       </div>
 
-      <form id="commission-form" action="https://usebasin.com/f/6869dc389df9" method="POST" enctype="multipart/form-data">
+      <form id="commission-form" action="https://usebasin.com/f/8821ed0dbd34" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="subject" value="Nowe zapytanie o figurkę — AXI">
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
@@ -1372,23 +1372,34 @@
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Wysyłanie...';
-      fetch(form.action, {
-        method: 'POST',
-        body: new FormData(form),
-        headers: { 'Accept': 'application/json' }
-      }).then(function(res){
-        return res.text().then(function(txt){
-          var data = null;
-          try{ data = JSON.parse(txt); }catch(e){}
-          if(!res.ok) throw new Error((data && (data.error || data.message)) || 'Wysyłka nieudana');
-          var link = STRIPE_LINKS[bracket.label];
-          if(!link || link.indexOf('PODMIEN') !== -1){
-            form.style.display = 'none';
-            successBox.style.display = 'block';
-            return;
-          }
-          window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
+
+      function trySubmit(endpoint){
+        return fetch(endpoint, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'Accept': 'application/json' }
+        }).then(function(res){
+          return res.text().then(function(txt){
+            var data = null;
+            try{ data = JSON.parse(txt); }catch(e){}
+            if(!res.ok) throw new Error((data && (data.error || data.message)) || 'Wysyłka nieudana');
+          });
         });
+      }
+
+      // Basin (darmowy plan) ma limit 50 zgłoszeń miesięcznie — gdy główne
+      // konto go wyczerpie, próbujemy automatycznie zapasowego konta zanim
+      // pokażemy klientowi błąd.
+      trySubmit(form.action).catch(function(){
+        return trySubmit('https://usebasin.com/f/6869dc389df9');
+      }).then(function(){
+        var link = STRIPE_LINKS[bracket.label];
+        if(!link || link.indexOf('PODMIEN') !== -1){
+          form.style.display = 'none';
+          successBox.style.display = 'block';
+          return;
+        }
+        window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
       }).catch(function(err){
         submitBtn.disabled = false;
         submitBtn.textContent = 'Zamów figurkę';
