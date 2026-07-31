@@ -317,6 +317,17 @@
     background:var(--bg-elevated);
     margin-bottom:20px;
   }
+  .process-img-frame{
+    width:100%;
+    aspect-ratio: 3/4;
+    overflow:hidden;
+    margin-bottom:20px;
+  }
+  .process-img-frame .process-img{
+    height:100%;
+    object-fit:cover;
+    margin-bottom:0;
+  }
   .process-num{
     font-family:'Cinzel', serif;
     font-size:2.6rem;
@@ -1015,7 +1026,9 @@
         </div>
 
         <div class="process-step">
-          <img class="process-img" src="lewzdjgotowe.png" alt="Wydruk i wysyłka gotowej figurki">
+          <div class="process-img-frame">
+            <img class="process-img" src="lewzdjgotowe.png" alt="Wydruk i wysyłka gotowej figurki" style="transform:scale(1.6); transform-origin:center 56%; margin-bottom:0;">
+          </div>
           <div class="process-num">03</div>
           <div class="process-body">
             <h3>Wydruk i wysyłka</h3>
