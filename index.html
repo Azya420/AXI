@@ -795,12 +795,6 @@
     transition:border-color .2s ease, transform .2s ease;
   }
   .testi-msg-card:hover{ border-color:var(--violet-bright); transform:translateY(-4px); }
-  .testi-msg-card--plain{
-    height:240px;
-    background:none;
-    border:none;
-    padding:0;
-  }
   .testi-msg-card img{
     display:block;
     width:auto;
@@ -811,13 +805,6 @@
     border:3px solid rgba(201,162,75,0.35);
     box-shadow:0 12px 32px rgba(0,0,0,0.5), 0 0 36px rgba(109,40,217,0.25);
   }
-  .testi-msg-card--plain img{
-    border:16px solid var(--line);
-    border-radius:0;
-    box-shadow:none;
-    transition:border-color .2s ease;
-  }
-  .testi-msg-card--plain:hover img{ border-color:var(--violet-bright); }
 
   /* ---------- CONTACT / SOCIAL ---------- */
   .social-grid{
@@ -908,7 +895,6 @@
     .process-steps{ grid-template-columns:1fr; gap:28px; }
     .hero{ padding:64px 0 40px; }
     .testi-msg-card{ height:150px; }
-    .testi-msg-card--plain{ height:160px; }
   }
 </style>
 </head>
@@ -1470,7 +1456,7 @@
         <h2>Głosy graczy i kolekcjonerów</h2>
       </div>
       <div class="testi-track" id="testi-track">
-        <div class="testi-msg-card testi-msg-card--plain"><img src="opiniabeztla1.png" alt="Wiadomość od klienta z podziękowaniem za figurkę"></div>
+        <div class="testi-msg-card"><img src="opiniabeztla1.png" alt="Wiadomość od klienta z podziękowaniem za figurkę"></div>
         <div class="testi-msg-card"><img src="opiniames2.png" alt="Wiadomość od klienta z podziękowaniem za figurkę"></div>
         <div class="testi-msg-card"><img src="opiniames3.png" alt="Wiadomość od klienta z podziękowaniem za figurkę"></div>
         <div class="testi-msg-card"><img src="opiniames4.png" alt="Wiadomość od klienta z podziękowaniem za figurkę"></div>
