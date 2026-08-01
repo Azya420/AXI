@@ -1563,7 +1563,7 @@
         <label>Wybierz paczkomat na mapie</label>
         <div id="easypack-map"></div>
         <input type="hidden" name="paczkomat" id="paczkomat-hidden" form="commission-form">
-        <p class="stage-hint" id="paczkomat-status">Nie wybrano jeszcze paczkomatu.</p>
+        <p class="stage-hint" id="paczkomat-status"></p>
         <button type="button" class="change-locker" id="change-locker-btn" style="display:none;">Zmień paczkomat</button>
       </div>
       <div id="address-wrap" style="display:none;">
@@ -1615,6 +1615,9 @@
     var paczkomatStatus = document.getElementById('paczkomat-status');
     var easypackMapEl = document.getElementById('easypack-map');
     var changeLockerBtn = document.getElementById('change-locker-btn');
+    var ulicaInput = document.getElementById('ulica');
+    var kodInput = document.getElementById('kod');
+    var miastoInput = document.getElementById('miasto');
 
     // Klient wpisuje rozmiar w mm ręcznie (20–250 mm) — cena zawsze dopasowuje
     // się do jednego z pięciu ustalonych przedziałów.
@@ -1762,6 +1765,10 @@
       var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
       if(lockerSelected && !paczkomatHidden.value){
         alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
+        return;
+      }
+      if(!lockerSelected && (!ulicaInput.value.trim() || !kodInput.value.trim() || !miastoInput.value.trim())){
+        alert('Podaj adres dostawy przed wysłaniem zamówienia.');
         return;
       }
       var bracket = getBracket(mm);
