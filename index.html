@@ -1138,7 +1138,7 @@
           </div>
         </div>
 
-        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Portret prawdziwego kota klienta przeniesiony w klimat science-fiction — kapsuła transportowa zamiast kuwety.">
+        <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-ref="kosmicznykotklientamterialklienta1.jpg,kosmicznykotklientamterialklienta2.jpg">
           <div class="fig-stage">
             <img src="zdj88.png" alt="Kosmiczny Kot Klienta">
           </div>
@@ -1226,9 +1226,7 @@
         </div>
         <div id="lightbox-ref-wrap" style="display:none;">
           <span class="lightbox-media-label">Materiał od klienta</span>
-          <div class="lightbox-ref">
-            <img id="lightbox-ref-img" src="" alt="">
-          </div>
+          <div id="lightbox-ref-list"></div>
         </div>
       </div>
     </div>
@@ -1249,7 +1247,7 @@
     var lbImg = document.getElementById('lightbox-img');
     var lbRefWrap = document.getElementById('lightbox-ref-wrap');
     var lbDescWrap = document.getElementById('lightbox-desc-wrap');
-    var lbRefImg = document.getElementById('lightbox-ref-img');
+    var lbRefList = document.getElementById('lightbox-ref-list');
     var lbTitle = document.getElementById('lightbox-title');
     var lbDesc = document.getElementById('lightbox-desc');
     var lbScale = document.getElementById('lightbox-scale');
@@ -1305,9 +1303,19 @@
       var descText = card.getAttribute('data-desc');
       lbDesc.textContent = descText || '';
       lbDescWrap.style.display = descText ? '' : 'none';
+      lbRefList.innerHTML = '';
       if(refSrc){
-        lbRefImg.src = refSrc;
-        lbRefImg.alt = 'Materiał referencyjny od klienta';
+        refSrc.split(',').forEach(function(src){
+          src = src.trim();
+          if(!src) return;
+          var refBox = document.createElement('div');
+          refBox.className = 'lightbox-ref';
+          var refImg = document.createElement('img');
+          refImg.src = src;
+          refImg.alt = 'Materiał referencyjny od klienta';
+          refBox.appendChild(refImg);
+          lbRefList.appendChild(refBox);
+        });
         lbRefWrap.style.display = '';
       } else {
         lbRefWrap.style.display = 'none';
