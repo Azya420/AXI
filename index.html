@@ -910,6 +910,33 @@
     .process-step .process-img,
     .process-step .process-img-frame{ order:3; margin-bottom:0; margin-top:20px; }
   }
+
+  /* ---------- COOKIE CONSENT ---------- */
+  .cookie-banner{
+    position:fixed; left:0; right:0; bottom:0; z-index:200;
+    background:var(--bg-elevated);
+    border-top:1px solid var(--line);
+    padding:18px 24px;
+    display:none;
+    align-items:center; justify-content:center; gap:20px;
+    flex-wrap:wrap;
+  }
+  .cookie-banner.active{ display:flex; }
+  .cookie-banner p{ color:var(--ink-dim); font-size:0.88rem; margin:0; max-width:60ch; }
+  .cookie-banner-actions{ display:flex; gap:12px; flex-shrink:0; }
+  .cookie-btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.82rem;
+    padding:9px 18px;
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:none;
+    color:var(--ink-dim);
+    transition:border-color .2s, color .2s, background .2s;
+  }
+  .cookie-btn:hover{ border-color:var(--violet-bright); color:var(--ink); }
+  .cookie-btn-accept{ background:var(--violet); border-color:var(--violet); color:#fff; }
+  .cookie-btn-accept:hover{ background:var(--violet-bright); border-color:var(--violet-bright); color:#150a22; }
 </style>
 </head>
 <body>
@@ -1905,6 +1932,50 @@
     </div>
   </div>
 </footer>
+
+<div class="cookie-banner" id="cookie-banner">
+  <p>Używamy plików cookie do analizy ruchu na stronie za pomocą Google Analytics. Możesz zaakceptować lub odrzucić — więcej informacji w <a href="regulamin.html">regulaminie</a>.</p>
+  <div class="cookie-banner-actions">
+    <button type="button" class="cookie-btn" id="cookie-decline">Odrzuć</button>
+    <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję</button>
+  </div>
+</div>
+<script>
+(function(){
+  var GA_ID = 'G-M3L9ZPRGMB';
+  function loadGA(){
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('config', GA_ID);
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    var consent = localStorage.getItem('cookie-consent');
+    if(consent === 'accepted'){
+      loadGA();
+      return;
+    }
+    if(consent === 'declined') return;
+    var banner = document.getElementById('cookie-banner');
+    if(!banner) return;
+    banner.classList.add('active');
+    document.getElementById('cookie-accept').addEventListener('click', function(){
+      localStorage.setItem('cookie-consent', 'accepted');
+      banner.classList.remove('active');
+      loadGA();
+    });
+    document.getElementById('cookie-decline').addEventListener('click', function(){
+      localStorage.setItem('cookie-consent', 'declined');
+      banner.classList.remove('active');
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
