@@ -107,7 +107,7 @@
     text-decoration:none;
     color:var(--ink);
     transition:background .2s, color .2s;
-    font-family:'Century Gothic', monospace;
+    font-family:'Century Gothic', sans-serif;
     letter-spacing:0.03em;
   }
   .nav-cta:hover{ background:var(--violet-bright); color:#150a22; }
@@ -692,7 +692,17 @@
     color:#fff;
     border:none;
     padding:7px 14px;
-    font-family:'JetBrains Mono', monospace;
+    font-family:'Century Gothic', sans-serif;
+    font-size:0.78rem;
+    margin-right:12px;
+    cursor:pointer;
+  }
+  input[type="file"]::file-selector-button{
+    background:var(--violet);
+    color:#fff;
+    border:none;
+    padding:7px 14px;
+    font-family:'Century Gothic', sans-serif;
     font-size:0.78rem;
     margin-right:12px;
     cursor:pointer;
