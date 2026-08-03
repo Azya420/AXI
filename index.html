@@ -528,8 +528,8 @@
   }
   .lightbox-close:hover{ border-color:var(--violet-bright); color:var(--violet-bright); }
   @media (max-width: 700px){
-    .lightbox-panel{ grid-template-columns:1fr; max-height:88vh; overflow-y:auto; }
-    .lightbox-media{ min-height:220px; }
+    .lightbox-panel{ grid-template-columns:1fr; grid-template-rows:auto auto; max-height:88vh; overflow-y:auto; }
+    .lightbox-media{ min-height:0; max-height:none; overflow-y:visible; }
   }
 
   /* ---------- ALL-REALIZATIONS MODAL ---------- */
