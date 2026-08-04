@@ -333,6 +333,17 @@
     object-fit:cover;
     margin-bottom:0;
   }
+  .process-img-zoom-frame{
+    width:100%;
+    aspect-ratio: 3/4;
+    overflow:hidden;
+    margin-bottom:20px;
+  }
+  .process-img-zoom-frame .process-img{
+    height:100%;
+    object-fit:contain;
+    margin-bottom:0;
+  }
   .process-num{
     font-family:'Cinzel', serif;
     font-size:2.6rem;
@@ -917,7 +928,8 @@
     .process-step .process-num{ order:1; }
     .process-step .process-body{ order:2; }
     .process-step .process-img,
-    .process-step .process-img-frame{ order:3; margin-bottom:0; margin-top:20px; }
+    .process-step .process-img-frame,
+    .process-step .process-img-zoom-frame{ order:3; margin-bottom:0; margin-top:20px; }
   }
 
   /* ---------- COOKIE CONSENT ---------- */
@@ -1071,7 +1083,9 @@
         </div>
 
         <div class="process-step">
-          <img class="process-img" src="lewbeztlaproces.png" alt="Wydruk i wysyłka gotowej figurki">
+          <div class="process-img-zoom-frame">
+            <img class="process-img" src="lewbeztlaproces.png" alt="Wydruk i wysyłka gotowej figurki" style="transform:scale(1.4); margin-bottom:0;">
+          </div>
           <div class="process-num">03</div>
           <div class="process-body">
             <h3>Wydruk, obróbka i wysyłka</h3>
