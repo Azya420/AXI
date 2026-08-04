@@ -127,25 +127,36 @@
     align-items:center;
     gap:40px;
   }
-  .hero-copy .eyebrow{ margin-bottom:18px; }
+  .hero-copy .eyebrow{ margin-bottom:18px; animation:hero-rise .7s ease both; }
   .hero h1{
     font-size:clamp(2.6rem, 4.4vw, 3.9rem);
     line-height:1.08;
     color:var(--ink);
     margin-bottom:22px;
+    animation:hero-rise .7s ease .08s both;
   }
   .hero h1 em{
     font-style:normal;
     color:var(--violet-bright);
-    text-shadow:0 0 34px rgba(167,139,250,0.5);
+    animation:glow-pulse-in 1.5s ease-out .55s both;
+  }
+  @keyframes hero-rise{
+    from{ opacity:0; transform:translateY(22px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  @keyframes glow-pulse-in{
+    0%{ text-shadow:0 0 0 rgba(167,139,250,0); }
+    55%{ text-shadow:0 0 52px rgba(167,139,250,0.9); }
+    100%{ text-shadow:0 0 34px rgba(167,139,250,0.5); }
   }
   .hero p.lead{
     color:var(--ink-dim);
     font-size:1.08rem;
     max-width:46ch;
     margin-bottom:36px;
+    animation:hero-rise .7s ease .16s both;
   }
-  .hero-ctas{ display:flex; gap:16px; flex-wrap:wrap; }
+  .hero-ctas{ display:flex; gap:16px; flex-wrap:wrap; animation:hero-rise .7s ease .24s both; }
   .btn{
     display:inline-block;
     padding:14px 28px;
@@ -167,6 +178,7 @@
     flex-wrap:wrap;
     gap:10px 26px;
     margin-top:34px;
+    animation:hero-rise .7s ease .32s both;
   }
   .hero-badge{
     display:flex;
@@ -207,6 +219,7 @@
     display:flex;
     align-items:flex-end;
     justify-content:center;
+    animation:hero-rise .9s ease .2s both;
   }
   .spotlight{
     position:absolute;
@@ -216,9 +229,45 @@
     background:radial-gradient(circle, rgba(167,139,250,0.32) 0%, rgba(109,40,217,0.14) 35%, transparent 68%);
     filter:blur(2px);
     pointer-events:none;
+    animation:spotlight-breathe 5s ease-in-out infinite;
+  }
+  @keyframes spotlight-breathe{
+    0%,100%{ opacity:1; transform:translateX(-50%) scale(1); }
+    50%{ opacity:0.82; transform:translateX(-50%) scale(1.06); }
+  }
+  .embers{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    overflow:visible;
+    z-index:0;
+  }
+  .ember{
+    position:absolute;
+    bottom:60px;
+    width:5px; height:5px;
+    border-radius:50%;
+    background:var(--violet-bright);
+    box-shadow:0 0 10px 2px rgba(167,139,250,0.85);
+    opacity:0;
+    animation:ember-float 6s ease-in infinite;
+  }
+  .ember:nth-child(1){ left:22%; animation-delay:0s; }
+  .ember:nth-child(2){ left:38%; animation-delay:1.3s; background:var(--bronze); box-shadow:0 0 10px 2px rgba(201,162,75,0.85); }
+  .ember:nth-child(3){ left:50%; animation-delay:2.6s; }
+  .ember:nth-child(4){ left:63%; animation-delay:0.7s; background:var(--bronze); box-shadow:0 0 10px 2px rgba(201,162,75,0.85); }
+  .ember:nth-child(5){ left:78%; animation-delay:2s; }
+  .ember:nth-child(6){ left:30%; animation-delay:3.5s; }
+  .ember:nth-child(7){ left:70%; animation-delay:4.3s; background:var(--bronze); box-shadow:0 0 10px 2px rgba(201,162,75,0.85); }
+  @keyframes ember-float{
+    0%{ opacity:0; transform:translateY(0) scale(0.6); }
+    12%{ opacity:1; }
+    75%{ opacity:0.55; }
+    100%{ opacity:0; transform:translateY(-340px) scale(1.15); }
   }
   .figure-orbit{
     position:relative;
+    z-index:1;
     width:390px;
     height:500px;
     animation: hover-rotate 12s ease-in-out infinite;
@@ -239,6 +288,15 @@
   .hero-photo.active{ opacity:1; }
   @media (prefers-reduced-motion: reduce){
     .figure-orbit{ animation:none; }
+    .spotlight{ animation:none; }
+    .ember{ display:none; }
+    .hero-copy .eyebrow,
+    .hero h1,
+    .hero h1 em,
+    .hero p.lead,
+    .hero-ctas,
+    .hero-badges,
+    .pedestal-stage{ animation:none; opacity:1; transform:none; }
   }
   .hero-nav{
     display:flex;
@@ -1054,6 +1112,15 @@
       <div>
         <div class="pedestal-stage">
           <div class="spotlight"></div>
+          <div class="embers">
+            <span class="ember"></span>
+            <span class="ember"></span>
+            <span class="ember"></span>
+            <span class="ember"></span>
+            <span class="ember"></span>
+            <span class="ember"></span>
+            <span class="ember"></span>
+          </div>
           <div class="hero-tag">Wydruk żywiczny</div>
           <div class="figure-orbit">
             <img class="hero-photo active" src="krasnolud.png" alt="Krasnolud">
