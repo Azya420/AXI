@@ -137,6 +137,7 @@
   .hero h1 em{
     font-style:normal;
     color:var(--violet-bright);
+    text-shadow:0 0 34px rgba(167,139,250,0.5);
   }
   .hero p.lead{
     color:var(--ink-dim);
@@ -152,14 +153,47 @@
     font-size:0.92rem;
     font-family:'Century Gothic', monospace;
     letter-spacing:0.03em;
-    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    transition:transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
   }
   .btn-primary{
     background:var(--violet);
     color:#fff;
     border:1px solid var(--violet);
+    box-shadow:0 0 28px rgba(109,40,217,0.4);
   }
-  .btn-primary:hover{ background:var(--violet-bright); border-color:var(--violet-bright); color:#150a22; transform:translateY(-2px); }
+  .btn-primary:hover{ background:var(--violet-bright); border-color:var(--violet-bright); color:#150a22; transform:translateY(-2px); box-shadow:0 0 36px rgba(167,139,250,0.55); }
+  .hero-badges{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 26px;
+    margin-top:34px;
+  }
+  .hero-badge{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.8rem;
+    color:var(--ink-dim);
+  }
+  .hero-badge::before{
+    content:"◆";
+    color:var(--bronze);
+    font-size:0.58rem;
+  }
+  .hero-tag{
+    position:absolute;
+    top:0; left:0;
+    z-index:2;
+    padding:6px 12px;
+    background:rgba(16,9,22,0.6);
+    border:1px solid var(--line);
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--bronze);
+  }
   .btn-ghost{
     border:1px solid var(--line);
     color:var(--ink-dim);
@@ -1003,17 +1037,24 @@
   <section class="hero">
     <div class="wrap case-frame">
       <div class="hero-copy">
+        <div class="eyebrow">Pracownia figurek RPG</div>
         <h1>Od pomysłu<br><em>do figurki.</em></h1>
         <p class="lead">Tworzymy w pełni personalizowane figurki z żywicy, dopasowane do Twojego pomysłu. Wystarczy, że prześlesz nam opis postaci, kartę z sesji RPG, szkic lub zdjęcia. Na tej podstawie stworzymy model 3D, który zamienimy w gotową, starannie wykonaną figurkę.</p>
         <div class="hero-ctas">
           <a href="#zamow" class="btn btn-primary">Zamów figurkę</a>
           <a href="#prace" class="btn btn-ghost">Zobacz realizacje</a>
         </div>
+        <div class="hero-badges">
+          <div class="hero-badge">100% personalizacji</div>
+          <div class="hero-badge">Model poglądowy w 5 dni</div>
+          <div class="hero-badge">Darmowe poprawki przed drukiem</div>
+        </div>
       </div>
 
       <div>
         <div class="pedestal-stage">
           <div class="spotlight"></div>
+          <div class="hero-tag">Wydruk żywiczny</div>
           <div class="figure-orbit">
             <img class="hero-photo active" src="zdj77.png" alt="Rycerz Śmierci">
             <img class="hero-photo" src="zdj22.png" alt="Piechur">
