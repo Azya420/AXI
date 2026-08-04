@@ -1212,7 +1212,7 @@
 
         <div class="fig-card" tabindex="0" role="button" aria-haspopup="dialog" data-desc="Masywny krasnoludzki wojownik w kapturze i z gęstą brodą - ciężka nitowana zbroja i ogromny, dwusieczny topór zdobiony krasnoludzkimi grawerunkami.">
           <div class="fig-stage">
-            <img src="krasnolud.png" alt="Krasnolud" style="object-position:center 0%;">
+            <img src="krasnoludmin.png" data-full="krasnolud.png" alt="Krasnolud" style="object-position:center 49%;">
           </div>
           <div class="fig-info">
             <h3>Krasnolud</h3>
@@ -1316,7 +1316,7 @@
       var img = card.querySelector('img');
       var scaleValue = card.querySelector('.fig-scale-value');
       var refSrc = card.getAttribute('data-ref');
-      lbImg.src = img.src;
+      lbImg.src = img.getAttribute('data-full') || img.src;
       lbImg.alt = img.alt;
       lbTitle.textContent = card.querySelector('h3').textContent;
       lbScale.textContent = scaleValue ? scaleValue.textContent : '';
