@@ -304,53 +304,71 @@
 
   /* ---------- PROCESS ---------- */
   .process-steps{
+    position:relative;
     display:grid;
     grid-template-columns:repeat(3, 1fr);
     gap:40px;
   }
+  .process-steps::before{
+    content:"";
+    position:absolute;
+    top:8px; left:0; right:0;
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--violet-bright) 12%, var(--violet-bright) 88%, transparent);
+    opacity:0.35;
+  }
   .process-step{
+    position:relative;
+    z-index:1;
     display:flex;
     flex-direction:column;
     align-items:flex-start;
-    padding-top:24px;
-    border-top:1px solid var(--line);
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    padding:32px 24px 28px;
+    transition:border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+  }
+  .process-step:hover{
+    border-color:var(--violet-bright);
+    transform:translateY(-6px);
+    box-shadow:0 20px 44px rgba(0,0,0,0.4), 0 0 44px rgba(109,40,217,0.22);
+  }
+  .process-stage{
+    position:relative;
+    width:100%;
+    aspect-ratio: 3/4;
+    overflow:hidden;
+    margin-bottom:20px;
+    background:
+      radial-gradient(circle at 50% 32%, rgba(167,139,250,0.24), transparent 62%),
+      var(--bg-elevated);
+    border:1px solid var(--line);
   }
   .process-img{
     width:100%;
-    aspect-ratio: 3/4;
-    object-fit:contain;
-    background:transparent;
-    margin-bottom:20px;
-  }
-  .process-img-frame{
-    width:100%;
-    aspect-ratio: 3/4;
-    overflow:hidden;
-    margin-bottom:20px;
-  }
-  .process-img-frame .process-img{
-    height:100%;
-    object-fit:cover;
-    margin-bottom:0;
-  }
-  .process-img-zoom-frame{
-    width:100%;
-    aspect-ratio: 3/4;
-    overflow:hidden;
-    margin-bottom:20px;
-  }
-  .process-img-zoom-frame .process-img{
     height:100%;
     object-fit:contain;
     margin-bottom:0;
+    filter:drop-shadow(0 10px 22px rgba(109,40,217,0.35));
+    transition:transform .4s ease;
   }
+  .process-step:hover .process-img{ transform:scale(1.05); }
+  .process-img-zoom{ transform:scale(1.4); }
+  .process-step:hover .process-img.process-img-zoom{ transform:scale(1.47); }
   .process-num{
+    position:absolute;
+    top:-20px; left:-20px;
+    z-index:2;
+    width:56px; height:56px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+    background:var(--bg-elevated);
+    border:1px solid var(--violet-bright);
+    box-shadow:0 0 22px rgba(109,40,217,0.5);
     font-family:'Cinzel', serif;
-    font-size:2.6rem;
-    line-height:1;
+    font-size:1.25rem;
     color:var(--violet-bright);
-    opacity:0.35;
-    margin-bottom:16px;
+    margin-bottom:0;
   }
   .process-body h3{
     font-family:'JetBrains Mono', monospace;
@@ -919,6 +937,7 @@
     .figure-orbit{ width:304px; height:390px; }
     .about-grid{ grid-template-columns:1fr; gap:32px; }
     .process-steps{ grid-template-columns:repeat(2, 1fr); }
+    .process-steps::before{ display:none; }
     .commission-grid{ grid-template-columns:1fr; gap:40px; }
     .social-grid{ grid-template-columns:1fr; }
     .form-row{ grid-template-columns:1fr; }
@@ -928,11 +947,8 @@
     .process-steps{ grid-template-columns:1fr; gap:28px; }
     .hero{ padding:64px 0 40px; }
     .testi-msg-card{ height:150px; }
-    .process-step .process-num{ order:1; }
-    .process-step .process-body{ order:2; }
-    .process-step .process-img,
-    .process-step .process-img-frame,
-    .process-step .process-img-zoom-frame{ order:3; margin-bottom:0; margin-top:20px; }
+    .process-step .process-body{ order:1; }
+    .process-step .process-stage{ order:2; margin-bottom:0; margin-top:20px; }
   }
 
   /* ---------- COOKIE CONSENT ---------- */
@@ -1062,14 +1078,17 @@
   <!-- PROCESS -->
   <section id="proces">
     <div class="wrap">
-      <div class="section-head" style="justify-content:center; text-align:center;">
+      <div class="section-head" style="flex-direction:column; align-items:center; text-align:center; gap:12px;">
+        <div class="eyebrow">Proces</div>
         <h2>Jak powstaje Twoja figurka</h2>
       </div>
       <div class="process-steps">
 
         <div class="process-step">
-          <img class="process-img" src="lewzdjklienta.png" alt="Prześlij zdjęcie lub opis postaci">
           <div class="process-num">01</div>
+          <div class="process-stage">
+            <img class="process-img" src="lewzdjklienta.png" alt="Prześlij zdjęcie lub opis postaci">
+          </div>
           <div class="process-body">
             <h3>Prześlij zdjęcie lub opis</h3>
             <p>Masz pomysł na figurkę? Prześlij nam opis postaci, kartę z sesji RPG, szkic albo zdjęcia referencyjne - na tej podstawie przygotujemy dla Ciebie wstępny projekt.</p>
@@ -1077,8 +1096,10 @@
         </div>
 
         <div class="process-step">
-          <img class="process-img" src="lewmodelpog.png" alt="Darmowy model poglądowy" style="background:transparent;">
           <div class="process-num">02</div>
+          <div class="process-stage">
+            <img class="process-img" src="lewmodelpog.png" alt="Darmowy model poglądowy">
+          </div>
           <div class="process-body">
             <h3>Model poglądowy i poprawki</h3>
             <p>Na podstawie otrzymanych materiałów tworzymy model 3D i przesyłamy Ci nagranie poglądowe 360° wokół postaci. Jeśli chcesz coś zmienić to wprowadzamy poprawki za darmo, żeby model był dokładnie taki, jak sobie wyobrażałeś - dopiero wtedy przechodzimy do druku.</p>
@@ -1086,10 +1107,10 @@
         </div>
 
         <div class="process-step">
-          <div class="process-img-zoom-frame">
-            <img class="process-img" src="lewbeztlaproces.png" alt="Wydruk i wysyłka gotowej figurki" style="transform:scale(1.4); margin-bottom:0;">
-          </div>
           <div class="process-num">03</div>
+          <div class="process-stage">
+            <img class="process-img process-img-zoom" src="lewbeztlaproces.png" alt="Wydruk i wysyłka gotowej figurki">
+          </div>
           <div class="process-body">
             <h3>Wydruk, obróbka i wysyłka</h3>
             <p>Drukujemy model, a następnie dokładnie go obrabiamy - usuwamy podpory, oczyszczamy powierzchnię i dopracowujemy detale. Po wykończeniu i kontroli jakości pakujemy figurkę w twarde opakowanie i wysyłamy prosto do Ciebie.
