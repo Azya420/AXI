@@ -488,8 +488,13 @@
     color:var(--bronze);
   }
   .lightbox-print-label{
-    padding:10px 0 14px;
-    text-align:center;
+    position:absolute;
+    top:14px;
+    left:14px;
+    z-index:1;
+    padding:6px 10px;
+    background:rgba(16,9,22,0.7);
+    border:1px solid var(--line);
     font-family:'JetBrains Mono', monospace;
     font-size:0.72rem;
     letter-spacing:0.12em;
@@ -1236,8 +1241,8 @@
       <div class="lightbox-media" id="lightbox-media">
         <div class="lightbox-media-item">
           <img id="lightbox-img" src="" alt="">
+          <div class="lightbox-print-label">Wydruk 3D</div>
         </div>
-        <div class="lightbox-print-label">Wydruk 3D</div>
       </div>
       <div class="lightbox-info">
         <span class="fig-scale-label" id="lightbox-scale"></span>
