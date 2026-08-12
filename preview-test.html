@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test generatora podglądu — AXI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Sora:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #100916;
+    --bg-elevated: #1b0f28;
+    --bg-card: #1f1330;
+    --violet: #6d28d9;
+    --violet-bright: #a78bfa;
+    --bronze: #c9a24b;
+    --ink: #f4eefb;
+    --ink-dim: #b7a8c9;
+    --ink-faint: #7c6c93;
+    --line: rgba(167,139,250,0.16);
+    --err: #f28b82;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Sora', sans-serif;
+    line-height:1.6;
+    padding:48px 20px 80px;
+  }
+  .wrap{ max-width:760px; margin:0 auto; }
+  h1{ font-family:'Cinzel', serif; font-size:1.6rem; margin-bottom:6px; }
+  .sub{ color:var(--ink-dim); font-size:0.95rem; margin-bottom:32px; }
+  .card{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    padding:24px;
+    margin-bottom:20px;
+  }
+  label{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--bronze);
+    margin-bottom:8px;
+  }
+  input[type="text"]{
+    width:100%;
+    padding:12px 14px;
+    background:var(--bg-elevated);
+    border:1px solid var(--line);
+    color:var(--ink);
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.9rem;
+    margin-bottom:18px;
+  }
+  input[type="file"]{
+    width:100%;
+    padding:10px;
+    background:var(--bg-elevated);
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    margin-bottom:18px;
+    font-family:'Sora', sans-serif;
+    font-size:0.9rem;
+  }
+  button{
+    display:inline-block;
+    padding:14px 28px;
+    background:var(--violet);
+    color:#fff;
+    border:1px solid var(--violet);
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.92rem;
+    cursor:pointer;
+    transition:background .18s ease, border-color .18s ease;
+  }
+  button:hover:not(:disabled){ background:var(--violet-bright); border-color:var(--violet-bright); color:#150a22; }
+  button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .status{
+    margin-top:16px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.85rem;
+    color:var(--ink-dim);
+  }
+  .status.error{ color:var(--err); }
+  .status.ok{ color:#8fd19e; }
+  .results{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-top:24px;
+  }
+  .results div{ text-align:center; }
+  .results img{
+    width:100%;
+    height:auto;
+    border:1px solid var(--line);
+    background:var(--bg-elevated);
+  }
+  .results .cap{
+    margin-top:8px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.75rem;
+    color:var(--ink-faint);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+  }
+  .hint{ color:var(--ink-faint); font-size:0.85rem; margin-top:6px; }
+  @media (max-width:600px){ .results{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Test generatora podglądu figurki</h1>
+  <p class="sub">Strona tylko do testów wewnętrznych — sprawdza połączenie ze skonfigurowanym serwisem i jakość generowanych podglądów, zanim trafi to na stronę główną.</p>
+
+  <div class="card">
+    <label for="url">Adres serwisu (z Render)</label>
+    <input type="text" id="url" placeholder="https://axi-preview-generator.onrender.com" autocomplete="off">
+    <p class="hint">Znajdziesz go na górze strony serwisu w panelu Render (kończy się na .onrender.com). Adres zapamiętamy w tej przeglądarce.</p>
+
+    <label for="photo" style="margin-top:18px;">Zdjęcie do przetestowania</label>
+    <input type="file" id="photo" accept="image/png, image/jpeg, image/webp">
+
+    <button id="go">Generuj podgląd</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="results" id="results" style="display:none;">
+    <div>
+      <img id="srcImg" alt="Przesłane zdjęcie">
+      <div class="cap">Przesłane zdjęcie</div>
+    </div>
+    <div>
+      <img id="outImg" alt="Wygenerowany podgląd">
+      <div class="cap">Wygenerowany podgląd</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var urlInput = document.getElementById('url');
+  var photoInput = document.getElementById('photo');
+  var goBtn = document.getElementById('go');
+  var statusEl = document.getElementById('status');
+  var results = document.getElementById('results');
+  var srcImg = document.getElementById('srcImg');
+  var outImg = document.getElementById('outImg');
+
+  var savedUrl = localStorage.getItem('axi-preview-service-url');
+  if(savedUrl) urlInput.value = savedUrl;
+
+  function setStatus(text, kind){
+    statusEl.textContent = text;
+    statusEl.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  goBtn.addEventListener('click', function(){
+    var url = urlInput.value.trim().replace(/\/+$/, '');
+    var file = photoInput.files[0];
+
+    if(!url){ setStatus('Podaj adres serwisu.', 'error'); return; }
+    if(!file){ setStatus('Wybierz zdjęcie.', 'error'); return; }
+
+    localStorage.setItem('axi-preview-service-url', url);
+
+    srcImg.src = URL.createObjectURL(file);
+    results.style.display = 'grid';
+    outImg.src = '';
+    goBtn.disabled = true;
+    setStatus('Generowanie... to może potrwać do 30-60 sekund.');
+
+    var formData = new FormData();
+    formData.append('photo', file);
+
+    fetch(url + '/api/preview', { method: 'POST', body: formData })
+      .then(function(res){
+        return res.json().then(function(data){
+          if(!res.ok) throw new Error(data.error || ('Błąd serwera (' + res.status + ')'));
+          return data;
+        });
+      })
+      .then(function(data){
+        outImg.src = data.image;
+        setStatus('Gotowe.', 'ok');
+      })
+      .catch(function(err){
+        setStatus('Błąd: ' + err.message, 'error');
+      })
+      .finally(function(){
+        goBtn.disabled = false;
+      });
+  });
+})();
+</script>
+</body>
+</html>
