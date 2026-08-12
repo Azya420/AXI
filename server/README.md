@@ -55,11 +55,18 @@ generations against `lewmodelpog.png` in the repo root, which is a reference
 photo of AXI's actual "model poglądowy" (preview model) style: unpainted grey
 resin, studio-lit, on a round textured base.
 
-## Rate limiting
+## Cost controls
 
-`/api/preview` is limited to `PREVIEW_RATE_LIMIT` requests per IP per hour
-(default 15) since each call costs money via the OpenAI API. Adjust via the
-`PREVIEW_RATE_LIMIT` env var.
+- **`IMAGE_QUALITY`** (default `low`) - by far the biggest lever. gpt-image-1
+  pricing scales steeply with quality; `low` is roughly an order of magnitude
+  cheaper than `high`. Keep it on `low`/`medium` while iterating on the
+  prompt, only raise it once the style is finalized.
+- **`IMAGE_SIZE`** (default `1024x1024`) - square is the cheapest option.
+- **`PREVIEW_RATE_LIMIT`** (default 15) - max `/api/preview` calls per IP per
+  hour, since each call costs money regardless of quality setting.
+- Also set a hard spending limit in your OpenAI account (platform.openai.com
+  → Settings → Billing → Limits) as a hard backstop independent of this
+  service's own controls.
 
 ## Not yet wired into the site
 

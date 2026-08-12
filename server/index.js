@@ -18,6 +18,13 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://axi3d.pl,https:
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024; // 8MB
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
+// gpt-image-1 cost scales heavily with quality: low is roughly an order of
+// magnitude cheaper than high. Default to the cheap tier since this is a
+// draft/preview feature, not final art - override via env var once the
+// prompt is dialed in and quality actually matters.
+const IMAGE_QUALITY = process.env.IMAGE_QUALITY || 'low'; // low | medium | high | auto
+const IMAGE_SIZE = process.env.IMAGE_SIZE || '1024x1024';
+
 const app = express();
 app.set('trust proxy', 1);
 
@@ -86,7 +93,8 @@ app.post('/api/preview', previewLimiter, upload.single('photo'), async (req, res
       model: 'gpt-image-1',
       image: inputFile,
       prompt: PREVIEW_STYLE_PROMPT,
-      size: '1024x1024',
+      size: IMAGE_SIZE,
+      quality: IMAGE_QUALITY,
     });
 
     const b64 = result.data && result.data[0] && result.data[0].b64_json;
