@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: axi-preview-generator
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://axi3d.pl,https://www.axi3d.pl
+      - key: PREVIEW_RATE_LIMIT
+        value: "15"
