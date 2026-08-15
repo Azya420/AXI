@@ -2177,7 +2177,7 @@
           <div>
             <span class="price-box-label">Cena</span>
             <div class="price-box" id="price-box">
-              <span class="price-value" id="price-value">wpisz rozmiar</span>
+              <span class="price-value" id="price-value">wpierw wpisz rozmiar</span>
             </div>
           </div>
         </div>
@@ -2302,7 +2302,7 @@
     scaleSelect.addEventListener('input', function(){
       var mm = Math.round(parseFloat(scaleSelect.value));
       if(!scaleSelect.value || isNaN(mm)){
-        priceValue.textContent = 'wpisz rozmiar';
+        priceValue.textContent = 'wpierw wpisz rozmiar';
         priceHidden.value = '';
         return;
       }
