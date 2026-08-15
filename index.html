@@ -665,6 +665,26 @@
     .lightbox-media{ min-height:0; max-height:none; overflow-y:visible; }
   }
 
+  /* ---------- JOURNEY IMAGE LIGHTBOX (hero) ---------- */
+  .journey-lightbox-panel{
+    position:relative;
+    z-index:1;
+    max-width:min(90vw, 780px);
+    max-height:88vh;
+    display:flex;
+  }
+  .journey-lightbox-panel img{
+    max-width:100%;
+    max-height:88vh;
+    width:auto;
+    height:auto;
+    display:block;
+    box-shadow:0 24px 60px rgba(0,0,0,0.5), 0 0 60px rgba(109,40,217,0.2);
+  }
+  .journey-lightbox-panel .lightbox-close{
+    top:-14px; right:-14px;
+  }
+
   /* ---------- ALL-REALIZATIONS MODAL ---------- */
   .gallery-all-overlay{ z-index:90; }
   .gallery-modal-panel{
@@ -1337,6 +1357,7 @@
     width:100%;
     height:100%;
     display:block;
+    cursor:pointer;
   }
   .journey-source .journey-media{
     padding-top:54px;
@@ -1583,7 +1604,7 @@
         <div class="journey-card journey-source">
           <div class="journey-label"><b>01</b><span>Twój pomysł</span></div>
           <div class="journey-media">
-            <img src="zdj-klienta-card.png" alt="Materiał referencyjny przesłany przez klienta">
+            <img src="zdj-klienta-card.png" data-full="ZDJ%20KLIENTA.png" alt="Materiał referencyjny przesłany przez klienta">
           </div>
         </div>
 
@@ -1656,6 +1677,49 @@
       journey.addEventListener('mousemove', onMove);
       journey.addEventListener('mouseleave', reset);
     }, 1000);
+  });
+  </script>
+
+  <div class="lightbox" id="journey-lightbox" aria-hidden="true">
+    <div class="lightbox-backdrop" id="journey-lightbox-backdrop"></div>
+    <div class="journey-lightbox-panel" role="dialog" aria-modal="true" aria-label="Powiększone zdjęcie">
+      <button type="button" class="lightbox-close" id="journey-lightbox-close" aria-label="Zamknij">×</button>
+      <img id="journey-lightbox-img" src="" alt="">
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    var modal = document.getElementById('journey-lightbox');
+    var modalImg = document.getElementById('journey-lightbox-img');
+    var closeBtn = document.getElementById('journey-lightbox-close');
+    var backdrop = document.getElementById('journey-lightbox-backdrop');
+    var lastFocused = null;
+
+    function openJourneyLightbox(img){
+      lastFocused = document.activeElement;
+      modalImg.src = img.getAttribute('data-full') || img.src;
+      modalImg.alt = img.alt;
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    }
+    function closeJourneyLightbox(){
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if(lastFocused) lastFocused.focus();
+    }
+
+    document.querySelectorAll('.journey-media img').forEach(function(img){
+      img.addEventListener('click', function(){ openJourneyLightbox(img); });
+    });
+    closeBtn.addEventListener('click', closeJourneyLightbox);
+    backdrop.addEventListener('click', closeJourneyLightbox);
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && modal.classList.contains('active')) closeJourneyLightbox();
+    });
   });
   </script>
 
