@@ -35,7 +35,7 @@ test('client prices, quantities and redirect URLs cannot override server values'
   const params = stripeParameters(validated, config.siteOrigin);
   assert.equal(params.get('line_items[0][price_data][unit_amount]'), '34000');
   assert.equal(params.get('line_items[0][quantity]'), '1');
-  assert.equal(params.get('success_url'), 'https://axi3d.pl/dziekujemy.html');
+  assert.equal(params.get('success_url'), 'https://axi3d.pl/dziekujemy.html?session_id={CHECKOUT_SESSION_ID}');
 });
 test('multiple figures in the same bracket remain separate paid items', () => {
   const params = stripeParameters(validateOrder({ ...order, items: [{ size: 32 }, { size: 42 }] }), config.siteOrigin);
@@ -68,6 +68,44 @@ test('retries use stable idempotency and changed orders use a different key', as
   }
   assert.equal(keys[0], keys[1]);
   assert.notEqual(keys[0], keys[2]);
+});
+test('verified Stripe payment returns actual paid value and safe GA4 item data', async () => {
+  const sessionId = 'cs_live_AnalyticsFixture123';
+  const stripe = async (url, options) => {
+    assert.equal(url, 'https://api.stripe.com/v1/checkout/sessions/' + sessionId + '?expand[]=line_items');
+    assert.equal(options.method, 'GET');
+    assert.equal(options.headers.Authorization, 'Bearer ' + config.stripeKey);
+    return Response.json({
+      id: sessionId,
+      payment_status: 'paid',
+      client_reference_id: id,
+      amount_total: 54000,
+      currency: 'pln',
+      line_items: { data: [
+        { description: 'Figurka 1 — 32 mm', amount_total: 18000, quantity: 1 },
+        { description: 'Figurka 2 — 120 mm', amount_total: 36000, quantity: 2 }
+      ] }
+    });
+  };
+  const response = await handleCheckout(request({ action: 'verify_payment', sessionId }), config, stripe);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    paid: true,
+    transactionId: sessionId,
+    orderId: id,
+    value: 540,
+    currency: 'PLN',
+    items: [
+      { item_id: 'axi-figurine-1', item_name: 'Figurka 1 — 32 mm', price: 180, quantity: 1 },
+      { item_id: 'axi-figurine-2', item_name: 'Figurka 2 — 120 mm', price: 180, quantity: 2 }
+    ]
+  });
+});
+test('payment verification rejects test sessions on the live endpoint', async () => {
+  const never = () => { throw new Error('Unexpected Stripe request'); };
+  const response = await handleCheckout(request({ action: 'verify_payment', sessionId: 'cs_test_wrong123' }), config, never);
+  assert.equal(response.status, 502);
+  assert.match(await response.text(), /Nie udało się potwierdzić płatności/);
 });
 test('reject bad origin, content type, missing configuration and oversized body before Stripe', async () => {
   const never = () => { throw new Error('Unexpected Stripe request'); };
