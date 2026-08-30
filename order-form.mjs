@@ -44,6 +44,28 @@ export function initOrderForm(win) {
     errorBox.textContent = message;
     errorBox.hidden = false;
   }
+  function analyticsSnapshot(items) {
+    const analyticsItems = items.map((item, index) => {
+      const price = getPrice(item.size);
+      return {
+        item_id: 'axi-figurine-' + (index + 1),
+        item_name: 'Personalizowana figurka',
+        item_category: 'Figurka 3D',
+        item_variant: item.size + ' mm',
+        price: price.amount / 100,
+        quantity: 1
+      };
+    });
+    return {
+      currency: 'PLN',
+      value: analyticsItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      items: analyticsItems
+    };
+  }
+  function trackGaEvent(name, params) {
+    if (preview || typeof win.gtag !== 'function') return;
+    win.gtag('event', name, params);
+  }
   function refresh() {
     let total = 0;
     let valid = true;
@@ -234,6 +256,7 @@ export function initOrderForm(win) {
     if (!isLocker() && ['ulica', 'kod', 'miasto'].some(id => !byId(id).value.trim())) { win.alert('Podaj pełny adres dostawy.'); return; }
     clearError();
     const items = cards().map(card => ({ size: Number(field(card, 'size').value) }));
+    const analytics = analyticsSnapshot(items);
     const endpoint = (win.AXI_CHECKOUT_ENDPOINT || '').trim();
     if ((items.length > 1 || preview) && !endpoint) {
       closeModal();
@@ -260,6 +283,10 @@ export function initOrderForm(win) {
     byId('order-reference').value = orderId;
     payload.set('numer_zamowienia', orderId);
     payload.set('status_platnosci', preview ? 'TEST — płatność w piaskownicy, bez prawdziwych pieniędzy' : 'Oczekuje na płatność — sprawdź opłacenie zamówienia w Stripe');
+    if (!attempt.beginCheckoutTracked) {
+      trackGaEvent('begin_checkout', analytics);
+      attempt.beginCheckoutTracked = true;
+    }
     setBusy(true);
     try {
       let paymentUrl;
@@ -279,7 +306,13 @@ export function initOrderForm(win) {
       payload.set('link_do_platnosci', paymentUrl);
       // Jedno zgłoszenie zawiera wszystkie figurki i załączniki. Błąd nie może
       // przekierować do płatności ani automatycznie zdublować zamówienia.
-      if (!preview) await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
+      if (!preview) {
+        await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
+        if (!attempt.leadTracked) {
+          trackGaEvent('generate_lead', { currency: analytics.currency, value: analytics.value, lead_source: 'order_form' });
+          attempt.leadTracked = true;
+        }
+      }
       completed = true;
       win.location.assign(paymentUrl);
     } catch (error) {
