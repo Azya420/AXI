@@ -71,9 +71,9 @@ export function initOrderForm(win) {
     const label = countLabel(all.length);
     byId('figurine-count').value = String(all.length);
     byId('order-count-label').textContent = label;
-    byId('order-total').textContent = valid ? 'Razem: ' + formatPrice(total) : 'Uzupełnij rozmiary wszystkich figurek';
+    byId('order-total').textContent = 'Suma: ' + (valid ? formatPrice(total) : 'Uzupełnij rozmiary wszystkich figurek');
     byId('price-hidden').value = valid ? formatPrice(total) : '';
-    byId('shipping-order-summary').textContent = label + (valid ? ' · Razem: ' + formatPrice(total) : '');
+    byId('shipping-order-summary').textContent = label + (valid ? ' · Suma: ' + formatPrice(total) : '');
     openBtn.textContent = all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     submitBtn.textContent = all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     addBtn.disabled = all.length >= MAX_FIGURINES;
@@ -247,7 +247,6 @@ export function initOrderForm(win) {
     if (isLocker()) ['ulica', 'kod_pocztowy', 'miasto'].forEach(name => payload.delete(name));
     else payload.delete('paczkomat');
     payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(items.length) + ' — AXI');
-    const sendToBasin = !preview || byId('preview-send-basin')?.checked === true;
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
@@ -278,7 +277,7 @@ export function initOrderForm(win) {
       payload.set('link_do_platnosci', paymentUrl);
       // Jedno zgłoszenie zawiera wszystkie figurki i załączniki. Błąd nie może
       // przekierować do płatności ani automatycznie zdublować zamówienia.
-      if (sendToBasin) await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
+      if (!preview) await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
       completed = true;
       win.location.assign(paymentUrl);
     } catch (error) {

@@ -188,27 +188,14 @@ test('checkout timeout unlocks the form, retains files and retries the same orde
   assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });
-test('preview skips Basin and uploads by default while retaining the real order flow', async () => {
+test('preview skips Basin and uploads while retaining the real order flow', async () => {
   const s = setup(true); s.size(0, '32'); s.attach(0, 'test.png'); s.fillShipping();
-  assert.ok(!s.$('preview-send-basin').checked);
+  assert.equal(s.$('preview-send-basin'), null);
   await s.submit();
   assert.equal(s.calls.length, 1);
   assert.ok(s.calls[0].url.includes('/checkout-session'));
   assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32 }]);
   assert.deepEqual(s.redirects, ['https://checkout.stripe.com/c/pay/cs_test_preview']);
-  s.dom.window.close();
-});
-test('preview Basin opt-in sends labeled test data and individual attachments', async () => {
-  const s = setup(true); s.size(0, '32'); s.attach(0, 'first.png');
-  s.$('add-figurine-btn').click(); s.size(1, '80'); s.attach(1, 'second.png');
-  s.$('preview-send-basin').checked = true; s.fillShipping(); await s.submit();
-  assert.equal(s.calls.length, 2);
-  const data = s.calls[1].body;
-  assert.match(data.get('subject'), /^TEST — NIE REALIZOWAĆ/);
-  assert.equal(data.get('tryb'), 'TEST — NIE REALIZOWAĆ');
-  assert.equal(data.get('zdjecia').name, 'first.png');
-  assert.equal(data.get('figurka_2_zdjecia').name, 'second.png');
-  assert.match(data.get('status_platnosci'), /piaskownicy/);
   s.dom.window.close();
 });
 test('preview cannot use a live Stripe URL or fall back to a legacy live Payment Link', async () => {

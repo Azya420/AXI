@@ -25,7 +25,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   const html = await response.text();
   assert.match(html, /PODGLĄD TESTOWY/);
   assert.match(html, /id="add-figurine-btn"/);
-  assert.match(html, /id="preview-send-basin"/);
+  assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
   assert.match(html, /src="order-form.mjs"/);

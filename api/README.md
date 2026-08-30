@@ -21,8 +21,9 @@ Po wdrożeniu najnowszego commitu otwórz `https://axi-checkout.onrender.com/pre
 1. W Renderze wybierz **Manual Deploy → Deploy latest commit**, poczekaj na status **Live**, następnie otwórz powyższy adres.
 2. Dodaj kilka figurek, opisy i przykładowe zdjęcia. Rozmiary 32, 80 i 120 mm powinny dać 670 zł.
 3. Wprowadź fikcyjne dane kontaktowe. Do pierwszego testu najprościej wybrać dostawę **Na adres**. Otwarcie mapy InPost można sprawdzić osobno.
-4. Domyślnie formularz NIE wysyła nic do Basin: zdjęcia zostają w przeglądarce, a klient przechodzi do piaskownicy Stripe. Użyj publicznej karty testowej `4242 4242 4242 4242`, dowolnej daty w przyszłości, np. `12/34`, i CVC `123`. Nie używaj prawdziwej karty.
-5. Aby sprawdzić kompletność zdjęć i danych dostawy, zaznacz **Wyślij także zgłoszenie testowe do Basin ze zdjęciami**. To tworzy prawdziwe zgłoszenie multipart w istniejącym Basin i może zużyć limit oraz wysłać powiadomienie. Temat i pola są oznaczone **TEST — NIE REALIZOWAĆ**. Po teście sprawdź otrzymanie wszystkich załączników dla każdej figurki.
+4. Formularz podglądu NIE wysyła nic do Basin: zdjęcia zostają w przeglądarce, a klient przechodzi do piaskownicy Stripe. Użyj publicznej karty testowej `4242 4242 4242 4242`, dowolnej daty w przyszłości, np. `12/34`, i CVC `123`. Nie używaj prawdziwej karty.
+
+Na prośbę właściciela usunięto opcję wysyłania próbnych zgłoszeń do Basin oraz jej opis. Nie zmienia to wysyłania zamówień z formularza produkcyjnego. Podsumowanie zawsze zaczyna się od „Suma:”, także przy niewypełnionych rozmiarach.
 
 Podgląd i jego endpoint `/preview/checkout-session` działają tylko z kluczem zaczynającym się od `rk_test_` lub `sk_test_`. Po przełączeniu Rendera na klucz live zwracają 404; także wcześniej otwarta karta podglądu nie może stworzyć płatności produkcyjnej. Dodatkowo backend sprawdza `livemode: false` odpowiedzi Stripe, a formularz odrzuca linki sesji inne niż `cs_test_`. Podgląd nie korzysta ze starych linków live.
 
