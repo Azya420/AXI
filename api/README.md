@@ -1,5 +1,24 @@
 # Wspólna płatność za figurki AXI
 
+## Kody promocyjne — gałąź robocza `codex/promotion-codes`
+
+Ta gałąź dodaje `allow_promotion_codes: true` przy tworzeniu Checkout Session. Klient wpisuje kod na stronie Stripe i widzi kwotę po rabacie przed zapłatą. Nie ma listy kodów ani obliczania rabatu po stronie przeglądarki: Stripe sprawdza aktywność, datę ważności, limity i warunki kodu. Nie zmieniono cennika, podatków, dostawy ani istniejących Payment Links.
+
+Formularz pokazuje sumę **przed rabatem** i wskazuje miejsce wpisania kodu. Zgłoszenie Basin powstaje przed Checkout, dlatego zachowuje oryginalną cenę i dodatkowo zawiera `uwaga_dotyczaca_ceny`. Nie zawiera jeszcze zastosowanego kodu ani ostatecznego rabatu. Przed realizacją sprawdź końcową kwotę, rabat i status płatności w Stripe, używając numeru zamówienia. Nie oczekuj, że kwota po rabacie zawsze będzie równa `cena` w Basin.
+
+### Przygotowanie i test
+
+- W Stripe potrzebny jest kupon określający rabat oraz aktywny kod promocyjny powiązany z kuponem. Ta zmiana nie tworzy kodów ani nie ustala wysokości zniżek.
+- Dla rabatu na całe zamówienie użyj kuponu bez ograniczenia do wybranych produktów. Integracja tworzy pozycje przez `price_data`; kupony przypisane do produktów starych Payment Links nie obejmą automatycznie nowych pozycji.
+- Kody testowe i live są oddzielne. Sprawdzaj funkcję na osobnej usłudze z kluczem testowym i gałęzią `codex/promotion-codes`, korzystając z `/preview/`. Nie przełączaj działającego `axi-checkout` ani jego klucza na testowy. Utworzenie nowej usługi może być płatne — nie utworzono jej w ramach tej zmiany.
+- Sprawdź koszyk np. 32/80/120 mm = 670 zł, poprawny kod procentowy i kwotowy, kod nieaktywny/wygasły oraz usunięcie kodu. Konkretny kod i wysokość rabatu należy wybrać w Stripe; nie zakładaj, że jakikolwiek przykładowy kod już istnieje.
+- Testy lokalne sprawdzają parametry wysyłane do Stripe i dotychczasową logikę formularza. Nie zastępują testu faktycznego zastosowania kuponu w piaskownicy.
+- Wdrożenie wymaga osobnej zgody na scalenie oraz wdrożenia backendu na Renderze. Samo wgranie HTML nie włączy pola w Stripe. Istniejące sesje i awaryjne Payment Links pozostają bez zmian.
+
+Dokumentacja: [rabaty w Checkout](https://docs.stripe.com/payments/checkout/discounts), [kupony i kody promocyjne](https://docs.stripe.com/billing/subscriptions/coupons).
+
+Poniższe sekcje dokumentują działającą wersję `main` i wcześniejsze etapy wdrożenia. Włączenie kodów w tej gałęzi jest świadomym odstępstwem od pierwotnego ustawienia bez rabatów.
+
 ## Aktualny stan — płatności live potwierdzone
 
 Po zmianach właściciela Render zwrócił aktualny kod `69587a5` oraz sesję live. Odczyt tej sesji przez API konta AXI3D potwierdził `livemode: true`, walutę PLN i trzy pozycje: 32 mm = 200 zł, 80 mm = 220 zł, 120 mm = 250 zł, razem 670 zł. Status był `unpaid`; nie wykonano obciążenia ani zgłoszenia Basin. To potwierdza tworzenie sesji live, nie pełną realizację zamówienia.

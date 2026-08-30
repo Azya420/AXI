@@ -248,6 +248,7 @@ export function initOrderForm(win) {
     else payload.delete('paczkomat');
     payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(items.length) + ' — AXI');
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
+    payload.set('uwaga_dotyczaca_ceny', 'Kwoty w tym zgłoszeniu są cenami przed rabatem. Klient może użyć kodu promocyjnego w Stripe. Końcową kwotę i status płatności sprawdź w Stripe po numerze zamówienia.');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
       return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + formatPrice(getPrice(size).amount) + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');

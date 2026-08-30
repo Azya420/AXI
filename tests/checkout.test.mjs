@@ -18,10 +18,11 @@ test('different sizes become three PLN line items totalling 670 zł', () => {
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
   assert.equal(params.get('client_reference_id'), id);
 });
-test('checkout preserves verified live Payment Link rules without extra shipping or tax', () => {
+test('checkout enables promotion codes while preserving shipping and tax rules', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
   assert.equal(params.get('automatic_tax[enabled]'), 'false');
-  assert.equal(params.get('allow_promotion_codes'), 'false');
+  assert.equal(params.get('allow_promotion_codes'), 'true');
+  assert.ok(![...params.keys()].some(key => key.startsWith('discounts[')), 'customer-entered codes must not conflict with an automatic discount');
   assert.equal(params.get('invoice_creation[enabled]'), 'false');
   assert.equal(params.get('billing_address_collection'), 'auto');
   assert.equal(params.get('customer_creation'), 'if_required');
@@ -55,6 +56,7 @@ test('retries use stable idempotency and changed orders use a different key', as
   const stripe = async (url, options) => {
     assert.equal(url, 'https://api.stripe.com/v1/checkout/sessions');
     assert.equal(options.headers.Authorization, 'Bearer ' + config.stripeKey);
+    assert.equal(options.body.get('allow_promotion_codes'), 'true');
     keys.push(options.headers['Idempotency-Key']);
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/test-session' });
   };

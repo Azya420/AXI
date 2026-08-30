@@ -18,8 +18,9 @@ export function validateOrder(order) {
 export function stripeParameters(order, siteOrigin, preview = false) {
   const params = new URLSearchParams({
     mode: 'payment', customer_email: order.email, client_reference_id: order.orderId,
-    // Potwierdzone ustawienia pięciu linków AXI3D (30.08.2026).
-    'automatic_tax[enabled]': 'false', allow_promotion_codes: 'false',
+    // Pozostałe ustawienia zachowują zasady pięciu linków AXI3D (30.08.2026).
+    // Stripe sprawdza wpisany kod i oblicza rabat dopiero w Checkout.
+    'automatic_tax[enabled]': 'false', allow_promotion_codes: 'true',
     'invoice_creation[enabled]': 'false', billing_address_collection: 'auto',
     customer_creation: 'if_required',
     success_url: siteOrigin + (preview ? '/preview/success' : '/dziekujemy.html'),
