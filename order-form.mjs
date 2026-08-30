@@ -15,6 +15,7 @@ export function initOrderForm(win) {
   const submitBtn = byId('commission-submit');
   const modal = byId('shipping-modal');
   const errorBox = byId('order-error');
+  const preview = win.AXI_PREVIEW_MODE === true;
   byId('shipping-order-summary').setAttribute('role', 'status');
   const cards = () => Array.from(list.children);
   const field = (card, name) => card.querySelector('[data-field="' + name + '"]');
@@ -234,7 +235,7 @@ export function initOrderForm(win) {
     clearError();
     const items = cards().map(card => ({ size: Number(field(card, 'size').value) }));
     const endpoint = (win.AXI_CHECKOUT_ENDPOINT || '').trim();
-    if (items.length > 1 && !endpoint) {
+    if ((items.length > 1 || preview) && !endpoint) {
       closeModal();
       showError('Wspólna płatność nie jest jeszcze dostępna. Skontaktuj się z nami: kontakt@axi3d.pl.');
       return;
@@ -245,7 +246,9 @@ export function initOrderForm(win) {
     payload.set('telefon', '+' + (digits.length === 11 && digits.startsWith('48') ? digits : '48' + digits));
     if (isLocker()) ['ulica', 'kod_pocztowy', 'miasto'].forEach(name => payload.delete(name));
     else payload.delete('paczkomat');
-    payload.set('subject', 'Nowe zamówienie — ' + countLabel(items.length) + ' — AXI');
+    payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(items.length) + ' — AXI');
+    const sendToBasin = !preview || byId('preview-send-basin')?.checked === true;
+    if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
       return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + formatPrice(getPrice(size).amount) + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
@@ -256,7 +259,7 @@ export function initOrderForm(win) {
     const orderId = attempt.id;
     byId('order-reference').value = orderId;
     payload.set('numer_zamowienia', orderId);
-    payload.set('status_platnosci', 'Oczekuje na płatność — sprawdź opłacenie zamówienia w Stripe');
+    payload.set('status_platnosci', preview ? 'TEST — płatność w piaskownicy, bez prawdziwych pieniędzy' : 'Oczekuje na płatność — sprawdź opłacenie zamówienia w Stripe');
     setBusy(true);
     try {
       let paymentUrl;
@@ -264,6 +267,7 @@ export function initOrderForm(win) {
         const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId });
         const url = new URL(data.url);
         if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Nieprawidłowy adres płatności.');
+        if (preview && !url.pathname.includes('/cs_test_')) throw new Error('Podgląd obsługuje wyłącznie płatności testowe.');
         paymentUrl = url.href;
       } else {
         const url = new URL(stripeLinks[getPrice(items[0].size).label]);
@@ -274,7 +278,7 @@ export function initOrderForm(win) {
       payload.set('link_do_platnosci', paymentUrl);
       // Jedno zgłoszenie zawiera wszystkie figurki i załączniki. Błąd nie może
       // przekierować do płatności ani automatycznie zdublować zamówienia.
-      await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
+      if (sendToBasin) await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
       completed = true;
       win.location.assign(paymentUrl);
     } catch (error) {

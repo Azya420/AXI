@@ -15,18 +15,20 @@ export function validateOrder(order) {
   return { orderId: order.orderId, email: order.email, items };
 }
 
-export function stripeParameters(order, siteOrigin) {
+export function stripeParameters(order, siteOrigin, preview = false) {
   const params = new URLSearchParams({
     mode: 'payment', customer_email: order.email, client_reference_id: order.orderId,
     // Potwierdzone ustawienia pięciu linków AXI3D (30.08.2026).
     'automatic_tax[enabled]': 'false', allow_promotion_codes: 'false',
     'invoice_creation[enabled]': 'false', billing_address_collection: 'auto',
     customer_creation: 'if_required',
-    success_url: siteOrigin + '/dziekujemy.html', cancel_url: siteOrigin + '/#zamow',
+    success_url: siteOrigin + (preview ? '/preview/success' : '/dziekujemy.html'),
+    cancel_url: siteOrigin + (preview ? '/preview/#zamow' : '/#zamow'),
     'metadata[order_id]': order.orderId,
     'payment_intent_data[metadata][order_id]': order.orderId,
     'metadata[figurine_count]': String(order.items.length)
   });
+  if (preview) params.set('metadata[preview]', 'true');
   // payment_method_collection dotyczy wyłącznie subskrypcji. Dla dodatnich
   // kwot w mode: payment Stripe standardowo wymaga metody płatności.
   // Kwoty pochodzą wyłącznie ze wspólnego cennika na serwerze.
@@ -73,7 +75,7 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
   } catch {
     return json(400, { error: 'Sprawdź adres e-mail, liczbę figurek i ich rozmiary.' });
   }
-  const params = stripeParameters(order, config.siteOrigin);
+  const params = stripeParameters(order, config.siteOrigin, config.preview === true);
   const digest = createHash('sha256').update(params.toString()).digest('hex');
   let diagnostic = { event: 'stripe_transport_error' };
   try {
@@ -92,6 +94,7 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     if (/^req_[A-Za-z0-9]{1,100}$/.test(requestId || '')) diagnostic.requestId = requestId;
     if (!response.ok) throw new Error('Stripe unavailable');
     const session = await response.json();
+    if (config.preview && session.livemode !== false) throw new Error('Preview requires sandbox');
     // Nie ujawniamy klientowi kluczy ani szczegółów błędów konta Stripe.
     if (!session.url || new URL(session.url).hostname !== 'checkout.stripe.com' || !session.url.startsWith('https://')) throw new Error('Stripe unavailable');
     return json(200, { url: session.url });

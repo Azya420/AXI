@@ -14,13 +14,31 @@ W panelu sekretów hostingu ustaw `STRIPE_SECRET_KEY` (najpierw klucz testowy). 
 
 W `checkout-config.js` ustawiono publiczny adres `https://axi-checkout.onrender.com/checkout-session`. Ten plik nie zawiera żadnego klucza. Jest to konfiguracja gałęzi roboczej: nie publikuj formularza na `main` przed sprawdzeniem płatności i ustawieniem sekretu produkcyjnego. Jeśli adres zostanie wyczyszczony, pojedyncze zamówienie zachowuje dotychczasowy link Stripe; zamówienie z kilkoma figurkami nie zostanie wysłane ani opłacone częściowo.
 
+### Samodzielny podgląd i test formularza
+
+Po wdrożeniu najnowszego commitu otwórz `https://axi-checkout.onrender.com/preview/#zamow`. Nie trzeba tworzyć drugiej usługi ani zmieniać działającej strony GitHub Pages. Podgląd renderuje aktualny `index.html` i używa tego samego modułu formularza/cennika; obrazy pobiera z publicznej strony AXI3D. Ma widoczny baner testowy, wyłączoną analitykę i `noindex`.
+
+1. W Renderze wybierz **Manual Deploy → Deploy latest commit**, poczekaj na status **Live**, następnie otwórz powyższy adres.
+2. Dodaj kilka figurek, opisy i przykładowe zdjęcia. Rozmiary 32, 80 i 120 mm powinny dać 670 zł.
+3. Wprowadź fikcyjne dane kontaktowe. Do pierwszego testu najprościej wybrać dostawę **Na adres**. Otwarcie mapy InPost można sprawdzić osobno.
+4. Domyślnie formularz NIE wysyła nic do Basin: zdjęcia zostają w przeglądarce, a klient przechodzi do piaskownicy Stripe. Użyj publicznej karty testowej `4242 4242 4242 4242`, dowolnej daty w przyszłości, np. `12/34`, i CVC `123`. Nie używaj prawdziwej karty.
+5. Aby sprawdzić kompletność zdjęć i danych dostawy, zaznacz **Wyślij także zgłoszenie testowe do Basin ze zdjęciami**. To tworzy prawdziwe zgłoszenie multipart w istniejącym Basin i może zużyć limit oraz wysłać powiadomienie. Temat i pola są oznaczone **TEST — NIE REALIZOWAĆ**. Po teście sprawdź otrzymanie wszystkich załączników dla każdej figurki.
+
+Podgląd i jego endpoint `/preview/checkout-session` działają tylko z kluczem zaczynającym się od `rk_test_` lub `sk_test_`. Po przełączeniu Rendera na klucz live zwracają 404; także wcześniej otwarta karta podglądu nie może stworzyć płatności produkcyjnej. Dodatkowo backend sprawdza `livemode: false` odpowiedzi Stripe, a formularz odrzuca linki sesji inne niż `cs_test_`. Podgląd nie korzysta ze starych linków live.
+
+Powrót ze Stripe prowadzi do `/preview/success` albo `/preview/#zamow`, nie do produkcyjnej strony potwierdzenia. Obsługiwane są wyłącznie wymienione pliki podglądu — backend nie udostępnia katalogu repozytorium ani sekretów. CORS podglądu używa automatycznej zmiennej Render `RENDER_EXTERNAL_URL`, niezależnie od produkcyjnej listy źródeł. Główny endpoint `/checkout-session` nadal obsługuje wyłącznie dotychczasową listę źródeł AXI3D.
+
+Źródła: [karty testowe Stripe](https://docs.stripe.com/testing), [zmienne środowiskowe Rendera](https://render.com/docs/environment-variables).
+
 ### Stan po podłączeniu Rendera — 30.08.2026
 
 `GET https://axi-checkout.onrender.com/health` zwrócił `ok: true` i `checkoutConfigured: true`; preflight dla `https://axi3d.pl` zwrócił HTTP 204. Próba przygotowania płatności za 32/80/120 mm (670 zł) zakończyła się błędem, bez linku do Checkout. Nie wysyłano zgłoszenia Basin ani nie wykonano obciążenia.
 
 Przegląd parametrów ujawnił błąd w kodzie: `payment_method_collection: if_required` jest dozwolone tylko dla subskrypcji, a ten endpoint używa `mode: payment`. Parametr usunięto. Dla dodatnich kwot Stripe nadal wymaga metody płatności. [Dokumentacja parametru](https://docs.stripe.com/api/checkout/sessions/create).
 
-Poprawka wymaga **Manual Deploy → Deploy latest commit** w Renderze (automatyczne wdrożenia są wyłączone). Po wdrożeniu `/health` zwraca również `revision` z publicznym SHA wdrożonego commitu. Pełnego testu płatności jeszcze nie ukończono; poprawność/uprawnienia wpisanego klucza pozostają do potwierdzenia po ponowieniu próby.
+Poprawkę wdrożono jako `727a3d41d57e977ef34be880daa6cb22997b281d`; `/health` potwierdził tę wersję. Sesje testowe utworzyły się poprawnie, a przeglądarka pokazała 200 zł za 32 mm, 400 zł za 32+42 mm i 670 zł za 32+80+120 mm. Płatność mieszanego koszyka wykonano publiczną kartą testową Stripe i nastąpiło przekierowanie do strony podziękowania. Nie obciążano prawdziwej karty. Powtórzenie identycznego zamówienia zwróciło ten sam adres sesji. Testy te nie wysłały zgłoszenia Basin ani załączników.
+
+Nowa funkcja podglądu wymaga kolejnego **Manual Deploy → Deploy latest commit**, ponieważ automatyczne wdrożenia pozostają wyłączone. Klucz testowy pozostaje bez zmian.
 
 W razie kolejnego błędu log serwera zawiera wpis `[axi-checkout]` z typem zdarzenia, kodem HTTP Stripe i — jeśli dostępny — identyfikatorem `requestId`. HTTP 401 oznacza problem uwierzytelnienia, 403 brak uprawnień, a 400 nieprawidłowe parametry. Wyszukaj podany identyfikator w logach Stripe w odpowiednim trybie testowym. Log nie zawiera klucza, danych klienta ani pełnej treści błędu Stripe. Zdarzenie `stripe_transport_error` oznacza błąd połączenia/oczekiwania, a `stripe_invalid_response` nieprawidłową odpowiedź. [Znaczenie kodów HTTP Stripe](https://docs.stripe.com/error-low-level).
 

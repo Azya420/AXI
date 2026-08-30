@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { handleCheckout } from './checkout.mjs';
+import { isTestKey, previewResponse } from './preview.mjs';
 
 const siteOrigin = process.env.AXI_SITE_ORIGIN || 'https://axi3d.pl';
 const parsedOrigin = new URL(siteOrigin);
@@ -11,17 +12,36 @@ const config = {
   siteOrigin,
   allowedOrigins: (process.env.AXI_ALLOWED_ORIGINS || 'https://axi3d.pl,https://www.axi3d.pl').split(',').map(value => value.trim())
 };
+// Ustalony adres usługi, nigdy Host/Origin przesłany przez klienta.
+const previewOrigin = process.env.RENDER_EXTERNAL_URL || 'https://axi-checkout.onrender.com';
+if (new URL(previewOrigin).origin !== previewOrigin || !previewOrigin.startsWith('https://')) throw new Error('Invalid preview origin.');
 // Ograniczenie globalne na proces; nie ufamy nagłówkom IP od klienta.
 // Przy skalowaniu do wielu procesów dodaj limit również w hostingu/proxy.
 let windowStarted = Date.now();
 let requestsInWindow = 0;
 const server = createServer(async (req, res) => {
+  const pathname = new URL(req.url, 'http://axi-api.invalid').pathname;
   if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ ok: true, checkoutConfigured: Boolean(config.stripeKey), revision: process.env.RENDER_GIT_COMMIT || null }));
     return;
   }
-  if (req.url !== '/checkout-session') { res.writeHead(404); res.end(); return; }
+  const previewCheckout = pathname === '/preview/checkout-session';
+  if (pathname === '/preview' || pathname.startsWith('/preview/')) {
+    if (!previewCheckout) {
+      try {
+        const response = await previewResponse(pathname, req.method, config);
+        res.writeHead(response.status, Object.fromEntries(response.headers));
+        res.end(await response.text());
+      } catch {
+        res.writeHead(500, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
+        res.end('Nie udało się wczytać podglądu.');
+      }
+      return;
+    }
+    if (!isTestKey(config.stripeKey)) { res.writeHead(404); res.end(); return; }
+  }
+  if (pathname !== '/checkout-session' && !previewCheckout) { res.writeHead(404); res.end(); return; }
   if (Date.now() - windowStarted >= 60000) { windowStarted = Date.now(); requestsInWindow = 0; }
   if (req.method === 'POST' && ++requestsInWindow > 120) {
     res.writeHead(429, { 'Retry-After': '60' }); res.end(); return;
@@ -32,7 +52,8 @@ const server = createServer(async (req, res) => {
       options.body = Readable.toWeb(req);
       options.duplex = 'half';
     }
-    const response = await handleCheckout(new Request('https://axi-api.invalid/checkout-session', options), config);
+    const checkoutConfig = previewCheckout ? { ...config, preview: true, siteOrigin: previewOrigin, allowedOrigins: [previewOrigin] } : config;
+    const response = await handleCheckout(new Request('https://axi-api.invalid/checkout-session', options), checkoutConfig);
     res.writeHead(response.status, Object.fromEntries(response.headers));
     res.end(await response.text());
   } catch {

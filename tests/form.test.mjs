@@ -4,10 +4,11 @@ import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 import { JSDOM } from 'jsdom';
 import { initOrderForm } from '../order-form.mjs';
+import { renderPreviewHtml } from '../api/preview.mjs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-function setup() {
-  const dom = new JSDOM(html, { url: 'https://axi3d.pl/', pretendToBeVisual: true });
+function setup(preview = false) {
+  const dom = new JSDOM(preview ? renderPreviewHtml(html, 'https://axi3d.pl') : html, { url: 'https://axi3d.pl/', pretendToBeVisual: true });
   const doc = dom.window.document;
   const calls = [], redirects = [], alerts = [];
   let failure = '';
@@ -17,10 +18,11 @@ function setup() {
     requestAnimationFrame: () => {},
     alert: message => alerts.push(message), location: { assign: url => redirects.push(url) },
     AXI_CHECKOUT_ENDPOINT: 'https://api.example.com/checkout-session',
+    AXI_PREVIEW_MODE: preview,
     fetch: async (url, options) => {
       calls.push({ url, ...options });
       if (failure && (failure === 'all' || (failure === 'basin' && url.includes('usebasin')))) throw new Error('Test network error');
-      return Response.json(url.includes('/checkout-session') ? { url: 'https://checkout.stripe.com/c/pay/test' } : { success: true });
+      return Response.json(url.includes('/checkout-session') ? { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://checkout.stripe.com/c/pay/test' } : { success: true });
     }
   };
   initOrderForm(win);
@@ -184,5 +186,39 @@ test('checkout timeout unlocks the form, retains files and retries the same orde
   s.win.fetch = fetch; s.$('open-shipping-btn').click(); await s.submit();
   assert.equal(JSON.parse(s.calls[0].body).orderId, orderId);
   assert.equal(s.redirects.length, 1);
+  s.dom.window.close();
+});
+test('preview skips Basin and uploads by default while retaining the real order flow', async () => {
+  const s = setup(true); s.size(0, '32'); s.attach(0, 'test.png'); s.fillShipping();
+  assert.ok(!s.$('preview-send-basin').checked);
+  await s.submit();
+  assert.equal(s.calls.length, 1);
+  assert.ok(s.calls[0].url.includes('/checkout-session'));
+  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32 }]);
+  assert.deepEqual(s.redirects, ['https://checkout.stripe.com/c/pay/cs_test_preview']);
+  s.dom.window.close();
+});
+test('preview Basin opt-in sends labeled test data and individual attachments', async () => {
+  const s = setup(true); s.size(0, '32'); s.attach(0, 'first.png');
+  s.$('add-figurine-btn').click(); s.size(1, '80'); s.attach(1, 'second.png');
+  s.$('preview-send-basin').checked = true; s.fillShipping(); await s.submit();
+  assert.equal(s.calls.length, 2);
+  const data = s.calls[1].body;
+  assert.match(data.get('subject'), /^TEST — NIE REALIZOWAĆ/);
+  assert.equal(data.get('tryb'), 'TEST — NIE REALIZOWAĆ');
+  assert.equal(data.get('zdjecia').name, 'first.png');
+  assert.equal(data.get('figurka_2_zdjecia').name, 'second.png');
+  assert.match(data.get('status_platnosci'), /piaskownicy/);
+  s.dom.window.close();
+});
+test('preview cannot use a live Stripe URL or fall back to a legacy live Payment Link', async () => {
+  const s = setup(true); s.size(0, '32'); s.fillShipping();
+  s.win.fetch = async () => Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_wrong' });
+  await s.submit();
+  assert.equal(s.redirects.length, 0);
+  assert.match(s.$('order-error').textContent, /wyłącznie płatności testowe/);
+  s.win.AXI_CHECKOUT_ENDPOINT = ''; s.$('open-shipping-btn').click(); await s.submit();
+  assert.equal(s.redirects.length, 0);
+  assert.match(s.$('order-error').textContent, /nie jest jeszcze dostępna/);
   s.dom.window.close();
 });
