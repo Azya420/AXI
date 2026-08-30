@@ -1,5 +1,13 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualny stan — płatności live potwierdzone
+
+Po zmianach właściciela Render zwrócił aktualny kod `69587a5` oraz sesję live. Odczyt tej sesji przez API konta AXI3D potwierdził `livemode: true`, walutę PLN i trzy pozycje: 32 mm = 200 zł, 80 mm = 220 zł, 120 mm = 250 zł, razem 670 zł. Status był `unpaid`; nie wykonano obciążenia ani zgłoszenia Basin. To potwierdza tworzenie sesji live, nie pełną realizację zamówienia.
+
+Właściciel poinformował o wykupieniu płatnego Rendera. Dokładny plan nie jest widoczny przez publiczny endpoint. Z `render.yaml` usunięto `plan: free`: brak pola zachowuje bieżący plan istniejącej usługi, więc synchronizacja nie powinna cofnąć ręcznego upgrade'u. Utworzenie NOWEJ usługi z tego pliku korzysta z domyślnego płatnego planu Rendera; przed utworzeniem należy sprawdzić koszt. Nie utworzono nowej usługi ani nie zmieniono planu przez API.
+
+Ta korekta dotyczy tylko konfiguracji i dokumentacji; nie wymaga ponownego wdrożenia kodu płatności. Poniżej pozostawiono historyczne etapy uruchomienia.
+
 ## Uruchomienie live — 30.08.2026
 
 Właściciel zlecił publikację wszystkich zmian na `main`. Testy piaskownicy i formularza przeszły, ale kontrolne żądanie do działającego Rendera nadal zwróciło `cs_test_` pomimo deklaracji dodania klucza „real1”. Sama nazwa klucza w Stripe nie zmienia konfiguracji serwera.

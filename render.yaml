@@ -5,7 +5,8 @@ services:
     name: axi-checkout
     runtime: node
     region: frankfurt
-    plan: free
+    # Plan wybierany w panelu Render. Pominięcie pola zachowuje plan istniejącej usługi.
+    # Dla NOWEJ usługi Render użyje domyślnego planu płatnego — sprawdź koszt przed utworzeniem.
     branch: main
     autoDeployTrigger: "off"
     buildCommand: npm ci --include=dev && npm run check && npm test
