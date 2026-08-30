@@ -3,6 +3,8 @@ import { MAX_FIGURINES, getPrice } from '../pricing.mjs';
 
 const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const LIVE_SESSION = /^cs_live_[A-Za-z0-9]+$/;
+const TEST_SESSION = /^cs_test_[A-Za-z0-9]+$/;
 
 export function validateOrder(order) {
   if (!order || typeof order !== 'object' || !UUID.test(order.orderId || '')) throw new Error('Nieprawidłowy numer zamówienia.');
@@ -23,7 +25,7 @@ export function stripeParameters(order, siteOrigin, preview = false) {
     'automatic_tax[enabled]': 'false', allow_promotion_codes: 'true',
     'invoice_creation[enabled]': 'false', billing_address_collection: 'auto',
     customer_creation: 'if_required',
-    success_url: siteOrigin + (preview ? '/preview/success' : '/dziekujemy.html'),
+    success_url: siteOrigin + (preview ? '/preview/success' : '/dziekujemy.html?session_id={CHECKOUT_SESSION_ID}'),
     cancel_url: siteOrigin + (preview ? '/preview/#zamow' : '/#zamow'),
     'metadata[order_id]': order.orderId,
     'payment_intent_data[metadata][order_id]': order.orderId,
@@ -44,6 +46,62 @@ export function stripeParameters(order, siteOrigin, preview = false) {
   return params;
 }
 
+async function readJsonBody(request) {
+  const reader = request.body.getReader();
+  const chunks = [];
+  let length = 0;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    length += value.byteLength;
+    if (length > MAX_BODY_BYTES) {
+      await reader.cancel();
+      const error = new Error('Payload too large');
+      error.status = 413;
+      throw error;
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+export async function verifyStripePayment(sessionId, config, stripeFetch = fetch) {
+  const validSession = config.preview ? TEST_SESSION.test(sessionId || '') : LIVE_SESSION.test(sessionId || '');
+  if (!validSession) throw new Error('Invalid Stripe session');
+  const response = await stripeFetch(
+    'https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sessionId) + '?expand[]=line_items',
+    {
+      method: 'GET',
+      headers: { Authorization: 'Bearer ' + config.stripeKey },
+      signal: AbortSignal.timeout(15000)
+    }
+  );
+  if (!response.ok) throw new Error('Stripe unavailable');
+  const session = await response.json();
+  if (session.id !== sessionId) throw new Error('Stripe session mismatch');
+  const amountTotal = Number.isInteger(session.amount_total) ? session.amount_total : null;
+  const items = Array.isArray(session.line_items?.data)
+    ? session.line_items.data.map((line, index) => {
+        const quantity = Number.isInteger(line.quantity) && line.quantity > 0 ? line.quantity : 1;
+        const lineTotal = Number.isInteger(line.amount_total) ? line.amount_total : 0;
+        return {
+          item_id: 'axi-figurine-' + (index + 1),
+          item_name: typeof line.description === 'string' && line.description ? line.description : 'Personalizowana figurka',
+          price: lineTotal / quantity / 100,
+          quantity
+        };
+      })
+    : [];
+  return {
+    paid: session.payment_status === 'paid',
+    transactionId: session.id,
+    orderId: typeof session.client_reference_id === 'string' ? session.client_reference_id : null,
+    value: amountTotal === null ? null : amountTotal / 100,
+    currency: typeof session.currency === 'string' ? session.currency.toUpperCase() : 'PLN',
+    items
+  };
+}
+
 export async function handleCheckout(request, config, stripeFetch = fetch) {
   const origin = request.headers.get('Origin');
   const allowed = config.allowedOrigins.includes(origin);
@@ -60,19 +118,27 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
   if (!/^application\/json(?:;|$)/i.test(request.headers.get('Content-Type') || '')) return json(415, { error: 'Wymagany format JSON.' });
   if (!config.stripeKey) return json(503, { error: 'Płatności nie są jeszcze skonfigurowane.' });
   if (Number(request.headers.get('Content-Length')) > MAX_BODY_BYTES) return json(413, { error: 'Zapytanie jest za duże.' });
+
+  let body;
+  try {
+    body = await readJsonBody(request);
+  } catch (error) {
+    if (error?.status === 413) return json(413, { error: 'Zapytanie jest za duże.' });
+    return json(400, { error: 'Nieprawidłowe dane zapytania.' });
+  }
+
+  if (body?.action === 'verify_payment') {
+    try {
+      const payment = await verifyStripePayment(body.sessionId, config, stripeFetch);
+      return json(200, payment);
+    } catch {
+      return json(502, { error: 'Nie udało się potwierdzić płatności.' });
+    }
+  }
+
   let order;
   try {
-    const reader = request.body.getReader();
-    const chunks = [];
-    let length = 0;
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      length += value.byteLength;
-      if (length > MAX_BODY_BYTES) { await reader.cancel(); return json(413, { error: 'Zapytanie jest za duże.' }); }
-      chunks.push(Buffer.from(value));
-    }
-    order = validateOrder(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+    order = validateOrder(body);
   } catch {
     return json(400, { error: 'Sprawdź adres e-mail, liczbę figurek i ich rozmiary.' });
   }
