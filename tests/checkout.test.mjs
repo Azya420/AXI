@@ -25,7 +25,8 @@ test('checkout preserves verified live Payment Link rules without extra shipping
   assert.equal(params.get('invoice_creation[enabled]'), 'false');
   assert.equal(params.get('billing_address_collection'), 'auto');
   assert.equal(params.get('customer_creation'), 'if_required');
-  assert.equal(params.get('payment_method_collection'), 'if_required');
+  assert.equal(params.get('mode'), 'payment');
+  assert.equal(params.get('payment_method_collection'), null, 'subscription-only setting must be omitted for one-time payments');
   assert.ok(![...params.keys()].some(key => /shipping_options|tax_rates|payment_method_types/.test(key)));
 });
 test('client prices, quantities and redirect URLs cannot override server values', () => {
@@ -86,4 +87,21 @@ test('Stripe failure and unsafe redirect do not leak provider errors or secrets'
     assert.equal(response.status, 502);
     assert.ok(!(await response.text()).includes(config.stripeKey));
   }
+});
+test('server diagnostics identify Stripe failures without storing response bodies, keys or customer data', async () => {
+  const logs = [];
+  const loggedConfig = { ...config, reportStripeError: event => logs.push(event) };
+  for (const status of [400, 401, 403, 429, 500]) {
+    const stripe = async () => Response.json({ error: { message: config.stripeKey + ' ' + order.email } }, { status, headers: { 'Request-Id': 'req_CheckoutDiagnostic123' } });
+    const response = await handleCheckout(request(), loggedConfig, stripe);
+    assert.equal(response.status, 502);
+    assert.deepEqual(logs.at(-1), { event: 'stripe_http_error', status, requestId: 'req_CheckoutDiagnostic123' });
+    assert.ok(!(await response.text()).includes('req_CheckoutDiagnostic123'));
+  }
+  await handleCheckout(request(), loggedConfig, async () => { throw new Error(config.stripeKey); });
+  assert.deepEqual(logs.at(-1), { event: 'stripe_transport_error' });
+  await handleCheckout(request(), loggedConfig, async () => Response.json({}, { status: 401, headers: { 'Request-Id': 'invalid ' + config.stripeKey } }));
+  assert.deepEqual(logs.at(-1), { event: 'stripe_http_error', status: 401 });
+  assert.ok(!JSON.stringify(logs).includes(config.stripeKey));
+  assert.ok(!JSON.stringify(logs).includes(order.email));
 });

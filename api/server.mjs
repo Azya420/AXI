@@ -7,6 +7,7 @@ const parsedOrigin = new URL(siteOrigin);
 if (parsedOrigin.origin !== siteOrigin || parsedOrigin.protocol !== 'https:') throw new Error('AXI_SITE_ORIGIN must be an HTTPS origin without a trailing slash.');
 const config = {
   stripeKey: process.env.STRIPE_SECRET_KEY,
+  reportStripeError: diagnostic => console.error('[axi-checkout]', JSON.stringify(diagnostic)),
   siteOrigin,
   allowedOrigins: (process.env.AXI_ALLOWED_ORIGINS || 'https://axi3d.pl,https://www.axi3d.pl').split(',').map(value => value.trim())
 };
@@ -17,7 +18,7 @@ let requestsInWindow = 0;
 const server = createServer(async (req, res) => {
   if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify({ ok: true, checkoutConfigured: Boolean(config.stripeKey) }));
+    res.end(JSON.stringify({ ok: true, checkoutConfigured: Boolean(config.stripeKey), revision: process.env.RENDER_GIT_COMMIT || null }));
     return;
   }
   if (req.url !== '/checkout-session') { res.writeHead(404); res.end(); return; }

@@ -21,12 +21,14 @@ export function stripeParameters(order, siteOrigin) {
     // Potwierdzone ustawienia pięciu linków AXI3D (30.08.2026).
     'automatic_tax[enabled]': 'false', allow_promotion_codes: 'false',
     'invoice_creation[enabled]': 'false', billing_address_collection: 'auto',
-    customer_creation: 'if_required', payment_method_collection: 'if_required',
+    customer_creation: 'if_required',
     success_url: siteOrigin + '/dziekujemy.html', cancel_url: siteOrigin + '/#zamow',
     'metadata[order_id]': order.orderId,
     'payment_intent_data[metadata][order_id]': order.orderId,
     'metadata[figurine_count]': String(order.items.length)
   });
+  // payment_method_collection dotyczy wyłącznie subskrypcji. Dla dodatnich
+  // kwot w mode: payment Stripe standardowo wymaga metody płatności.
   // Kwoty pochodzą wyłącznie ze wspólnego cennika na serwerze.
   // Nigdy nie przyjmujemy ceny ani ilości z kodu przeglądarki.
   order.items.forEach((item, index) => {
@@ -73,6 +75,7 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
   }
   const params = stripeParameters(order, config.siteOrigin);
   const digest = createHash('sha256').update(params.toString()).digest('hex');
+  let diagnostic = { event: 'stripe_transport_error' };
   try {
     const response = await stripeFetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
@@ -84,11 +87,18 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
       body: params,
       signal: AbortSignal.timeout(15000)
     });
+    diagnostic = { event: response.ok ? 'stripe_invalid_response' : 'stripe_http_error', status: response.status };
+    const requestId = response.headers.get('request-id');
+    if (/^req_[A-Za-z0-9]{1,100}$/.test(requestId || '')) diagnostic.requestId = requestId;
+    if (!response.ok) throw new Error('Stripe unavailable');
     const session = await response.json();
     // Nie ujawniamy klientowi kluczy ani szczegółów błędów konta Stripe.
-    if (!response.ok || !session.url || new URL(session.url).hostname !== 'checkout.stripe.com' || !session.url.startsWith('https://')) throw new Error('Stripe unavailable');
+    if (!session.url || new URL(session.url).hostname !== 'checkout.stripe.com' || !session.url.startsWith('https://')) throw new Error('Stripe unavailable');
     return json(200, { url: session.url });
   } catch {
+    // Tylko kontrolowane pola diagnostyczne. Nigdy error.message Stripe,
+    // treść odpowiedzi, dane zamówienia ani Authorization (mogą zawierać klucz).
+    try { config.reportStripeError?.(diagnostic); } catch { /* Log nie blokuje odpowiedzi. */ }
     return json(502, { error: 'Nie udało się przygotować płatności. Spróbuj ponownie za chwilę.' });
   }
 }

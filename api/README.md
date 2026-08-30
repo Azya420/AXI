@@ -12,7 +12,17 @@ node api/server.mjs
 
 W panelu sekretów hostingu ustaw `STRIPE_SECRET_KEY` (najpierw klucz testowy). Nie wklejaj go do rozmowy, plików strony ani GitHuba. Opcjonalnie ustaw `PORT`. `AXI_SITE_ORIGIN` domyślnie wynosi `https://axi3d.pl`, a `AXI_ALLOWED_ORIGINS` to `https://axi3d.pl,https://www.axi3d.pl`. Podczas testów dodaj dokładny adres testowej strony do dozwolonych źródeł. CORS nie jest uwierzytelnianiem; ogranicz ruch również na poziomie hostingu. Serwer ma limit 120 prób POST na minutę na proces i limit treści 8 KiB.
 
-W `checkout-config.js` wpisz publiczny adres HTTPS endpointu `/checkout-session`. Ten plik nie zawiera żadnego klucza. Bez adresu pojedyncze zamówienie zachowuje dotychczasowy link Stripe; zamówienie z kilkoma figurkami nie zostanie wysłane ani opłacone częściowo.
+W `checkout-config.js` ustawiono publiczny adres `https://axi-checkout.onrender.com/checkout-session`. Ten plik nie zawiera żadnego klucza. Jest to konfiguracja gałęzi roboczej: nie publikuj formularza na `main` przed sprawdzeniem płatności i ustawieniem sekretu produkcyjnego. Jeśli adres zostanie wyczyszczony, pojedyncze zamówienie zachowuje dotychczasowy link Stripe; zamówienie z kilkoma figurkami nie zostanie wysłane ani opłacone częściowo.
+
+### Stan po podłączeniu Rendera — 30.08.2026
+
+`GET https://axi-checkout.onrender.com/health` zwrócił `ok: true` i `checkoutConfigured: true`; preflight dla `https://axi3d.pl` zwrócił HTTP 204. Próba przygotowania płatności za 32/80/120 mm (670 zł) zakończyła się błędem, bez linku do Checkout. Nie wysyłano zgłoszenia Basin ani nie wykonano obciążenia.
+
+Przegląd parametrów ujawnił błąd w kodzie: `payment_method_collection: if_required` jest dozwolone tylko dla subskrypcji, a ten endpoint używa `mode: payment`. Parametr usunięto. Dla dodatnich kwot Stripe nadal wymaga metody płatności. [Dokumentacja parametru](https://docs.stripe.com/api/checkout/sessions/create).
+
+Poprawka wymaga **Manual Deploy → Deploy latest commit** w Renderze (automatyczne wdrożenia są wyłączone). Po wdrożeniu `/health` zwraca również `revision` z publicznym SHA wdrożonego commitu. Pełnego testu płatności jeszcze nie ukończono; poprawność/uprawnienia wpisanego klucza pozostają do potwierdzenia po ponowieniu próby.
+
+W razie kolejnego błędu log serwera zawiera wpis `[axi-checkout]` z typem zdarzenia, kodem HTTP Stripe i — jeśli dostępny — identyfikatorem `requestId`. HTTP 401 oznacza problem uwierzytelnienia, 403 brak uprawnień, a 400 nieprawidłowe parametry. Wyszukaj podany identyfikator w logach Stripe w odpowiednim trybie testowym. Log nie zawiera klucza, danych klienta ani pełnej treści błędu Stripe. Zdarzenie `stripe_transport_error` oznacza błąd połączenia/oczekiwania, a `stripe_invalid_response` nieprawidłową odpowiedź. [Znaczenie kodów HTTP Stripe](https://docs.stripe.com/error-low-level).
 
 ### Render — przygotowanie do testów
 
