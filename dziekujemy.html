@@ -206,9 +206,29 @@
     <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję</button>
   </div>
 </div>
+<script src="checkout-config.js"></script>
 <script>
 (function(){
   var GA_ID = 'G-M3L9ZPRGMB';
+  var verifiedPurchase = null;
+
+  function sendPurchaseIfReady(){
+    if (!verifiedPurchase || typeof window.gtag !== 'function') return;
+    var transactionId = verifiedPurchase.transactionId;
+    if (!transactionId) return;
+    var storageKey = 'ga4-purchase:' + transactionId;
+    if (localStorage.getItem(storageKey) === 'sent') return;
+    var eventData = {
+      transaction_id: transactionId,
+      affiliation: 'AXI3D',
+      value: verifiedPurchase.value,
+      currency: verifiedPurchase.currency || 'PLN'
+    };
+    if (Array.isArray(verifiedPurchase.items) && verifiedPurchase.items.length) eventData.items = verifiedPurchase.items;
+    window.gtag('event', 'purchase', eventData);
+    localStorage.setItem(storageKey, 'sent');
+  }
+
   function loadGA(){
     var s = document.createElement('script');
     s.async = true;
@@ -219,8 +239,32 @@
     window.gtag = gtag;
     gtag('js', new Date());
     gtag('config', GA_ID);
+    sendPurchaseIfReady();
   }
+
+  async function verifyPurchase(){
+    var sessionId = new URLSearchParams(window.location.search).get('session_id') || '';
+    if (!/^cs_live_[A-Za-z0-9]+$/.test(sessionId)) return;
+    var endpoint = (window.AXI_CHECKOUT_ENDPOINT || '').trim();
+    if (!endpoint) return;
+    try {
+      var response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify_payment', sessionId: sessionId })
+      });
+      if (!response.ok) return;
+      var data = await response.json();
+      if (!data.paid || typeof data.value !== 'number' || !data.transactionId) return;
+      verifiedPurchase = data;
+      sendPurchaseIfReady();
+    } catch {
+      // Brak eventu jest bezpieczniejszy niż fałszywy zakup w Analytics.
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function(){
+    verifyPurchase();
     var consent = localStorage.getItem('cookie-consent');
     if(consent === 'accepted'){
       loadGA();
