@@ -18,6 +18,10 @@ export function validateOrder(order) {
 export function stripeParameters(order, siteOrigin) {
   const params = new URLSearchParams({
     mode: 'payment', customer_email: order.email, client_reference_id: order.orderId,
+    // Potwierdzone ustawienia pięciu linków AXI3D (30.08.2026).
+    'automatic_tax[enabled]': 'false', allow_promotion_codes: 'false',
+    'invoice_creation[enabled]': 'false', billing_address_collection: 'auto',
+    customer_creation: 'if_required', payment_method_collection: 'if_required',
     success_url: siteOrigin + '/dziekujemy.html', cancel_url: siteOrigin + '/#zamow',
     'metadata[order_id]': order.orderId,
     'payment_intent_data[metadata][order_id]': order.orderId,

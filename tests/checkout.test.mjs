@@ -18,6 +18,16 @@ test('different sizes become three PLN line items totalling 670 zł', () => {
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
   assert.equal(params.get('client_reference_id'), id);
 });
+test('checkout preserves verified live Payment Link rules without extra shipping or tax', () => {
+  const params = stripeParameters(validateOrder(order), config.siteOrigin);
+  assert.equal(params.get('automatic_tax[enabled]'), 'false');
+  assert.equal(params.get('allow_promotion_codes'), 'false');
+  assert.equal(params.get('invoice_creation[enabled]'), 'false');
+  assert.equal(params.get('billing_address_collection'), 'auto');
+  assert.equal(params.get('customer_creation'), 'if_required');
+  assert.equal(params.get('payment_method_collection'), 'if_required');
+  assert.ok(![...params.keys()].some(key => /shipping_options|tax_rates|payment_method_types/.test(key)));
+});
 test('client prices, quantities and redirect URLs cannot override server values', () => {
   const validated = validateOrder({ ...order, success_url: 'https://attacker.example', items: [{ size: 250, amount: 1, quantity: -8 }] });
   const params = stripeParameters(validated, config.siteOrigin);

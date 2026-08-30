@@ -13,6 +13,7 @@ function setup() {
   let failure = '';
   const win = {
     document: doc, FormData: dom.window.FormData, crypto: webcrypto,
+    AbortController, setTimeout, clearTimeout,
     requestAnimationFrame: () => {},
     alert: message => alerts.push(message), location: { assign: url => redirects.push(url) },
     AXI_CHECKOUT_ENDPOINT: 'https://api.example.com/checkout-session',
@@ -137,5 +138,51 @@ test('single-figure fallback retains existing Stripe link and locker shipping', 
   assert.equal(s.calls.length, 1);
   assert.equal(s.calls[0].body.get('paczkomat'), 'WAW123'); assert.equal(s.calls[0].body.get('ulica'), null);
   assert.match(s.redirects[0], /^https:\/\/buy\.stripe\.com\/8x2bJ23jK0nH8X504teZ201\?/);
+  s.dom.window.close();
+});
+test('slow checkout shows progress, prevents duplicates and clears timers on success', async () => {
+  const s = setup(); s.size(0, '32'); s.fillShipping();
+  const timers = new Map();
+  s.win.setTimeout = (callback, delay) => { timers.set(delay, callback); return delay; };
+  s.win.clearTimeout = id => timers.delete(id);
+  const fetch = s.win.fetch;
+  let resolveCheckout, attempts = 0;
+  s.win.fetch = (url, options) => {
+    if (!url.includes('/checkout-session')) return fetch(url, options);
+    attempts++;
+    return new Promise(resolve => { resolveCheckout = resolve; });
+  };
+  await s.submit();
+  timers.get(8000)();
+  assert.match(s.$('shipping-order-summary').textContent, /około minuty/);
+  assert.equal(s.$('shipping-order-summary').getAttribute('role'), 'status');
+  assert.ok(s.$('commission-submit').disabled);
+  await s.submit(); assert.equal(attempts, 1);
+  resolveCheckout(Response.json({ url: 'https://checkout.stripe.com/c/pay/test' }));
+  await s.tick();
+  assert.equal(timers.size, 0); assert.equal(s.calls.length, 1);
+  assert.equal(s.redirects.length, 1);
+  s.dom.window.close();
+});
+test('checkout timeout unlocks the form, retains files and retries the same order', async () => {
+  const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
+  const timers = new Map();
+  s.win.setTimeout = (callback, delay) => { timers.set(delay, callback); return delay; };
+  s.win.clearTimeout = id => timers.delete(id);
+  const fetch = s.win.fetch;
+  let orderId;
+  s.win.fetch = (url, options) => {
+    orderId = JSON.parse(options.body).orderId;
+    return new Promise((resolve, reject) => options.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
+  };
+  await s.submit(); timers.get(120000)(); await s.tick();
+  assert.equal(s.calls.length, 0); assert.equal(s.redirects.length, 0);
+  assert.equal(timers.size, 0);
+  assert.ok(!s.$('commission-submit').disabled);
+  assert.match(s.$('order-error').textContent, /nie odpowiedziała na czas/);
+  assert.equal(s.$('photos').files[0].name, 'first.png');
+  s.win.fetch = fetch; s.$('open-shipping-btn').click(); await s.submit();
+  assert.equal(JSON.parse(s.calls[0].body).orderId, orderId);
+  assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });

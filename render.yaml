@@ -1,0 +1,22 @@
+# Konfiguracja do uruchomienia testów; samo dodanie pliku nie wdraża usługi.
+# Przed produkcją: test Stripe/Basin, decyzja o planie, potem branch: main.
+services:
+  - type: web
+    name: axi-checkout
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: codex/multi-figurine-checkout
+    autoDeployTrigger: "off"
+    buildCommand: npm ci --include=dev && npm run check && npm test
+    startCommand: node api/server.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: AXI_SITE_ORIGIN
+        value: https://axi3d.pl
+      - key: AXI_ALLOWED_ORIGINS
+        value: https://axi3d.pl,https://www.axi3d.pl

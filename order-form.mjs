@@ -15,6 +15,7 @@ export function initOrderForm(win) {
   const submitBtn = byId('commission-submit');
   const modal = byId('shipping-modal');
   const errorBox = byId('order-error');
+  byId('shipping-order-summary').setAttribute('role', 'status');
   const cards = () => Array.from(list.children);
   const field = (card, name) => card.querySelector('[data-field="' + name + '"]');
   let nextId = 1;
@@ -201,6 +202,28 @@ export function initOrderForm(win) {
     if (!response.ok) throw new Error(data.error || data.message || 'Usługa jest chwilowo niedostępna. Spróbuj ponownie.');
     return data;
   }
+  async function preparePayment(endpoint, order) {
+    const controller = new win.AbortController();
+    submitBtn.textContent = 'Przygotowywanie płatności…';
+    const notice = win.setTimeout(() => {
+      byId('shipping-order-summary').textContent = 'Czekamy na usługę płatności. Jej uruchomienie może potrwać około minuty. Nie zamykaj tego okna.';
+    }, 8000);
+    // Mieści wybudzenie darmowej instancji, ale nie blokuje formularza bez końca.
+    const timeout = win.setTimeout(() => controller.abort(), 120000);
+    try {
+      return await responseJson(await win.fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order), signal: controller.signal
+      }));
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('Usługa płatności nie odpowiedziała na czas. Spróbuj ponownie.');
+      throw error;
+    } finally {
+      win.clearTimeout(notice);
+      win.clearTimeout(timeout);
+      submitBtn.textContent = 'Wysyłanie…';
+    }
+  }
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (busy || completed || !validateFigures()) return;
@@ -238,11 +261,7 @@ export function initOrderForm(win) {
     try {
       let paymentUrl;
       if (endpoint) {
-        const response = await win.fetch(endpoint, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items, email: byId('email').value.trim(), orderId })
-        });
-        const data = await responseJson(response);
+        const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId });
         const url = new URL(data.url);
         if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Nieprawidłowy adres płatności.');
         paymentUrl = url.href;
