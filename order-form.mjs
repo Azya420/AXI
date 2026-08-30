@@ -71,7 +71,7 @@ export function initOrderForm(win) {
     const label = countLabel(all.length);
     byId('figurine-count').value = String(all.length);
     byId('order-count-label').textContent = label;
-    byId('order-total').textContent = 'Suma: ' + (valid ? formatPrice(total) : 'Uzupełnij rozmiary wszystkich figurek');
+    byId('order-total').textContent = valid ? 'Suma: ' + formatPrice(total) : 'Suma:';
     byId('price-hidden').value = valid ? formatPrice(total) : '';
     byId('shipping-order-summary').textContent = label + (valid ? ' · Suma: ' + formatPrice(total) : '');
     openBtn.textContent = all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
