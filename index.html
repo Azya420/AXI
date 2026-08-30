@@ -739,6 +739,21 @@
     margin-top:6px;
   }
   form{ display:grid; gap:18px; }
+  .figurine-list{ display:grid; gap:20px; min-width:0; }
+  .figurine-card{ display:grid; gap:18px; min-width:0; border:1px solid var(--line); padding:22px; }
+  .figurine-card legend{ padding:0 8px; font-family:'Cinzel', serif; color:var(--violet-bright); }
+  .figurine-actions{ display:flex; justify-content:flex-end; }
+  .remove-figurine{ background:none; border:0; color:var(--ink-dim); cursor:pointer; text-decoration:underline; padding:8px; font:inherit; font-size:0.8rem; }
+  .add-figurine{ width:100%; justify-content:center; border:1px dashed var(--violet-bright); cursor:pointer; }
+  .order-summary{ border-top:1px solid var(--line); padding-top:18px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; color:var(--ink-dim); }
+  .order-summary strong{ color:var(--violet-bright); }
+  .order-error{ color:#ffb4b4; font-size:0.88rem; }
+  #commission-form [hidden]{ display:none; }
+  #commission-form button:disabled, #shipping-modal button:disabled{ opacity:0.55; cursor:wait; }
+  @media (max-width: 700px){
+    .figurine-card{ padding:16px; }
+    .figurine-card .form-row{ grid-template-columns:1fr; }
+  }
   .shipping-modal-panel{
     position:relative;
     z-index:1;
@@ -2212,13 +2227,18 @@
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
 
+        <input type="hidden" name="liczba_figurek" id="figurine-count" value="1">
+        <input type="hidden" name="numer_zamowienia" id="order-reference" value="">
+        <div class="figurine-list" id="figurine-list">
+          <fieldset class="figurine-card">
+            <legend>Figurka 1</legend>
         <div>
           <label for="desc">Opis postaci</label>
-          <textarea id="desc" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
+          <textarea id="desc" data-field="description" name="opis" placeholder="Rasa, klasa, uzbrojenie, pancerz, poza..."></textarea>
         </div>
         <div>
           <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
-          <input id="photos" name="zdjecia" type="file" accept="image/*" multiple>
+          <input id="photos" data-field="photos" name="zdjecia" type="file" accept="image/*" multiple>
         </div>
         <div class="form-row">
           <div>
@@ -2229,15 +2249,27 @@
                 <span class="info-tip-text">Każda figurka będzie zawierać podstawkę - wysokość oznacza wysokość samej postaci, od stóp do czubka głowy, bez podstawki.</span>
               </span>
             </div>
-            <input id="scale" name="rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 32" required>
+            <input id="scale" data-field="size" name="rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 32" required>
           </div>
           <div>
             <span class="price-box-label">Cena</span>
             <div class="price-box" id="price-box">
-              <span class="price-value" id="price-value">wpierw wpisz rozmiar</span>
+              <span class="price-value" id="price-value" data-field="price" aria-live="polite">wpierw wpisz rozmiar</span>
             </div>
           </div>
         </div>
+            <div class="figurine-actions">
+              <button type="button" class="remove-figurine" hidden>Usuń figurkę</button>
+            </div>
+          </fieldset>
+        </div>
+        <button type="button" class="btn add-figurine" id="add-figurine-btn">+ Dodaj kolejną figurkę</button>
+        <p class="stage-hint">Każda figurka ma osobny opis, zdjęcia i rozmiar. Dane kontaktowe i dostawę podajesz raz dla całego zamówienia.</p>
+        <div class="order-summary" aria-live="polite" aria-atomic="true">
+          <span id="order-count-label">1 figurka</span>
+          <strong id="order-total">Wpisz rozmiar, aby poznać cenę</strong>
+        </div>
+        <p class="order-error" id="order-error" role="alert" hidden></p>
         <button type="button" class="btn btn-primary" id="open-shipping-btn">Zamów figurkę</button>
       </form>
 
@@ -2253,6 +2285,7 @@
     <div class="shipping-modal-panel" role="dialog" aria-modal="true" aria-labelledby="shipping-modal-title">
       <button type="button" class="lightbox-close" id="shipping-modal-close" aria-label="Zamknij">×</button>
       <h3 id="shipping-modal-title">Dane do wysyłki</h3>
+      <p class="stage-hint" id="shipping-order-summary"></p>
 
       <div class="form-row">
         <div>
@@ -2306,237 +2339,8 @@
     </div>
   </div>
 
-  <script>
-  document.addEventListener('DOMContentLoaded', function(){
-    // Klient wype­łnia jeden formularz (dane, rozmiar, opis, zdjęcia, dostawa)
-    // i wysyła go od razu — dopiero PO udanej wysyłce zgłoszenia przekierowujemy
-    // do płatności Stripe za wybrany rozmiar. Zdjęcia nie przetrwałyby
-    // przekierowania na Stripe i z powrotem, dlatego kolejność jest odwrócona
-    // względem typowego "najpierw zapłać": tu najpierw wysyłamy zgłoszenie.
-    var STRIPE_LINKS = {
-      '20–60 mm':   'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200',
-      '70–100 mm':  'https://buy.stripe.com/8x2bJ23jK0nH8X504teZ201',
-      '110–150 mm': 'https://buy.stripe.com/00w14oaMc3zTddlg3reZ202',
-      '160–200 mm': 'https://buy.stripe.com/14AdRadYofiBfltaJ7eZ204',
-      '210–250 mm': 'https://buy.stripe.com/8x2dRa07y4DXehpaJ7eZ205'
-    };
-
-    var scaleSelect = document.getElementById('scale');
-    var priceValue = document.getElementById('price-value');
-    var priceHidden = document.getElementById('price-hidden');
-    var nameInput = document.getElementById('name');
-    var emailInput = document.getElementById('email');
-    var phoneInput = document.getElementById('phone');
-    var statusHidden = document.getElementById('status-hidden');
-    var addressWrap = document.getElementById('address-wrap');
-    var lockerWrap = document.getElementById('locker-wrap');
-    var paczkomatHidden = document.getElementById('paczkomat-hidden');
-    var paczkomatStatus = document.getElementById('paczkomat-status');
-    var easypackMapEl = document.getElementById('easypack-map');
-    var changeLockerBtn = document.getElementById('change-locker-btn');
-    var ulicaInput = document.getElementById('ulica');
-    var kodInput = document.getElementById('kod');
-    var miastoInput = document.getElementById('miasto');
-
-    // Klient wpisuje rozmiar w mm ręcznie (20–250 mm) — cena zawsze dopasowuje
-    // się do jednego z pięciu ustalonych przedziałów.
-    var SIZE_MIN = 20;
-    var SIZE_MAX = 250;
-    var PRICE_BRACKETS = [
-      { min: 20,  max: 60,  label: '20–60 mm',   price: '200 zł' },
-      { min: 70,  max: 100, label: '70–100 mm',  price: '220 zł' },
-      { min: 110, max: 150, label: '110–150 mm', price: '250 zł' },
-      { min: 160, max: 200, label: '160–200 mm', price: '280 zł' },
-      { min: 210, max: 250, label: '210–250 mm', price: '340 zł' }
-    ];
-    function getBracket(mm){
-      for(var i = 0; i < PRICE_BRACKETS.length; i++){
-        if(mm >= PRICE_BRACKETS[i].min && mm <= PRICE_BRACKETS[i].max) return PRICE_BRACKETS[i];
-      }
-      return null;
-    }
-
-    scaleSelect.addEventListener('input', function(){
-      var mm = Math.round(parseFloat(scaleSelect.value));
-      if(!scaleSelect.value || isNaN(mm)){
-        priceValue.textContent = 'wpierw wpisz rozmiar';
-        priceHidden.value = '';
-        return;
-      }
-      var bracket = getBracket(mm);
-      if(bracket){
-        priceValue.textContent = bracket.price;
-        priceHidden.value = bracket.price;
-      } else {
-        priceValue.textContent = 'rozmiar 20–250 mm';
-        priceHidden.value = '';
-      }
-    });
-
-    // Skrypt widgetu InPost (i przeglądarkowe pytanie o lokalizację, które on
-    // wywołuje) wczytujemy dopiero na żądanie — dopiero gdy klient faktycznie
-    // wybierze dostawę do paczkomatu, a nie od razu po wejściu na stronę.
-    // Mapa (Leaflet pod spodem) musi się zainicjować DOPIERO gdy jej kontener
-    // jest już widoczny — zainicjowana wewnątrz display:none elementu
-    // zapamiętuje zerowy rozmiar i potem nie renderuje kafelków poprawnie,
-    // nawet po pokazaniu kontenera.
-    var geowidgetInitialized = false;
-    function initGeowidgetIfNeeded(){
-      if(geowidgetInitialized) return;
-      geowidgetInitialized = true;
-      var script = document.createElement('script');
-      script.src = 'https://geowidget.easypack24.net/js/sdk-for-javascript.js';
-      script.onload = function(){
-        easyPack.init({ defaultLocale: 'pl', points: { types: ['parcel_locker'] }, map: { initialTypes: ['parcel_locker'] } });
-        easyPack.mapWidget('easypack-map', function(point){
-          paczkomatHidden.value = point.name + ' — ' + point.address.line1 + ', ' + point.address.line2;
-          paczkomatStatus.textContent = 'Wybrany paczkomat: ' + point.name + ' (' + point.address.line1 + ')';
-          // mapa znika po wyborze, żeby było jasne że paczkomat już wybrano
-          easypackMapEl.style.display = 'none';
-          changeLockerBtn.style.display = 'inline-block';
-        });
-      };
-      document.body.appendChild(script);
-    }
-    changeLockerBtn.addEventListener('click', function(){
-      easypackMapEl.style.display = 'block';
-      changeLockerBtn.style.display = 'none';
-    });
-
-    function validateSize(){
-      var mm = Math.round(parseFloat(scaleSelect.value));
-      if(!scaleSelect.value || isNaN(mm)){
-        alert('Podaj rozmiar figurki w milimetrach.');
-        return null;
-      }
-      if(mm < SIZE_MIN || mm > SIZE_MAX){
-        alert('Rozmiar figurki musi być między ' + SIZE_MIN + ' a ' + SIZE_MAX + ' mm.');
-        return null;
-      }
-      return mm;
-    }
-
-    // wybór sposobu dostawy (dzieje się PRZED płatnością)
-    function setDeliveryMethod(method){
-      document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
-        radio.checked = (radio.value === method);
-      });
-      if(method === 'Paczkomat InPost'){
-        addressWrap.style.display = 'none';
-        lockerWrap.style.display = 'block';
-        requestAnimationFrame(initGeowidgetIfNeeded);
-      } else {
-        addressWrap.style.display = 'block';
-        lockerWrap.style.display = 'none';
-      }
-    }
-    document.querySelectorAll('input[name="dostawa"]').forEach(function(radio){
-      radio.addEventListener('change', function(){
-        if(radio.checked) setDeliveryMethod(radio.value);
-      });
-    });
-
-    // Formularz jest podzielony na dwie części: dane o figurce zostają na
-    // stronie, a dane do wysyłki (adresowe) wpisuje się dopiero w osobnym
-    // oknie modalnym, otwieranym przyciskiem "Zamów figurkę". Oba zestawy
-    // pól należą jednak do TEGO SAMEGO <form id="commission-form"> — pola
-    // w modalu są z nim powiązane atrybutem form="commission-form", mimo
-    // że fizycznie nie są jego potomkami w DOM (to standardowe zachowanie
-    // HTML, ten sam trik już wcześniej stosowaliśmy dla ukrytego pola
-    // paczkomatu).
-    var shippingModal = document.getElementById('shipping-modal');
-    var shippingModalBackdrop = document.getElementById('shipping-modal-backdrop');
-    var shippingModalClose = document.getElementById('shipping-modal-close');
-    var openShippingBtn = document.getElementById('open-shipping-btn');
-    var shippingLastFocused = null;
-
-    function openShippingModal(){
-      if(validateSize() === null) return;
-      shippingLastFocused = document.activeElement;
-      shippingModal.classList.add('active');
-      shippingModal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      if(document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost'){
-        requestAnimationFrame(initGeowidgetIfNeeded);
-      }
-      shippingModalClose.focus();
-    }
-    function closeShippingModal(){
-      shippingModal.classList.remove('active');
-      shippingModal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-      if(shippingLastFocused) shippingLastFocused.focus();
-    }
-    openShippingBtn.addEventListener('click', openShippingModal);
-    shippingModalClose.addEventListener('click', closeShippingModal);
-    shippingModalBackdrop.addEventListener('click', closeShippingModal);
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape' && shippingModal.classList.contains('active')) closeShippingModal();
-    });
-
-    var form = document.getElementById('commission-form');
-    var submitBtn = document.getElementById('commission-submit');
-    var successBox = document.getElementById('form-success');
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      var mm = validateSize();
-      if(mm === null) return;
-      var lockerSelected = document.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost';
-      if(lockerSelected && !paczkomatHidden.value){
-        alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.');
-        return;
-      }
-      if(!lockerSelected && (!ulicaInput.value.trim() || !kodInput.value.trim() || !miastoInput.value.trim())){
-        alert('Podaj adres dostawy przed wysłaniem zamówienia.');
-        return;
-      }
-      var bracket = getBracket(mm);
-      statusHidden.value = 'Oczekuje na płatność — klient przekierowany do Stripe po wysłaniu zgłoszenia';
-
-      // Pole pokazuje klientowi tylko lokalny numer, prefiks +48 doklejamy
-      // tuż przed wysyłką, żeby w zgłoszeniu był pełny numer.
-      var phoneDigits = phoneInput.value.replace(/[^\d]/g, '').replace(/^0+/, '');
-      phoneInput.value = '+48' + phoneDigits;
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Wysyłanie...';
-
-      function trySubmit(endpoint){
-        return fetch(endpoint, {
-          method: 'POST',
-          body: new FormData(form),
-          headers: { 'Accept': 'application/json' }
-        }).then(function(res){
-          return res.text().then(function(txt){
-            var data = null;
-            try{ data = JSON.parse(txt); }catch(e){}
-            if(!res.ok) throw new Error((data && (data.error || data.message)) || 'Wysyłka nieudana');
-          });
-        });
-      }
-
-      // Basin (darmowy plan) ma limit 50 zgłoszeń miesięcznie — gdy główne
-      // konto go wyczerpie, próbujemy automatycznie zapasowego konta zanim
-      // pokażemy klientowi błąd.
-      trySubmit(form.action).catch(function(){
-        return trySubmit('https://usebasin.com/f/6869dc389df9');
-      }).then(function(){
-        var link = STRIPE_LINKS[bracket.label];
-        if(!link || link.indexOf('PODMIEN') !== -1){
-          closeShippingModal();
-          form.style.display = 'none';
-          successBox.style.display = 'block';
-          return;
-        }
-        window.location.href = link + '?prefilled_email=' + encodeURIComponent(emailInput.value);
-      }).catch(function(err){
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Zamów figurkę';
-        alert('Coś poszło nie tak przy wysyłaniu zamówienia: ' + (err && err.message ? err.message : err) + '\n\nSpróbuj ponownie albo napisz do nas bezpośrednio na kontakt@axi3d.pl');
-      });
-    });
-  });
-  </script>
+  <script src="checkout-config.js"></script>
+  <script type="module" src="order-form.mjs"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">
