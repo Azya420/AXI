@@ -1,6 +1,20 @@
 # Wspólna płatność za figurki AXI
 
-Zmiana jest przygotowana do konfiguracji. Nie publikuj nowego formularza na `main`, dopóki endpoint Stripe nie zostanie wdrożony i sprawdzony w trybie testowym.
+## Uruchomienie live — 30.08.2026
+
+Właściciel zlecił publikację wszystkich zmian na `main`. Testy piaskownicy i formularza przeszły, ale kontrolne żądanie do działającego Rendera nadal zwróciło `cs_test_` pomimo deklaracji dodania klucza „real1”. Sama nazwa klucza w Stripe nie zmienia konfiguracji serwera.
+
+Aby aktywować płatności produkcyjne w istniejącej usłudze Render:
+
+1. W **Environment** ustaw wartość **STRIPE_SECRET_KEY** na klucz live (najlepiej restricted `rk_live_`, z uprawnieniem zapisu Checkout Sessions). „real1” może być nazwą klucza w Stripe, ale nie nazwą zmiennej odczytywanej przez aplikację. Nie zapisuj klucza w repozytorium ani rozmowie.
+2. W **Settings → Build & Deploy → Branch** ustaw **main**. Samo scalenie kodu i zmiana `render.yaml` nie potwierdzają aktualizacji istniejącej usługi.
+3. Zapisz ustawienia i wykonaj **Manual Deploy → Deploy latest commit**. Sprawdź SHA w `/health`, następnie utworzenie sesji `cs_live_` oraz prawidłową sumę. `/health` nie potwierdza trybu ani uprawnień klucza.
+
+Formularz publiczny odrzuca sesje testowe przed wysłaniem zgłoszenia Basin i przed przekierowaniem. Dopóki backend zwraca `cs_test_`, płatności z nowego formularza są niedostępne; pola i zdjęcia pozostają zachowane. Po aktywowaniu prawidłowego klucza live nie trzeba ponownie zmieniać kodu formularza. Podgląd `/preview/` jest wtedy wyłączony.
+
+Plan pozostaje `free`; nie zamówiono płatnej usługi. Automatyczne wdrożenia pozostają wyłączone. Odbioru załączników po stronie Basin nie potwierdzono rzeczywistym zgłoszeniem. Przed realizacją zamówienia trzeba ręcznie sprawdzić płatność w Stripe.
+
+Poniższe sekcje opisują również wcześniejszą konfigurację i wyniki testów; aktualna docelowa gałąź to `main`.
 
 ## Uruchomienie
 
@@ -12,7 +26,7 @@ node api/server.mjs
 
 W panelu sekretów hostingu ustaw `STRIPE_SECRET_KEY` (najpierw klucz testowy). Nie wklejaj go do rozmowy, plików strony ani GitHuba. Opcjonalnie ustaw `PORT`. `AXI_SITE_ORIGIN` domyślnie wynosi `https://axi3d.pl`, a `AXI_ALLOWED_ORIGINS` to `https://axi3d.pl,https://www.axi3d.pl`. Podczas testów dodaj dokładny adres testowej strony do dozwolonych źródeł. CORS nie jest uwierzytelnianiem; ogranicz ruch również na poziomie hostingu. Serwer ma limit 120 prób POST na minutę na proces i limit treści 8 KiB.
 
-W `checkout-config.js` ustawiono publiczny adres `https://axi-checkout.onrender.com/checkout-session`. Ten plik nie zawiera żadnego klucza. Jest to konfiguracja gałęzi roboczej: nie publikuj formularza na `main` przed sprawdzeniem płatności i ustawieniem sekretu produkcyjnego. Jeśli adres zostanie wyczyszczony, pojedyncze zamówienie zachowuje dotychczasowy link Stripe; zamówienie z kilkoma figurkami nie zostanie wysłane ani opłacone częściowo.
+W `checkout-config.js` ustawiono publiczny adres `https://axi-checkout.onrender.com/checkout-session`. Ten plik nie zawiera żadnego klucza. Jest to adres produkcyjny formularza na `main`; działająca usługa musi używać klucza live. Jeśli adres zostanie wyczyszczony, pojedyncze zamówienie zachowuje dotychczasowy link Stripe; zamówienie z kilkoma figurkami nie zostanie wysłane ani opłacone częściowo.
 
 ### Samodzielny podgląd i test formularza
 
@@ -45,7 +59,7 @@ W razie kolejnego błędu log serwera zawiera wpis `[axi-checkout]` z typem zdar
 
 ### Render — przygotowanie do testów
 
-Repozytorium zawiera `render.yaml`: pojedyncza usługa Node.js we Frankfurcie, plan `free`, bez bazy danych i bez automatycznych wdrożeń. Plik niczego sam nie uruchamia ani nie zamawia płatnego planu. W panelu Render utwórz **New → Blueprint**, wybierz `Azya420/AXI` i gałąź `codex/multi-figurine-checkout`. Sprawdź koszt na ekranie podsumowania przed utworzeniem usługi. Sekret `STRIPE_SECRET_KEY` ma `sync: false`: wpisujesz go tylko w panelu Render, na początek z trybu testowego/sandbox Stripe.
+Repozytorium zawiera `render.yaml`: pojedyncza usługa Node.js we Frankfurcie, plan `free`, bez bazy danych i bez automatycznych wdrożeń. Plik niczego sam nie uruchamia ani nie zamawia płatnego planu. W panelu Render utwórz **New → Blueprint**, wybierz `Azya420/AXI` i gałąź `main` (do osobnych testów użyj oddzielnej usługi z kluczem testowym). Sprawdź koszt na ekranie podsumowania przed utworzeniem usługi. Sekret `STRIPE_SECRET_KEY` ma `sync: false`: wpisujesz go tylko w panelu Render, na początek z trybu testowego/sandbox Stripe.
 
 Po wdrożeniu sprawdź `/health` (oba pola `ok` i `checkoutConfigured` powinny być `true`; to nie sprawdza jeszcze ważności klucza). Przekaż publiczny adres usługi do konfiguracji formularza. Do testu z lokalnej strony dopisz np. `http://localhost:8080` do `AXI_ALLOWED_ORIGINS` w panelu Render i uruchom statyczną stronę lokalnie. Nie dodawaj testowego endpointu do publicznej strony na `main`.
 

@@ -1,12 +1,12 @@
-# Konfiguracja do uruchomienia testów; samo dodanie pliku nie wdraża usługi.
-# Przed produkcją: test Stripe/Basin, decyzja o planie, potem branch: main.
+# Konfiguracja produkcyjna; samo dodanie pliku nie wdraża istniejącej usługi.
+# W Renderze ustaw gałąź main, sekret live STRIPE_SECRET_KEY i wykonaj wdrożenie.
 services:
   - type: web
     name: axi-checkout
     runtime: node
     region: frankfurt
     plan: free
-    branch: codex/multi-figurine-checkout
+    branch: main
     autoDeployTrigger: "off"
     buildCommand: npm ci --include=dev && npm run check && npm test
     startCommand: node api/server.mjs

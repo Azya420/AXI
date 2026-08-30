@@ -22,7 +22,7 @@ function setup(preview = false) {
     fetch: async (url, options) => {
       calls.push({ url, ...options });
       if (failure && (failure === 'all' || (failure === 'basin' && url.includes('usebasin')))) throw new Error('Test network error');
-      return Response.json(url.includes('/checkout-session') ? { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://checkout.stripe.com/c/pay/test' } : { success: true });
+      return Response.json(url.includes('/checkout-session') ? { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://checkout.stripe.com/c/pay/cs_live_fixture' } : { success: true });
     }
   };
   initOrderForm(win);
@@ -104,7 +104,7 @@ test('one multipart submission carries independent files, sizes, prices and shar
   assert.equal(payload.get('email'), 'test@example.com');
   assert.equal(payload.get('miasto'), 'Warszawa');
   assert.equal(payload.get('numer_zamowienia'), checkout.orderId);
-  assert.equal(payload.get('link_do_platnosci'), 'https://checkout.stripe.com/c/pay/test');
+  assert.equal(payload.get('link_do_platnosci'), 'https://checkout.stripe.com/c/pay/cs_live_fixture');
   assert.match(payload.get('podsumowanie_figurek'), /Figurka 2: 120 mm, 250 zł/);
   assert.equal(s.redirects.length, 1);
   await s.submit(); assert.equal(s.calls.length, 2, 'no duplicate submit after success');
@@ -160,7 +160,7 @@ test('slow checkout shows progress, prevents duplicates and clears timers on suc
   assert.equal(s.$('shipping-order-summary').getAttribute('role'), 'status');
   assert.ok(s.$('commission-submit').disabled);
   await s.submit(); assert.equal(attempts, 1);
-  resolveCheckout(Response.json({ url: 'https://checkout.stripe.com/c/pay/test' }));
+  resolveCheckout(Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_fixture' }));
   await s.tick();
   assert.equal(timers.size, 0); assert.equal(s.calls.length, 1);
   assert.equal(s.redirects.length, 1);
@@ -207,5 +207,27 @@ test('preview cannot use a live Stripe URL or fall back to a legacy live Payment
   s.win.AXI_CHECKOUT_ENDPOINT = ''; s.$('open-shipping-btn').click(); await s.submit();
   assert.equal(s.redirects.length, 0);
   assert.match(s.$('order-error').textContent, /nie jest jeszcze dostępna/);
+  s.dom.window.close();
+});
+
+
+test('production rejects sandbox sessions before Basin and preserves files for retry', async () => {
+  const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
+  const fetch = s.win.fetch;
+  const calls = [];
+  s.win.fetch = async (url, options) => {
+    calls.push(url);
+    return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_test_wrong' });
+  };
+  await s.submit();
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].includes('/checkout-session'));
+  assert.equal(s.redirects.length, 0);
+  assert.equal(s.$('photos').files[0].name, 'first.png');
+  assert.ok(!s.$('commission-submit').disabled);
+  assert.match(s.$('order-error').textContent, /Płatności są chwilowo niedostępne/);
+  s.win.fetch = fetch; s.$('open-shipping-btn').click(); await s.submit();
+  assert.equal(s.calls.length, 2);
+  assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });

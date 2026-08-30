@@ -267,6 +267,7 @@ export function initOrderForm(win) {
         const url = new URL(data.url);
         if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Nieprawidłowy adres płatności.');
         if (preview && !url.pathname.includes('/cs_test_')) throw new Error('Podgląd obsługuje wyłącznie płatności testowe.');
+        if (!preview && !/^\/c\/pay\/cs_live_[A-Za-z0-9]+$/.test(url.pathname)) throw new Error('Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
         paymentUrl = url.href;
       } else {
         const url = new URL(stripeLinks[getPrice(items[0].size).label]);
