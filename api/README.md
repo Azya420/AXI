@@ -16,9 +16,11 @@ Stripe otrzymuje już obniżone `unit_amount` (7000/8400/10500/14000/17500). Nie
 
 Basin zapisuje cenę bazową całego koszyka (`cena_przed_rabatem`), obniżkę automatyczną (`rabat_automatyczny`, `rabat_automatyczny_procent`), sumę przed dodatkowym kodem (`cena_przed_kodem`), ewentualny `rabat_z_kodu`, łączny `rabat` i ostateczną `cena`. Metadane Stripe zawierają wersję cennika i procent automatycznej obniżki. Pole `total_details.amount_discount` w Stripe dotyczy wyłącznie dodatkowego kuponu — automatyczna obniżka jest już w cenach pozycji.
 
-### Oznaczenie promocji — potrzebna historia cen
+### Oznaczenie promocji
 
-Właściciel podał nowe ceny bazowe, ale nie potwierdził najniższych cen z 30 dni przed obniżką. Nie deklarujemy, że nowe ceny bazowe kiedykolwiek obowiązywały wcześniej. **Do uzyskania historii cen strona pokazuje tylko końcowe kwoty; nie publikuje przekreślonych cen ani hasła „−30%”.** Naliczanie 30% od wskazanych cen bazowych jest aktywne w kodzie. Publiczne oznaczenie promocji pozostaje do uzupełnienia po otrzymaniu danych. Należy ustalić także właściwy punkt odniesienia dla reklamowanego procentu: [informacje UOKiK](https://prawakonsumenta.uokik.gov.pl/prawo-do-informacji/informacje-o-obnizkach-cen/). Sam wcześniejszy kod strony nie stanowi pełnej historii cen sprzedaży i rabatów.
+Właściciel potwierdził, że podane ceny bazowe były ostatnimi cenami przed obniżką, i polecił pokazać promocję. Formularz wyświetla baner „Promocja −30%”, a po wpisaniu rozmiaru przekreśloną cenę przed obniżką, cenę do zapłaty oraz oznaczenie −30%. Przekreślone ceny znikają po usunięciu lub wpisaniu niepoprawnego rozmiaru i działają także w kolejnych kartach figurek. Wygląd nie zmienia kwot, kodów ani zasad płatności.
+
+Potwierdzenie ostatniej ceny nie jest potwierdzeniem najniższej ceny z 30 dni. Nie oznaczamy tych wartości jako „najniższa cena z 30 dni”. Uzupełnienie tej informacji wymaga rzeczywistej historii cen od właściciela; ta zmiana nie stanowi oceny zgodności prawnej oznaczeń: [informacje UOKiK](https://prawakonsumenta.uokik.gov.pl/prawo-do-informacji/informacje-o-obnizkach-cen/).
 
 ### Bezpieczna publikacja
 

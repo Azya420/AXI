@@ -16,6 +16,8 @@ export function initOrderForm(win) {
   const modal = byId('shipping-modal');
   const errorBox = byId('order-error');
   const preview = win.AXI_PREVIEW_MODE === true;
+  byId('figurine-sale').hidden = AUTOMATIC_DISCOUNT_PERCENT <= 0;
+  byId('figurine-sale-title').textContent = 'Promocja −' + AUTOMATIC_DISCOUNT_PERCENT + '%';
   byId('shipping-order-summary').setAttribute('role', 'status');
   const cards = () => Array.from(list.children);
   const field = (card, name) => card.querySelector('[data-field="' + name + '"]');
@@ -78,6 +80,14 @@ export function initOrderForm(win) {
       const input = field(card, 'size');
       input.setCustomValidity('');
       const price = getPrice(Number(input.value));
+      const discounted = price && price.amount < price.regularAmount;
+      const regularPrice = field(card, 'regular-price');
+      regularPrice.hidden = !discounted;
+      regularPrice.textContent = discounted ? formatPrice(price.regularAmount) : '';
+      regularPrice.setAttribute('aria-label', discounted ? 'Cena przed obniżką: ' + formatPrice(price.regularAmount) : 'Cena przed obniżką');
+      field(card, 'sale-badge').hidden = !discounted;
+      field(card, 'sale-badge').textContent = discounted ? '−' + AUTOMATIC_DISCOUNT_PERCENT + '%' : '';
+      field(card, 'price').setAttribute('aria-label', price ? 'Cena do zapłaty: ' + formatPrice(price.amount) : 'Cena');
       if (price) {
         total += price.amount;
         field(card, 'price').textContent = formatPrice(price.amount);
