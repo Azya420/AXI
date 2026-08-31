@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, getPrice, formatPrice } from './pricing.mjs?v=20260831-sale30-v2';
+import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, getPrice, formatPrice } from './pricing.mjs?v=20260831-sale30-v2';
 
 export function initOrderForm(win) {
   const doc = win.document;
@@ -16,6 +16,10 @@ export function initOrderForm(win) {
   const modal = byId('shipping-modal');
   const errorBox = byId('order-error');
   const preview = win.AXI_PREVIEW_MODE === true;
+  const minimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.amount));
+  byId('promo-spotlight').hidden = AUTOMATIC_DISCOUNT_PERCENT <= 0;
+  byId('promo-discount').textContent = '−' + AUTOMATIC_DISCOUNT_PERCENT + '%';
+  byId('promo-min-price').textContent = formatPrice(minimumPrice);
   byId('shipping-order-summary').setAttribute('role', 'status');
   const cards = () => Array.from(list.children);
   const field = (card, name) => card.querySelector('[data-field="' + name + '"]');

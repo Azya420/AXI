@@ -63,6 +63,9 @@ function setup(preview = false) {
 
 test('add/remove preserves existing inputs, renumbers cards and sums different sizes', () => {
   const s = setup();
+  assert.equal(s.$('promo-discount').textContent, '−30%');
+  assert.equal(s.$('promo-min-price').textContent, '70 zł');
+  assert.equal(s.$('promo-spotlight').hidden, false);
   s.size(0, '32'); s.input(s.$('desc'), 'Pierwsza postać'); s.attach(0, 'first.png');
   s.$('add-figurine-btn').click(); s.size(1, '80');
   s.$('add-figurine-btn').click(); s.size(2, '120');

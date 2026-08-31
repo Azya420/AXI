@@ -18,7 +18,7 @@ Basin zapisuje cenę bazową całego koszyka (`cena_przed_rabatem`), obniżkę a
 
 ### Oznaczenie promocji
 
-Właściciel potwierdził, że podane ceny bazowe były ostatnimi cenami przed obniżką. Usunięto ogólny baner „Promocja −30% / Na wszystkie figurki. Rabat naliczamy automatycznie.” Na kartach po wpisaniu rozmiaru nadal widać przekreśloną cenę przed obniżką, cenę do zapłaty oraz oznaczenie −30%. Przekreślone ceny znikają po usunięciu lub wpisaniu niepoprawnego rozmiaru i działają także w kolejnych kartach figurek. Wygląd nie zmienia kwot, kodów ani zasad płatności.
+Właściciel potwierdził, że podane ceny bazowe były ostatnimi cenami przed obniżką. Zamiast wcześniejszego ogólnego banera formularz pokazuje dopasowany do motywu AXI panel „Własna figurka już od 70 zł” z oznaczeniem −30% i informacją, że promocja obejmuje wszystkie rozmiary. Kwota „od” jest pobierana automatycznie jako najniższa cena do zapłaty ze wspólnego cennika. Na kartach po wpisaniu rozmiaru nadal widać przekreśloną cenę przed obniżką, cenę do zapłaty oraz oznaczenie −30%. Wygląd nie zmienia kwot, kodów ani zasad płatności.
 
 Potwierdzenie ostatniej ceny nie jest potwierdzeniem najniższej ceny z 30 dni. Nie oznaczamy tych wartości jako „najniższa cena z 30 dni”. Uzupełnienie tej informacji wymaga rzeczywistej historii cen od właściciela; ta zmiana nie stanowi oceny zgodności prawnej oznaczeń: [informacje UOKiK](https://prawakonsumenta.uokik.gov.pl/prawo-do-informacji/informacje-o-obnizkach-cen/).
 

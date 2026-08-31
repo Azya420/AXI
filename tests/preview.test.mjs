@@ -29,10 +29,12 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /id="add-figurine-btn"/);
   assert.ok(!html.includes('id="figurine-sale"'));
   assert.ok(!html.includes('Na wszystkie figurki. Rabat naliczamy automatycznie.'));
+  assert.match(html, /id="promo-spotlight"/);
+  assert.match(html, /Własna figurka już od/);
   assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
-  assert.match(html, /src="order-form.mjs\?v=20260831-sale30-v2"/);
+  assert.match(html, /src="order-form.mjs\?v=20260831-sale30-v2-promo"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes(config.stripeKey));
