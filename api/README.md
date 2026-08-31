@@ -1,5 +1,35 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 31.08.2026 — nowy cennik i automatyczne 30%
+
+| Wysokość | Nowa cena bazowa | Do zapłaty bez dodatkowego kodu |
+| --- | --- | --- |
+| 20–60 mm | 100 zł | 70 zł |
+| 61–100 mm | 120 zł | 84 zł |
+| 101–150 mm | 150 zł | 105 zł |
+| 151–200 mm | 200 zł | 140 zł |
+| 201–250 mm | 250 zł | 175 zł |
+
+`pricing.mjs` definiuje ceny bazowe w groszach oraz `AUTOMATIC_DISCOUNT_PERCENT = 30`. `amount` oznacza kwotę po tej obniżce. Formularz, suma, analityka i serwer korzystają z tych samych cen. Zakres 20–250 mm jest ciągły; nadal wymagamy pełnych milimetrów. Rabat nie ma jeszcze ustalonej daty zakończenia.
+
+Stripe otrzymuje już obniżone `unit_amount` (7000/8400/10500/14000/17500). Nie tworzymy kuponu, nie potrzebujemy nowych uprawnień klucza do automatycznej obniżki i nie zmieniamy istniejących Payment Links ani sesji. Dotychczasowe kody pozostają dodatkowym rabatem od obniżonej sumy; warunki i minimum sprawdza Stripe. Np. 32 mm kosztuje 70 zł, a poprawny kod 10% obniży tę kwotę do 63 zł, nie do 60 zł.
+
+Basin zapisuje cenę bazową całego koszyka (`cena_przed_rabatem`), obniżkę automatyczną (`rabat_automatyczny`, `rabat_automatyczny_procent`), sumę przed dodatkowym kodem (`cena_przed_kodem`), ewentualny `rabat_z_kodu`, łączny `rabat` i ostateczną `cena`. Metadane Stripe zawierają wersję cennika i procent automatycznej obniżki. Pole `total_details.amount_discount` w Stripe dotyczy wyłącznie dodatkowego kuponu — automatyczna obniżka jest już w cenach pozycji.
+
+### Oznaczenie promocji — potrzebna historia cen
+
+Właściciel podał nowe ceny bazowe, ale nie potwierdził najniższych cen z 30 dni przed obniżką. Nie deklarujemy, że nowe ceny bazowe kiedykolwiek obowiązywały wcześniej. **Do uzyskania historii cen strona pokazuje tylko końcowe kwoty; nie publikuje przekreślonych cen ani hasła „−30%”.** Naliczanie 30% od wskazanych cen bazowych jest aktywne w kodzie. Publiczne oznaczenie promocji pozostaje do uzupełnienia po otrzymaniu danych. Należy ustalić także właściwy punkt odniesienia dla reklamowanego procentu: [informacje UOKiK](https://prawakonsumenta.uokik.gov.pl/prawo-do-informacji/informacje-o-obnizkach-cen/). Sam wcześniejszy kod strony nie stanowi pełnej historii cen sprzedaży i rabatów.
+
+### Bezpieczna publikacja
+
+Wymagana wersja cennika to `2026-08-31-sale30`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, obniżki automatycznej i kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
+
+Opublikuj ten sam aktualny `main` w GitHub Pages i na Renderze (**Manual Deploy → Deploy latest commit**). Obie usługi muszą zakończyć publikację, zanim nowe zamówienia będą działać. Przez czas różnicy wersji lub ze starej otwartej karty formularz może prosić o odświeżenie, ale nie naliczy niezgodnej kwoty. `/health` udostępnia `pricingVersion`. Nie zmieniaj klucza produkcyjnego. Testy lokalne używają atrap Stripe/Basin, bez płatności i wysyłania zgłoszeń; nie zastępują sprawdzenia obu wdrożeń.
+
+Poniżej zachowano historyczne etapy prac. Opis zgodności bez kodu ze starszym backendem oraz dawne kwoty dotyczą poprzednich wersji.
+
+Weryfikacja tej aktualizacji: kontrola składni oraz 43 testy przeszły. Testy obejmują wszystkie 231 dopuszczalnych rozmiarów, obniżone pozycje Stripe, sumę 574 zł za pięć progów, dodatkowy kod, analitykę i odmowę płatności przy różnicach wersji/cen. Bez rzeczywistych obciążeń i zgłoszeń Basin.
+
 ## Aktualizacja 31.08.2026 — kod na stronie i akceptacja regulaminu
 
 Kod promocyjny wpisuje się teraz w końcowym oknie formularza AXI3D, przy danych dostawy. Usunięto oba wskazane przez właściciela opisy pod listą figurek. Przed przyciskiem znajduje się niezaznaczony, wymagany checkbox „Akceptuję regulamin sklepu”, z linkiem otwieranym w nowej karcie.

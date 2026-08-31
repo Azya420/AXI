@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { handleCheckout } from './checkout.mjs';
 import { isTestKey, previewResponse } from './preview.mjs';
+import { PRICING_VERSION } from '../pricing.mjs';
 
 const siteOrigin = process.env.AXI_SITE_ORIGIN || 'https://axi3d.pl';
 const parsedOrigin = new URL(siteOrigin);
@@ -23,7 +24,7 @@ const server = createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://axi-api.invalid').pathname;
   if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify({ ok: true, checkoutConfigured: Boolean(config.stripeKey), revision: process.env.RENDER_GIT_COMMIT || null }));
+    res.end(JSON.stringify({ ok: true, checkoutConfigured: Boolean(config.stripeKey), pricingVersion: PRICING_VERSION, revision: process.env.RENDER_GIT_COMMIT || null }));
     return;
   }
   const previewCheckout = pathname === '/preview/checkout-session';

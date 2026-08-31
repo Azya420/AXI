@@ -1,18 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleCheckout, validateOrder, stripeParameters } from '../api/checkout.mjs';
-import { getPrice } from '../pricing.mjs';
+import { getPrice, PRICING_VERSION } from '../pricing.mjs';
 
 const id = '081d9e64-638e-4a29-882e-39f5212cf96b';
-const order = { termsAccepted: true, orderId: id, email: 'test@example.com', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
+const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: id, email: 'test@example.com', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
 const config = { stripeKey: 'test-only-not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const request = (body = order, headers = {}) => new Request('https://example.com/checkout-session', { method: 'POST', headers: { Origin: 'https://axi3d.pl', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
-test('different sizes become three PLN line items totalling 670 zł', () => {
+test('different sizes become three PLN line items totalling 259 zł', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '20000');
-  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '22000');
-  assert.equal(params.get('line_items[2][price_data][unit_amount]'), '25000');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '7000');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '8400');
+  assert.equal(params.get('line_items[2][price_data][unit_amount]'), '10500');
   assert.equal(params.get('line_items[2][quantity]'), '1');
   assert.equal(params.get('line_items[2][price_data][currency]'), 'pln');
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
@@ -33,22 +33,22 @@ test('checkout keeps code entry on the website while preserving shipping and tax
 test('client prices, quantities and redirect URLs cannot override server values', () => {
   const validated = validateOrder({ ...order, success_url: 'https://attacker.example', items: [{ size: 250, amount: 1, quantity: -8 }] });
   const params = stripeParameters(validated, config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '34000');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '17500');
   assert.equal(params.get('line_items[0][quantity]'), '1');
   assert.equal(params.get('success_url'), 'https://axi3d.pl/dziekujemy.html?session_id={CHECKOUT_SESSION_ID}');
 });
 test('multiple figures in the same bracket remain separate paid items', () => {
   const params = stripeParameters(validateOrder({ ...order, items: [{ size: 32 }, { size: 42 }] }), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '20000');
-  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '20000');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '7000');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '7000');
 });
-test('reject empty, oversized, fractional, string, out-of-range and unpriced orders', () => {
-  for (const items of [[], Array(21).fill({ size: 32 }), [{ size: 19 }], [{ size: 251 }], [{ size: 32.4 }], [{ size: '32' }], [{ size: 65 }], [null]]) {
+test('reject empty, oversized, fractional, string, out-of-range orders', () => {
+  for (const items of [[], Array(21).fill({ size: 32 }), [{ size: 19 }], [{ size: 251 }], [{ size: 32.4 }], [{ size: '32' }], [null]]) {
     assert.throws(() => validateOrder({ ...order, items }));
   }
   assert.throws(() => validateOrder({ ...order, email: 'invalid' }));
   assert.throws(() => validateOrder({ ...order, orderId: 'invalid' }));
-  for (const size of [61, 69, 101, 109, 151, 159, 201, 209]) assert.equal(getPrice(size), null);
+  for (let size = 20; size <= 250; size++) assert.ok(getPrice(size), `missing price: ${size}`);
   for (const size of [20, 60, 70, 100, 110, 150, 160, 200, 210, 250]) assert.ok(getPrice(size));
 });
 test('retries use stable idempotency and changed orders use a different key', async () => {

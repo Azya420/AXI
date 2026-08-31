@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, getPrice, formatPrice } from './pricing.mjs';
+import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, getPrice, formatPrice } from './pricing.mjs?v=20260831-sale30';
 
 export function initOrderForm(win) {
   const doc = win.document;
@@ -29,13 +29,6 @@ export function initOrderForm(win) {
   let geowidgetInitialized = false;
   let previousDisabled = [];
 
-  const stripeLinks = {
-    '20–60 mm': 'https://buy.stripe.com/eVq9AU9I87Q94GP8AZeZ200',
-    '70–100 mm': 'https://buy.stripe.com/8x2bJ23jK0nH8X504teZ201',
-    '110–150 mm': 'https://buy.stripe.com/00w14oaMc3zTddlg3reZ202',
-    '160–200 mm': 'https://buy.stripe.com/14AdRadYofiBfltaJ7eZ204',
-    '210–250 mm': 'https://buy.stripe.com/8x2dRa07y4DXehpaJ7eZ205'
-  };
   function countLabel(count) {
     if (count === 1) return '1 figurka';
     return count + (count >= 2 && count <= 4 ? ' figurki' : ' figurek');
@@ -135,7 +128,7 @@ export function initOrderForm(win) {
       const input = field(card, 'size');
       input.setCustomValidity('');
       if (!getPrice(Number(input.value))) {
-        input.setCustomValidity('Figurka ' + (index + 1) + ': podaj pełny rozmiar z przedziałów 20–60, 70–100, 110–150, 160–200 lub 210–250 mm.');
+        input.setCustomValidity('Figurka ' + (index + 1) + ': podaj rozmiar od 20 do 250 mm w pełnych milimetrach.');
       }
       if (!input.checkValidity()) {
         closeModal();
@@ -268,7 +261,7 @@ export function initOrderForm(win) {
     const analytics = analyticsSnapshot(items);
     const promotionCode = currentPromotion();
     const endpoint = (win.AXI_CHECKOUT_ENDPOINT || '').trim();
-    if ((items.length > 1 || preview || promotionCode) && !endpoint) {
+    if (!endpoint) {
       closeModal();
       showError('Wspólna płatność nie jest jeszcze dostępna. Skontaktuj się z nami: kontakt@axi3d.pl.');
       return;
@@ -282,7 +275,15 @@ export function initOrderForm(win) {
     payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(items.length) + ' — AXI');
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
     payload.set('kod_promocyjny', promotionCode);
-    payload.set('uwaga_dotyczaca_ceny', 'Ceny poszczególnych figurek są cenami przed rabatem. Kwota do zapłaty uwzględnia zaakceptowany kod. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
+    payload.set('wersja_cennika', PRICING_VERSION);
+    payload.set('uwaga_dotyczaca_ceny', 'Ceny figurek uwzględniają automatyczną obniżkę 30% od nowego cennika bazowego. Zaakceptowany kod może dodatkowo obniżyć sumę. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
+    const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
+    const subtotal = items.reduce((sum, item) => sum + getPrice(item.size).amount, 0);
+    payload.set('cena_przed_rabatem', formatPrice(regularSubtotal));
+    payload.set('rabat_automatyczny_procent', String(AUTOMATIC_DISCOUNT_PERCENT));
+    payload.set('rabat_automatyczny', formatPrice(regularSubtotal - subtotal));
+    payload.set('cena_przed_kodem', formatPrice(subtotal));
+    payload.set('rabat', formatPrice(regularSubtotal - subtotal));
     payload.set('wersja_regulaminu', '2026-08-30');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
@@ -303,18 +304,24 @@ export function initOrderForm(win) {
     try {
       let paymentUrl;
       if (endpoint) {
-        const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId, promotionCode, termsAccepted: byId('terms-accepted').checked });
+        const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId, promotionCode, termsAccepted: byId('terms-accepted').checked, pricingVersion: PRICING_VERSION });
         const url = new URL(data.url);
         if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Nieprawidłowy adres płatności.');
         if (preview && !url.pathname.includes('/cs_test_')) throw new Error('Podgląd obsługuje wyłącznie płatności testowe.');
         if (!preview && !/^\/c\/pay\/cs_live_[A-Za-z0-9]+$/.test(url.pathname)) throw new Error('Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
         paymentUrl = url.href;
-        const subtotal = items.reduce((sum, item) => sum + getPrice(item.size).amount, 0);
+        // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
+        if (data.checkoutVersion !== 2 || data.pricingVersion !== PRICING_VERSION ||
+            data.promotionCode !== promotionCode || data.currency !== 'pln' ||
+            data.subtotal !== subtotal || data.regularSubtotal !== regularSubtotal ||
+            data.automaticDiscount !== regularSubtotal - subtotal ||
+            !Number.isInteger(data.total) || !Number.isInteger(data.discount) ||
+            data.total < 0 || data.discount < 0 || data.total + data.discount !== subtotal ||
+            (!promotionCode && data.discount !== 0)) {
+          throw new Error('Nie udało się potwierdzić aktualnej ceny. Odśwież stronę i spróbuj ponownie. Zamówienie nie zostało wysłane.');
+        }
         if (promotionCode) {
-          // Starszy backend może zignorować kod. Nigdy nie kontynuujemy wtedy za pełną cenę.
-          if (data.checkoutVersion !== 2 || data.promotionCode !== promotionCode || data.currency !== 'pln' ||
-              data.subtotal !== subtotal || !Number.isInteger(data.total) || !Number.isInteger(data.discount) ||
-              data.discount <= 0 || data.total < 0 || data.total + data.discount !== subtotal) {
+          if (data.discount === 0) {
             throw new Error('Nie udało się potwierdzić rabatu. Zamówienie nie zostało wysłane.');
           }
           if (!promotionReview || promotionReview.key !== pricingKey() || promotionReview.total !== data.total || promotionReview.discount !== data.discount) {
@@ -323,16 +330,11 @@ export function initOrderForm(win) {
             submitBtn.focus();
             return; // Klient najpierw widzi cenę po rabacie, dopiero potem potwierdza zamówienie.
           }
-          payload.set('cena_przed_rabatem', formatPrice(subtotal));
-          payload.set('rabat', formatPrice(data.discount));
+          payload.set('rabat_z_kodu', formatPrice(data.discount));
+          payload.set('rabat', formatPrice(regularSubtotal - data.total));
           payload.set('cena', formatPrice(data.total));
           analytics.value = data.total / 100;
         }
-      } else {
-        const url = new URL(stripeLinks[getPrice(items[0].size).label]);
-        url.searchParams.set('prefilled_email', byId('email').value.trim());
-        url.searchParams.set('client_reference_id', orderId);
-        paymentUrl = url.href;
       }
       payload.set('link_do_platnosci', paymentUrl);
       // Jedno zgłoszenie zawiera wszystkie figurki i załączniki. Błąd nie może

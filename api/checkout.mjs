@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { MAX_FIGURINES, getPrice } from '../pricing.mjs';
+import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, getPrice } from '../pricing.mjs';
 
 const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -37,6 +37,11 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'metadata[figurine_count]': String(order.items.length),
     'metadata[terms_accepted]': 'true',
     'metadata[terms_version]': TERMS_VERSION,
+    'metadata[pricing_version]': PRICING_VERSION,
+    'metadata[automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
+    'metadata[regular_subtotal]': String(order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0)),
+    'payment_intent_data[metadata][pricing_version]': PRICING_VERSION,
+    'payment_intent_data[metadata][automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
     'payment_intent_data[metadata][terms_accepted]': 'true',
     'payment_intent_data[metadata][terms_version]': TERMS_VERSION
   });
@@ -157,6 +162,10 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
   } catch {
     return json(400, { error: 'Sprawdź adres e-mail, liczbę figurek, rozmiary i kod promocyjny.' });
   }
+  // Stara otwarta karta nie może kupować według innej ceny niż wyświetlona.
+  if (body.pricingVersion !== PRICING_VERSION) return json(409, {
+    error: 'Cennik został zaktualizowany. Odśwież stronę przed złożeniem zamówienia.', code: 'pricing_changed'
+  });
   let diagnostic = { event: 'stripe_transport_error' };
   const report = () => { try { config.reportStripeError?.(diagnostic); } catch { /* Log nie blokuje odpowiedzi. */ } };
   const identifyResponse = (response, stage) => {
@@ -176,7 +185,7 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
       identifyResponse(lookup, 'promotion_lookup');
       if (!lookup.ok) {
         report();
-        return json(503, { error: 'Nie można teraz sprawdzić kodu promocyjnego. Spróbuj ponownie później lub usuń kod, aby zamówić bez rabatu.', code: 'promotion_codes_unavailable' });
+        return json(503, { error: 'Nie można teraz sprawdzić kodu promocyjnego. Spróbuj ponownie później lub usuń kod, aby zamówić bez dodatkowego rabatu z kodu.', code: 'promotion_codes_unavailable' });
       }
       const result = await lookup.json();
       if (!Array.isArray(result.data)) throw new Error('Invalid promotion response');
@@ -218,7 +227,10 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
         !Number.isInteger(total) || !Number.isInteger(discount) || discount < 0 || total < 0 ||
         total + discount !== subtotal || (!promotionId && discount !== 0)) throw new Error('Invalid totals');
     if (promotionId && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
-    return json(200, { url: session.url, checkoutVersion: 2, subtotal, discount, total, currency: 'pln', promotionCode: order.promotionCode });
+    const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
+    return json(200, { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION,
+      regularSubtotal, automaticDiscount: regularSubtotal - subtotal,
+      subtotal, discount, total, currency: 'pln', promotionCode: order.promotionCode });
   } catch {
     // Tylko kontrolowane pola diagnostyczne. Nigdy error.message Stripe,
     // treść odpowiedzi, dane zamówienia ani Authorization (mogą zawierać klucz).

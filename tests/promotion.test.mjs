@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleCheckout, validateOrder } from '../api/checkout.mjs';
 
+import { PRICING_VERSION } from '../pricing.mjs';
+
 const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
-const order = { orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com', items: [{ size: 32 }, { size: 80 }], termsAccepted: true, promotionCode: '  SAVE10  ' };
+const order = { pricingVersion: PRICING_VERSION, orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com', items: [{ size: 32 }, { size: 80 }], termsAccepted: true, promotionCode: '  SAVE10  ' };
 const request = body => new Request('https://api.example/checkout-session', { method: 'POST', headers: { Origin: config.siteOrigin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const promotion = { id: 'promo_Valid123', active: true, code: 'save10', customer: null, customer_account: null };
-const session = { url: 'https://checkout.stripe.com/c/pay/cs_live_Test123', currency: 'pln', amount_subtotal: 42000, amount_total: 37800, total_details: { amount_discount: 4200 } };
+const session = { url: 'https://checkout.stripe.com/c/pay/cs_live_Test123', currency: 'pln', amount_subtotal: 15400, amount_total: 13860, total_details: { amount_discount: 1540 } };
 
 test('server rejects missing consent and malformed codes before any Stripe request', async () => {
   let calls = 0;
@@ -37,12 +39,12 @@ test('server resolves the typed code, applies only its trusted ID and returns St
     assert.equal(options.body.get('allow_promotion_codes'), null);
     assert.equal(options.body.get('metadata[terms_accepted]'), 'true');
     assert.equal(options.body.get('metadata[terms_version]'), '2026-08-30');
-    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '20000');
+    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '7000');
     return Response.json(session);
   });
   assert.equal(response.status, 200);
   assert.equal(calls.length, 2);
-  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 2, subtotal: 42000, discount: 4200, total: 37800, currency: 'pln', promotionCode: 'SAVE10' });
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION, regularSubtotal: 22000, automaticDiscount: 6600, subtotal: 15400, discount: 1540, total: 13860, currency: 'pln', promotionCode: 'SAVE10' });
 });
 
 test('invalid, inactive and customer-restricted codes never create a full-price session', async () => {
@@ -69,7 +71,7 @@ test('missing promotion-code permission fails safely without leaking Stripe deta
 test('Stripe eligibility rejection, no discount and inconsistent totals block checkout', async () => {
   for (const result of [
     () => Response.json({ error: { message: 'secret provider message' } }, { status: 400 }),
-    () => Response.json({ ...session, amount_total: 42000, total_details: { amount_discount: 0 } }),
+    () => Response.json({ ...session, amount_total: 15400, total_details: { amount_discount: 0 } }),
     () => Response.json({ ...session, amount_total: 1 }),
     () => Response.json({ ...session, currency: 'eur' })
   ]) {
@@ -82,11 +84,11 @@ test('Stripe eligibility rejection, no discount and inconsistent totals block ch
 });
 
 test('percentage, fixed amount and full discount use Stripe amounts without browser calculations', async () => {
-  for (const discount of [4200, 5000, 42000]) {
+  for (const discount of [1540, 5000, 15400]) {
     const response = await handleCheckout(request(order), config, async (_, options) => options.method === 'GET'
       ? Response.json({ data: [promotion] })
-      : Response.json({ ...session, amount_total: 42000 - discount, total_details: { amount_discount: discount } }));
+      : Response.json({ ...session, amount_total: 15400 - discount, total_details: { amount_discount: discount } }));
     assert.equal(response.status, 200);
-    assert.equal((await response.json()).total, 42000 - discount);
+    assert.equal((await response.json()).total, 15400 - discount);
   }
 });
