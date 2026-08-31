@@ -13,7 +13,7 @@ const request = body => new Request('https://api.example/checkout-session', {
 
 test('all 231 integer sizes use the requested base prices with exactly 30 percent deducted', () => {
   for (const [min, max, regularAmount, amount] of [
-    [20, 60, 10000, 7000], [61, 100, 12000, 8400], [101, 150, 20000, 14000],
+    [20, 60, 10000, 7000], [61, 100, 14000, 9800], [101, 150, 20000, 14000],
     [151, 200, 25000, 17500], [201, 250, 32000, 22400]
   ]) {
     for (let size = min; size <= max; size++) {
@@ -24,29 +24,29 @@ test('all 231 integer sizes use the requested base prices with exactly 30 percen
   for (const size of [19, 251, 60.5, NaN, Infinity, '61', null]) assert.equal(getPrice(size), null);
 });
 
-test('all five discounted line items total 693 zł in Stripe without any coupon or client price override', async () => {
+test('all five discounted line items total 707 zł in Stripe without any coupon or client price override', async () => {
   let calls = 0;
   const response = await handleCheckout(request(order), config, async (url, options) => {
     calls++;
     assert.equal(url, 'https://api.stripe.com/v1/checkout/sessions');
     assert.equal(options.method, 'POST');
-    for (const [i, amount] of ['7000', '8400', '14000', '17500', '22400'].entries()) {
+    for (const [i, amount] of ['7000', '9800', '14000', '17500', '22400'].entries()) {
       assert.equal(options.body.get('line_items[' + i + '][price_data][unit_amount]'), amount);
       assert.equal(options.body.get('line_items[' + i + '][quantity]'), '1');
     }
     assert.equal(options.body.get('metadata[automatic_discount_percent]'), '30');
-    assert.equal(options.body.get('metadata[regular_subtotal]'), '99000');
+    assert.equal(options.body.get('metadata[regular_subtotal]'), '101000');
     assert.equal(options.body.get('metadata[pricing_version]'), PRICING_VERSION);
     assert.ok(![...options.body.keys()].some(key => key.startsWith('discounts[')));
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_Fixture123', currency: 'pln',
-      amount_subtotal: 69300, amount_total: 69300, total_details: { amount_discount: 0 } });
+      amount_subtotal: 70700, amount_total: 70700, total_details: { amount_discount: 0 } });
   });
   assert.equal(response.status, 200);
   assert.equal(calls, 1);
   const data = await response.json();
-  assert.equal(data.total, 69300);
-  assert.equal(data.regularSubtotal, 99000);
-  assert.equal(data.automaticDiscount, 29700);
+  assert.equal(data.total, 70700);
+  assert.equal(data.regularSubtotal, 101000);
+  assert.equal(data.automaticDiscount, 30300);
   assert.equal(data.discount, 0);
 });
 

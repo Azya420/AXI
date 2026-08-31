@@ -71,7 +71,7 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   s.$('add-figurine-btn').click(); s.size(2, '120');
   assert.equal(s.$('desc').value, 'Pierwsza postać');
   assert.equal(s.$('photos').files[0].name, 'first.png');
-  assert.equal(s.$('price-hidden').value, '294 zł');
+  assert.equal(s.$('price-hidden').value, '308 zł');
   assert.equal(s.cards()[1].querySelector('textarea').value, '');
   const ids = [...s.doc.querySelectorAll('[id]')].map(el => el.id);
   assert.equal(new Set(ids).size, ids.length);
@@ -343,7 +343,7 @@ test('a changed discounted price requires confirmation again before any redirect
   s.dom.window.close();
 });
 
-test('all five new brackets sum to 693 zł in the form, shipping, Basin and analytics', async () => {
+test('all five new brackets sum to 707 zł in the form, shipping, Basin and analytics', async () => {
   const s = setup();
   assert.equal(s.$('order-total').textContent, 'Suma:');
   const events = [];
@@ -352,21 +352,21 @@ test('all five new brackets sum to 693 zł in the form, shipping, Basin and anal
     if (i) s.$('add-figurine-btn').click();
     s.size(i, size);
   }
-  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['70 zł', '84 zł', '140 zł', '175 zł', '224 zł']);
-  assert.equal(s.$('order-total').textContent, 'Suma: 693 zł');
+  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['70 zł', '98 zł', '140 zł', '175 zł', '224 zł']);
+  assert.equal(s.$('order-total').textContent, 'Suma: 707 zł');
   s.fillShipping();
-  assert.match(s.$('shipping-order-summary').textContent, /Suma: 693 zł/);
+  assert.match(s.$('shipping-order-summary').textContent, /Suma: 707 zł/);
   await s.submit();
   assert.equal(s.calls.length, 2);
   assert.equal(JSON.parse(s.calls[0].body).pricingVersion, PRICING_VERSION);
   const payload = s.calls[1].body;
-  assert.equal(payload.get('cena'), '693 zł');
-  assert.equal(payload.get('cena_przed_rabatem'), '990 zł');
-  assert.equal(payload.get('rabat_automatyczny'), '297 zł');
+  assert.equal(payload.get('cena'), '707 zł');
+  assert.equal(payload.get('cena_przed_rabatem'), '1010 zł');
+  assert.equal(payload.get('rabat_automatyczny'), '303 zł');
   assert.equal(payload.get('rabat_automatyczny_procent'), '30');
-  assert.equal(payload.get('rabat'), '297 zł');
-  assert.equal(events.find(event => event[1] === 'begin_checkout')[2].value, 693);
-  assert.equal(events.find(event => event[1] === 'generate_lead')[2].value, 693);
+  assert.equal(payload.get('rabat'), '303 zł');
+  assert.equal(events.find(event => event[1] === 'begin_checkout')[2].value, 707);
+  assert.equal(events.find(event => event[1] === 'generate_lead')[2].value, 707);
   assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });

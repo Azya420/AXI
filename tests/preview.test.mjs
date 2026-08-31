@@ -34,7 +34,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
-  assert.match(html, /src="order-form.mjs\?v=20260831-sale30-v2-promo"/);
+  assert.match(html, /src="order-form.mjs\?v=20260831-sale30-v3"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes(config.stripeKey));
