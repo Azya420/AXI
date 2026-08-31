@@ -34,7 +34,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
-  assert.match(html, /src="order-form.mjs\?v=20260831-sale30-v4"/);
+  assert.match(html, /src="order-form.mjs\?v=20260831-shipping-v1"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes(config.stripeKey));
@@ -58,7 +58,7 @@ test('preview checkout returns to preview and rejects any non-test Stripe sessio
   const request = () => new Request(origin + '/preview/checkout-session', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(order) });
   const previewConfig = { ...config, preview: true, siteOrigin: origin, allowedOrigins: [origin] };
   for (const livemode of [true, undefined, false]) {
-    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview', amount_subtotal: 9800, amount_total: 9800, currency: 'pln', total_details: { amount_discount: 0 } }));
+    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview', amount_subtotal: 9800, amount_total: 11449, currency: 'pln', total_details: { amount_discount: 0, amount_shipping: 1649 } }));
     assert.equal(response.status, livemode === false ? 200 : 502);
   }
 });

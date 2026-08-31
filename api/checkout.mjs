@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, getPrice } from '../pricing.mjs';
+import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, SHIPPING_AMOUNT, getPrice } from '../pricing.mjs';
 
 const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -39,12 +39,18 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'metadata[terms_version]': TERMS_VERSION,
     'metadata[pricing_version]': PRICING_VERSION,
     'metadata[automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
+    'metadata[shipping_amount]': String(SHIPPING_AMOUNT),
     'metadata[regular_subtotal]': String(order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0)),
     'payment_intent_data[metadata][pricing_version]': PRICING_VERSION,
     'payment_intent_data[metadata][automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
+    'payment_intent_data[metadata][shipping_amount]': String(SHIPPING_AMOUNT),
     'payment_intent_data[metadata][terms_accepted]': 'true',
     'payment_intent_data[metadata][terms_version]': TERMS_VERSION
   });
+  params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
+  params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(SHIPPING_AMOUNT));
+  params.set('shipping_options[0][shipping_rate_data][fixed_amount][currency]', 'pln');
+  params.set('shipping_options[0][shipping_rate_data][display_name]', 'Wysyłka');
   // Nie łączymy discounts z allow_promotion_codes. Kod nie jest edytowany w Stripe.
   if (promotionId) {
     params.set('discounts[0][promotion_code]', promotionId);
@@ -223,14 +229,16 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     const subtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).amount, 0);
     const total = session.amount_total;
     const discount = session.total_details?.amount_discount;
+    const shippingAmount = session.total_details?.amount_shipping;
     if (session.currency !== 'pln' || session.amount_subtotal !== subtotal ||
-        !Number.isInteger(total) || !Number.isInteger(discount) || discount < 0 || total < 0 ||
-        total + discount !== subtotal || (!promotionId && discount !== 0)) throw new Error('Invalid totals');
+        shippingAmount !== SHIPPING_AMOUNT || !Number.isInteger(total) || !Number.isInteger(discount) ||
+        discount < 0 || total < SHIPPING_AMOUNT || total + discount !== subtotal + SHIPPING_AMOUNT ||
+        (!promotionId && discount !== 0)) throw new Error('Invalid totals');
     if (promotionId && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
     const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
     return json(200, { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION,
       regularSubtotal, automaticDiscount: regularSubtotal - subtotal,
-      subtotal, discount, total, currency: 'pln', promotionCode: order.promotionCode });
+      subtotal, shippingAmount, discount, total, currency: 'pln', promotionCode: order.promotionCode });
   } catch {
     // Tylko kontrolowane pola diagnostyczne. Nigdy error.message Stripe,
     // treść odpowiedzi, dane zamówienia ani Authorization (mogą zawierać klucz).

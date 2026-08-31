@@ -1,6 +1,7 @@
 export const MAX_FIGURINES = 20;
-export const PRICING_VERSION = '2026-08-31-sale30-v4';
+export const PRICING_VERSION = '2026-08-31-shipping-v1';
 export const AUTOMATIC_DISCOUNT_PERCENT = 30;
+export const SHIPPING_AMOUNT = 1649;
 // Kwoty w groszach. Cena bazowa nie jest deklaracją historycznej ceny z 30 dni.
 // Rabat jest naliczany także na serwerze; klient nie przekazuje własnych kwot.
 export const PRICE_BRACKETS = [

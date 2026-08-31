@@ -1,5 +1,11 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 31.08.2026 — koszt wysyłki 16,49 zł
+
+Do każdego zamówienia doliczany jest jeden stały koszt wysyłki 16,49 zł, niezależnie od liczby figurek i wyboru paczkomatu lub adresu. Formularz pokazuje koszt osobno i uwzględnia go w sumie przed przejściem do płatności. Stripe otrzymuje go jako stałą stawkę dostawy, dzięki czemu dodatkowy kod promocyjny obniża figurki, a nie wysyłkę.
+
+Backend sprawdza zwrócone przez Stripe `total_details.amount_shipping`, sumę produktów, dodatkowy rabat i kwotę końcową. Odpowiedź zawiera `shippingAmount: 1649`; formularz odrzuca starszy backend lub inną kwotę. Basin otrzymuje osobne pole `koszt_wysylki`, a pola `cena`, `cena_przed_kodem` i `cena_przed_rabatem` obejmują wysyłkę. Wymagana wersja cennika to `2026-08-31-shipping-v1`.
+
 ## Aktualizacja 31.08.2026 — nowy cennik i automatyczne 30%
 
 | Wysokość | Nowa cena bazowa | Do zapłaty bez dodatkowego kodu |
@@ -24,7 +30,7 @@ Potwierdzenie ostatniej ceny nie jest potwierdzeniem najniższej ceny z 30 dni. 
 
 ### Bezpieczna publikacja
 
-Wymagana wersja cennika to `2026-08-31-sale30-v4`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, obniżki automatycznej i kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
+Wymagana wersja cennika to `2026-08-31-shipping-v1`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, kosztu wysyłki, obniżki automatycznej i kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
 
 Opublikuj ten sam aktualny `main` w GitHub Pages i na Renderze (**Manual Deploy → Deploy latest commit**). Obie usługi muszą zakończyć publikację, zanim nowe zamówienia będą działać. Przez czas różnicy wersji lub ze starej otwartej karty formularz może prosić o odświeżenie, ale nie naliczy niezgodnej kwoty. `/health` udostępnia `pricingVersion`. Nie zmieniaj klucza produkcyjnego. Testy lokalne używają atrap Stripe/Basin, bez płatności i wysyłania zgłoszeń; nie zastępują sprawdzenia obu wdrożeń.
 

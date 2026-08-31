@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleCheckout, validateOrder, stripeParameters } from '../api/checkout.mjs';
-import { getPrice, PRICING_VERSION } from '../pricing.mjs';
+import { getPrice, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
 
 const id = '081d9e64-638e-4a29-882e-39f5212cf96b';
 const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: id, email: 'test@example.com', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
 const config = { stripeKey: 'test-only-not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const request = (body = order, headers = {}) => new Request('https://example.com/checkout-session', { method: 'POST', headers: { Origin: 'https://axi3d.pl', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
-test('different sizes become three PLN line items totalling 399 zł', () => {
+test('different sizes become three PLN line items plus one 16,49 zł shipping rate', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
   assert.equal(params.get('line_items[0][price_data][unit_amount]'), '9800');
   assert.equal(params.get('line_items[1][price_data][unit_amount]'), '12600');
@@ -17,6 +17,9 @@ test('different sizes become three PLN line items totalling 399 zł', () => {
   assert.equal(params.get('line_items[2][price_data][currency]'), 'pln');
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
   assert.equal(params.get('client_reference_id'), id);
+  assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '1649');
+  assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][currency]'), 'pln');
+  assert.equal(params.get('shipping_options[0][shipping_rate_data][display_name]'), 'Wysyłka');
 });
 test('checkout keeps code entry on the website while preserving shipping and tax rules', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
@@ -28,7 +31,7 @@ test('checkout keeps code entry on the website while preserving shipping and tax
   assert.equal(params.get('customer_creation'), 'if_required');
   assert.equal(params.get('mode'), 'payment');
   assert.equal(params.get('payment_method_collection'), null, 'subscription-only setting must be omitted for one-time payments');
-  assert.ok(![...params.keys()].some(key => /shipping_options|tax_rates|payment_method_types/.test(key)));
+  assert.ok(![...params.keys()].some(key => /tax_rates|payment_method_types/.test(key)));
 });
 test('client prices, quantities and redirect URLs cannot override server values', () => {
   const validated = validateOrder({ ...order, success_url: 'https://attacker.example', items: [{ size: 250, amount: 1, quantity: -8 }] });
@@ -59,7 +62,7 @@ test('retries use stable idempotency and changed orders use a different key', as
     assert.equal(options.body.get('allow_promotion_codes'), 'false');
     keys.push(options.headers['Idempotency-Key']);
     const subtotal = [...options.body.entries()].filter(([key]) => key.endsWith('[unit_amount]')).reduce((sum, [, value]) => sum + Number(value), 0);
-    return Response.json({ url: 'https://checkout.stripe.com/c/pay/test-session', amount_subtotal: subtotal, amount_total: subtotal, currency: 'pln', total_details: { amount_discount: 0 } });
+    return Response.json({ url: 'https://checkout.stripe.com/c/pay/test-session', amount_subtotal: subtotal, amount_total: subtotal + SHIPPING_AMOUNT, currency: 'pln', total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
   };
   for (const body of [order, order, { ...order, items: [{ size: 250 }] }]) {
     const response = await handleCheckout(request(body), config, stripe);
@@ -69,7 +72,8 @@ test('retries use stable idempotency and changed orders use a different key', as
     assert.equal(result.url, 'https://checkout.stripe.com/c/pay/test-session');
     assert.equal(result.checkoutVersion, 2);
     assert.equal(result.discount, 0);
-    assert.equal(result.total, body.items.reduce((sum, item) => sum + getPrice(item.size).amount, 0));
+    assert.equal(result.shippingAmount, SHIPPING_AMOUNT);
+    assert.equal(result.total, body.items.reduce((sum, item) => sum + getPrice(item.size).amount, 0) + SHIPPING_AMOUNT);
   }
   assert.equal(keys[0], keys[1]);
   assert.notEqual(keys[0], keys[2]);

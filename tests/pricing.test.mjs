@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getPrice, PRICING_VERSION } from '../pricing.mjs';
+import { getPrice, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
 import { handleCheckout } from '../api/checkout.mjs';
 
 const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
@@ -24,7 +24,7 @@ test('all 231 integer sizes use the requested base prices with exactly 30 percen
   for (const size of [19, 251, 60.5, NaN, Infinity, '61', null]) assert.equal(getPrice(size), null);
 });
 
-test('all five discounted line items total 903 zł in Stripe without any coupon or client price override', async () => {
+test('all five discounted line items plus shipping total 919,49 zł in Stripe', async () => {
   let calls = 0;
   const response = await handleCheckout(request(order), config, async (url, options) => {
     calls++;
@@ -37,14 +37,16 @@ test('all five discounted line items total 903 zł in Stripe without any coupon 
     assert.equal(options.body.get('metadata[automatic_discount_percent]'), '30');
     assert.equal(options.body.get('metadata[regular_subtotal]'), '129000');
     assert.equal(options.body.get('metadata[pricing_version]'), PRICING_VERSION);
+    assert.equal(options.body.get('metadata[shipping_amount]'), '1649');
     assert.ok(![...options.body.keys()].some(key => key.startsWith('discounts[')));
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_Fixture123', currency: 'pln',
-      amount_subtotal: 90300, amount_total: 90300, total_details: { amount_discount: 0 } });
+      amount_subtotal: 90300, amount_total: 91949, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
   });
   assert.equal(response.status, 200);
   assert.equal(calls, 1);
   const data = await response.json();
-  assert.equal(data.total, 90300);
+  assert.equal(data.total, 91949);
+  assert.equal(data.shippingAmount, SHIPPING_AMOUNT);
   assert.equal(data.regularSubtotal, 129000);
   assert.equal(data.automaticDiscount, 38700);
   assert.equal(data.discount, 0);
