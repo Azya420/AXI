@@ -36,6 +36,7 @@ function setup(preview = false) {
     const address = doc.querySelector('input[name="dostawa"][value="Na adres"]');
     address.checked = true; address.dispatchEvent(new dom.window.Event('change'));
     input($('ulica'), 'Testowa 1'); input($('kod'), '00-001'); input($('miasto'), 'Warszawa');
+    $('terms-accepted').checked = true;
   }
   const tick = () => new Promise(resolve => setTimeout(resolve, 20));
   const submit = async () => { $('commission-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })); await tick(); };
@@ -229,5 +230,103 @@ test('production rejects sandbox sessions before Basin and preserves files for r
   s.win.fetch = fetch; s.$('open-shipping-btn').click(); await s.submit();
   assert.equal(s.calls.length, 2);
   assert.equal(s.redirects.length, 1);
+  s.dom.window.close();
+});
+
+test('terms start unchecked and must be accepted before preparing payment or sending Basin', async () => {
+  const s = setup();
+  assert.equal(s.$('terms-accepted').checked, false);
+  assert.equal(s.$('terms-accepted').required, true);
+  assert.equal(s.$('terms-accepted').form, s.$('commission-form'));
+  assert.equal(s.doc.querySelector('.terms-consent a').getAttribute('href'), 'regulamin.html');
+  s.size(0, '32'); s.fillShipping(); s.$('terms-accepted').checked = false;
+  await s.submit(); assert.equal(s.calls.length, 0); assert.equal(s.redirects.length, 0);
+  assert.equal(s.doc.activeElement, s.$('terms-accepted'));
+  s.$('terms-accepted').checked = true; await s.submit();
+  assert.equal(JSON.parse(s.calls[0].body).termsAccepted, true);
+  assert.equal(s.calls[1].body.get('akceptacja_regulaminu'), 'Tak');
+  assert.equal(s.calls[1].body.get('wersja_regulaminu'), '2026-08-30');
+  s.dom.window.close();
+});
+
+function discountResponse(total = 18000, discount = 2000) {
+  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 2, subtotal: 20000, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
+}
+test('onsite code shows discounted total for confirmation before submitting final Basin price', async () => {
+  const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
+  s.input(s.$('promotion-code'), ' save10 ');
+  const requests = [];
+  const originalFetch = s.win.fetch;
+  s.win.fetch = async (url, options) => {
+    if (!url.includes('/checkout-session')) return originalFetch(url, options);
+    requests.push(JSON.parse(options.body)); return Response.json(discountResponse());
+  };
+  assert.equal(s.$('commission-submit').textContent, 'Sprawdź kod i cenę');
+  await s.submit();
+  assert.equal(s.calls.length, 0, 'review never submits Basin');
+  assert.equal(s.redirects.length, 0);
+  assert.equal(requests[0].promotionCode, 'SAVE10');
+  assert.equal(s.$('order-total').textContent, 'Suma: 180 zł');
+  assert.match(s.$('promotion-result').textContent, /Rabat: 20 zł/);
+  assert.equal(s.$('commission-submit').textContent, 'Przejdź do płatności');
+  assert.equal(s.$('photos').files[0].name, 'first.png');
+  s.$('terms-accepted').checked = false; await s.submit();
+  assert.equal(requests.length, 1, 'revoking consent blocks the confirmed-price step too');
+  s.$('terms-accepted').checked = true; await s.submit();
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].orderId, requests[1].orderId);
+  assert.equal(s.calls.length, 1);
+  assert.equal(s.calls[0].body.get('cena'), '180 zł');
+  assert.equal(s.calls[0].body.get('cena_przed_rabatem'), '200 zł');
+  assert.equal(s.calls[0].body.get('rabat'), '20 zł');
+  assert.equal(s.calls[0].body.get('kod_promocyjny'), 'SAVE10');
+  assert.equal(s.redirects.length, 1);
+  s.dom.window.close();
+});
+
+test('invalid codes and older backends cannot silently charge the undiscounted price', async () => {
+  for (const result of [
+    () => Response.json({ error: 'Kod jest nieprawidłowy.' }, { status: 400 }),
+    () => Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_Old123' }),
+    () => Response.json({ ...discountResponse(), total: 1 })
+  ]) {
+    const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping(); s.input(s.$('promotion-code'), 'SAVE10');
+    let requests = 0;
+    s.win.fetch = async () => { requests++; return result(); };
+    await s.submit();
+    assert.equal(requests, 1);
+    assert.equal(s.redirects.length, 0);
+    assert.equal(s.$('photos').files[0].name, 'first.png');
+    assert.equal(s.$('promotion-code').value, 'SAVE10');
+    assert.equal(s.$('order-error').hidden, false);
+    assert.equal(s.$('commission-submit').disabled, false);
+    s.dom.window.close();
+  }
+});
+
+test('editing code, email or figurine sizes clears the previous discount', async () => {
+  for (const edit of [s => s.input(s.$('promotion-code'), ''), s => s.input(s.$('email'), 'other@example.com'), s => s.size(0, '80')]) {
+    const s = setup(); s.size(0, '32'); s.fillShipping(); s.input(s.$('promotion-code'), 'SAVE10');
+    s.win.fetch = async () => Response.json(discountResponse());
+    await s.submit(); assert.equal(s.$('promotion-result').hidden, false);
+    edit(s);
+    assert.equal(s.$('promotion-result').hidden, true);
+    assert.notEqual(s.$('commission-submit').textContent, 'Przejdź do płatności');
+    assert.notEqual(s.$('order-total').textContent, 'Suma: 180 zł');
+    s.dom.window.close();
+  }
+});
+
+test('a changed discounted price requires confirmation again before any redirect', async () => {
+  const s = setup(); s.size(0, '32'); s.fillShipping(); s.input(s.$('promotion-code'), 'SAVE10');
+  let count = 0;
+  const fetch = s.win.fetch;
+  s.win.fetch = async (url, options) => url.includes('/checkout-session')
+    ? Response.json(++count === 1 ? discountResponse() : discountResponse(19000, 1000))
+    : fetch(url, options);
+  await s.submit(); await s.submit();
+  assert.equal(s.calls.length, 0); assert.equal(s.redirects.length, 0);
+  assert.equal(s.$('order-total').textContent, 'Suma: 190 zł');
+  await s.submit(); assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });

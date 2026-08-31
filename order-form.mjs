@@ -25,6 +25,7 @@ export function initOrderForm(win) {
   let lastFocused = null;
   let previousOverflow = '';
   let attempt = null;
+  let promotionReview = null;
   let geowidgetInitialized = false;
   let previousDisabled = [];
 
@@ -44,6 +45,8 @@ export function initOrderForm(win) {
     errorBox.textContent = message;
     errorBox.hidden = false;
   }
+  const currentPromotion = () => byId('promotion-code').value.trim().toUpperCase();
+  const pricingKey = () => JSON.stringify({ items: cards().map(card => Number(field(card, 'size').value)), email: byId('email').value.trim(), code: currentPromotion() });
   function analyticsSnapshot(items) {
     const analyticsItems = items.map((item, index) => {
       const price = getPrice(item.size);
@@ -91,13 +94,17 @@ export function initOrderForm(win) {
       }
     });
     const label = countLabel(all.length);
+    if (promotionReview?.key !== pricingKey()) promotionReview = null;
+    const applied = valid && promotionReview;
     byId('figurine-count').value = String(all.length);
     byId('order-count-label').textContent = label;
-    byId('order-total').textContent = valid ? 'Suma: ' + formatPrice(total) : 'Suma:';
+    byId('order-total').textContent = valid ? 'Suma: ' + formatPrice(applied ? applied.total : total) : 'Suma:';
     byId('price-hidden').value = valid ? formatPrice(total) : '';
-    byId('shipping-order-summary').textContent = label + (valid ? ' · Suma: ' + formatPrice(total) : '');
+    byId('shipping-order-summary').textContent = label + (valid ? ' · Suma: ' + formatPrice(applied ? applied.total : total) : '');
+    byId('promotion-result').hidden = !applied;
+    byId('promotion-result').textContent = applied ? 'Kod zastosowany. Rabat: ' + formatPrice(applied.discount) + ' · Do zapłaty: ' + formatPrice(applied.total) : '';
     openBtn.textContent = all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
-    submitBtn.textContent = all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
+    submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     addBtn.disabled = all.length >= MAX_FIGURINES;
     addBtn.textContent = all.length >= MAX_FIGURINES ? 'Maksymalnie ' + MAX_FIGURINES + ' figurek w zamówieniu' : '+ Dodaj kolejną figurkę';
   }
@@ -122,6 +129,7 @@ export function initOrderForm(win) {
     addBtn.focus();
   });
   list.addEventListener('input', () => { if (!busy) { clearError(); refresh(); } });
+  ['promotion-code', 'email'].forEach(id => byId(id).addEventListener('input', () => { if (!busy) { clearError(); refresh(); } }));
   function validateFigures() {
     for (const [index, card] of cards().entries()) {
       const input = field(card, 'size');
@@ -251,14 +259,16 @@ export function initOrderForm(win) {
     event.preventDefault();
     if (busy || completed || !validateFigures()) return;
     if (!modal.classList.contains('active')) { openModal(); return; }
+    if (!byId('terms-accepted').checked) { byId('terms-accepted').reportValidity(); byId('terms-accepted').focus(); return; }
     if (!form.reportValidity()) return;
     if (isLocker() && !byId('paczkomat-hidden').value) { win.alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.'); return; }
     if (!isLocker() && ['ulica', 'kod', 'miasto'].some(id => !byId(id).value.trim())) { win.alert('Podaj pełny adres dostawy.'); return; }
     clearError();
     const items = cards().map(card => ({ size: Number(field(card, 'size').value) }));
     const analytics = analyticsSnapshot(items);
+    const promotionCode = currentPromotion();
     const endpoint = (win.AXI_CHECKOUT_ENDPOINT || '').trim();
-    if ((items.length > 1 || preview) && !endpoint) {
+    if ((items.length > 1 || preview || promotionCode) && !endpoint) {
       closeModal();
       showError('Wspólna płatność nie jest jeszcze dostępna. Skontaktuj się z nami: kontakt@axi3d.pl.');
       return;
@@ -271,7 +281,9 @@ export function initOrderForm(win) {
     else payload.delete('paczkomat');
     payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(items.length) + ' — AXI');
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
-    payload.set('uwaga_dotyczaca_ceny', 'Kwoty w tym zgłoszeniu są cenami przed rabatem. Klient może użyć kodu promocyjnego w Stripe. Końcową kwotę i status płatności sprawdź w Stripe po numerze zamówienia.');
+    payload.set('kod_promocyjny', promotionCode);
+    payload.set('uwaga_dotyczaca_ceny', 'Ceny poszczególnych figurek są cenami przed rabatem. Kwota do zapłaty uwzględnia zaakceptowany kod. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
+    payload.set('wersja_regulaminu', '2026-08-30');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
       return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + formatPrice(getPrice(size).amount) + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
@@ -291,12 +303,31 @@ export function initOrderForm(win) {
     try {
       let paymentUrl;
       if (endpoint) {
-        const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId });
+        const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId, promotionCode, termsAccepted: byId('terms-accepted').checked });
         const url = new URL(data.url);
         if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Nieprawidłowy adres płatności.');
         if (preview && !url.pathname.includes('/cs_test_')) throw new Error('Podgląd obsługuje wyłącznie płatności testowe.');
         if (!preview && !/^\/c\/pay\/cs_live_[A-Za-z0-9]+$/.test(url.pathname)) throw new Error('Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
         paymentUrl = url.href;
+        const subtotal = items.reduce((sum, item) => sum + getPrice(item.size).amount, 0);
+        if (promotionCode) {
+          // Starszy backend może zignorować kod. Nigdy nie kontynuujemy wtedy za pełną cenę.
+          if (data.checkoutVersion !== 2 || data.promotionCode !== promotionCode || data.currency !== 'pln' ||
+              data.subtotal !== subtotal || !Number.isInteger(data.total) || !Number.isInteger(data.discount) ||
+              data.discount <= 0 || data.total < 0 || data.total + data.discount !== subtotal) {
+            throw new Error('Nie udało się potwierdzić rabatu. Zamówienie nie zostało wysłane.');
+          }
+          if (!promotionReview || promotionReview.key !== pricingKey() || promotionReview.total !== data.total || promotionReview.discount !== data.discount) {
+            promotionReview = { key: pricingKey(), total: data.total, discount: data.discount };
+            setBusy(false);
+            submitBtn.focus();
+            return; // Klient najpierw widzi cenę po rabacie, dopiero potem potwierdza zamówienie.
+          }
+          payload.set('cena_przed_rabatem', formatPrice(subtotal));
+          payload.set('rabat', formatPrice(data.discount));
+          payload.set('cena', formatPrice(data.total));
+          analytics.value = data.total / 100;
+        }
       } else {
         const url = new URL(stripeLinks[getPrice(items[0].size).label]);
         url.searchParams.set('prefilled_email', byId('email').value.trim());
@@ -316,6 +347,7 @@ export function initOrderForm(win) {
       completed = true;
       win.location.assign(paymentUrl);
     } catch (error) {
+      promotionReview = null;
       setBusy(false);
       closeModal();
       showError('Nie udało się zakończyć zamówienia. ' + error.message + ' Twoje dane i zdjęcia pozostają w formularzu.');

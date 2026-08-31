@@ -4,7 +4,7 @@ import { handleCheckout, validateOrder, stripeParameters } from '../api/checkout
 import { getPrice } from '../pricing.mjs';
 
 const id = '081d9e64-638e-4a29-882e-39f5212cf96b';
-const order = { orderId: id, email: 'test@example.com', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
+const order = { termsAccepted: true, orderId: id, email: 'test@example.com', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
 const config = { stripeKey: 'test-only-not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const request = (body = order, headers = {}) => new Request('https://example.com/checkout-session', { method: 'POST', headers: { Origin: 'https://axi3d.pl', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
@@ -18,10 +18,10 @@ test('different sizes become three PLN line items totalling 670 zł', () => {
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
   assert.equal(params.get('client_reference_id'), id);
 });
-test('checkout enables promotion codes while preserving shipping and tax rules', () => {
+test('checkout keeps code entry on the website while preserving shipping and tax rules', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
   assert.equal(params.get('automatic_tax[enabled]'), 'false');
-  assert.equal(params.get('allow_promotion_codes'), 'true');
+  assert.equal(params.get('allow_promotion_codes'), 'false');
   assert.ok(![...params.keys()].some(key => key.startsWith('discounts[')), 'customer-entered codes must not conflict with an automatic discount');
   assert.equal(params.get('invoice_creation[enabled]'), 'false');
   assert.equal(params.get('billing_address_collection'), 'auto');
@@ -56,15 +56,20 @@ test('retries use stable idempotency and changed orders use a different key', as
   const stripe = async (url, options) => {
     assert.equal(url, 'https://api.stripe.com/v1/checkout/sessions');
     assert.equal(options.headers.Authorization, 'Bearer ' + config.stripeKey);
-    assert.equal(options.body.get('allow_promotion_codes'), 'true');
+    assert.equal(options.body.get('allow_promotion_codes'), 'false');
     keys.push(options.headers['Idempotency-Key']);
-    return Response.json({ url: 'https://checkout.stripe.com/c/pay/test-session' });
+    const subtotal = [...options.body.entries()].filter(([key]) => key.endsWith('[unit_amount]')).reduce((sum, [, value]) => sum + Number(value), 0);
+    return Response.json({ url: 'https://checkout.stripe.com/c/pay/test-session', amount_subtotal: subtotal, amount_total: subtotal, currency: 'pln', total_details: { amount_discount: 0 } });
   };
   for (const body of [order, order, { ...order, items: [{ size: 250 }] }]) {
     const response = await handleCheckout(request(body), config, stripe);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('Access-Control-Allow-Origin'), config.siteOrigin);
-    assert.deepEqual(await response.json(), { url: 'https://checkout.stripe.com/c/pay/test-session' });
+    const result = await response.json();
+    assert.equal(result.url, 'https://checkout.stripe.com/c/pay/test-session');
+    assert.equal(result.checkoutVersion, 2);
+    assert.equal(result.discount, 0);
+    assert.equal(result.total, body.items.reduce((sum, item) => sum + getPrice(item.size).amount, 0));
   }
   assert.equal(keys[0], keys[1]);
   assert.notEqual(keys[0], keys[2]);

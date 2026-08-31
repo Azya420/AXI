@@ -1,0 +1,92 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { handleCheckout, validateOrder } from '../api/checkout.mjs';
+
+const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
+const order = { orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com', items: [{ size: 32 }, { size: 80 }], termsAccepted: true, promotionCode: '  SAVE10  ' };
+const request = body => new Request('https://api.example/checkout-session', { method: 'POST', headers: { Origin: config.siteOrigin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const promotion = { id: 'promo_Valid123', active: true, code: 'save10', customer: null, customer_account: null };
+const session = { url: 'https://checkout.stripe.com/c/pay/cs_live_Test123', currency: 'pln', amount_subtotal: 42000, amount_total: 37800, total_details: { amount_discount: 4200 } };
+
+test('server rejects missing consent and malformed codes before any Stripe request', async () => {
+  let calls = 0;
+  const stripe = () => { calls++; throw new Error('Unexpected Stripe request'); };
+  for (const termsAccepted of [undefined, false, 'true', 1]) {
+    const response = await handleCheckout(request({ ...order, termsAccepted }), config, stripe);
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).code, 'terms_required');
+  }
+  for (const promotionCode of [123, {}, 'a'.repeat(501), 'SAVE&limit=1', 'SAVE CODE']) {
+    assert.throws(() => validateOrder({ ...order, promotionCode }));
+  }
+  assert.equal(calls, 0);
+});
+
+test('server resolves the typed code, applies only its trusted ID and returns Stripe totals', async () => {
+  const calls = [];
+  const response = await handleCheckout(request({ ...order, promotionId: 'promo_Attacker', total: 1 }), config, async (url, options) => {
+    calls.push({ url, options });
+    if (options.method === 'GET') {
+      const query = new URL(url).searchParams;
+      assert.equal(query.get('code'), 'SAVE10');
+      assert.equal(query.get('active'), 'true');
+      assert.equal(options.headers.Authorization, 'Bearer ' + config.stripeKey);
+      return Response.json({ data: [promotion] });
+    }
+    assert.equal(options.body.get('discounts[0][promotion_code]'), promotion.id);
+    assert.equal(options.body.get('allow_promotion_codes'), null);
+    assert.equal(options.body.get('metadata[terms_accepted]'), 'true');
+    assert.equal(options.body.get('metadata[terms_version]'), '2026-08-30');
+    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '20000');
+    return Response.json(session);
+  });
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 2);
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 2, subtotal: 42000, discount: 4200, total: 37800, currency: 'pln', promotionCode: 'SAVE10' });
+});
+
+test('invalid, inactive and customer-restricted codes never create a full-price session', async () => {
+  for (const data of [[], [{ ...promotion, active: false }], [{ ...promotion, code: 'OTHER' }], [{ ...promotion, customer: 'cus_Private' }], [{ ...promotion, customer_account: 'acct_Private' }]]) {
+    let calls = 0;
+    const response = await handleCheckout(request(order), config, async (_, options) => {
+      calls++; assert.equal(options.method, 'GET'); return Response.json({ data });
+    });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).code, 'invalid_promotion_code');
+    assert.equal(calls, 1);
+  }
+});
+
+test('missing promotion-code permission fails safely without leaking Stripe details', async () => {
+  const logs = [];
+  const response = await handleCheckout(request(order), { ...config, reportStripeError: log => logs.push(log) }, async () => Response.json({ error: { message: config.stripeKey } }, { status: 403 }));
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).code, 'promotion_codes_unavailable');
+  assert.deepEqual(logs, [{ event: 'stripe_http_error', status: 403, stage: 'promotion_lookup' }]);
+  assert.ok(!JSON.stringify(logs).includes(config.stripeKey));
+});
+
+test('Stripe eligibility rejection, no discount and inconsistent totals block checkout', async () => {
+  for (const result of [
+    () => Response.json({ error: { message: 'secret provider message' } }, { status: 400 }),
+    () => Response.json({ ...session, amount_total: 42000, total_details: { amount_discount: 0 } }),
+    () => Response.json({ ...session, amount_total: 1 }),
+    () => Response.json({ ...session, currency: 'eur' })
+  ]) {
+    const response = await handleCheckout(request(order), config, async (_, options) => options.method === 'GET' ? Response.json({ data: [promotion] }) : result());
+    assert.ok([400, 502].includes(response.status));
+    const body = await response.text();
+    assert.ok(!body.includes(session.url));
+    assert.ok(!body.includes('secret provider message'));
+  }
+});
+
+test('percentage, fixed amount and full discount use Stripe amounts without browser calculations', async () => {
+  for (const discount of [4200, 5000, 42000]) {
+    const response = await handleCheckout(request(order), config, async (_, options) => options.method === 'GET'
+      ? Response.json({ data: [promotion] })
+      : Response.json({ ...session, amount_total: 42000 - discount, total_details: { amount_discount: discount } }));
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).total, 42000 - discount);
+  }
+});

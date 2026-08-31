@@ -28,7 +28,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
-  assert.match(html, /src="order-form.mjs"/);
+  assert.match(html, /src="order-form.mjs\?v=onsite-promo-20260831"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes(config.stripeKey));
@@ -43,7 +43,7 @@ test('preview does not rewrite remote references or empty image placeholders', (
   assert.match(html, /href="https:\/\/axi3d.pl\/regulamin.html"/);
 });
 test('preview checkout returns to preview and rejects any non-test Stripe session', async () => {
-  const order = { orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', items: [{ size: 32 }] };
+  const order = { termsAccepted: true, orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', items: [{ size: 32 }] };
   const origin = 'https://axi-checkout.onrender.com';
   const params = stripeParameters(order, origin, true);
   assert.equal(params.get('success_url'), origin + '/preview/success');
@@ -52,7 +52,7 @@ test('preview checkout returns to preview and rejects any non-test Stripe sessio
   const request = () => new Request(origin + '/preview/checkout-session', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(order) });
   const previewConfig = { ...config, preview: true, siteOrigin: origin, allowedOrigins: [origin] };
   for (const livemode of [true, undefined, false]) {
-    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview' }));
+    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview', amount_subtotal: 20000, amount_total: 20000, currency: 'pln', total_details: { amount_discount: 0 } }));
     assert.equal(response.status, livemode === false ? 200 : 502);
   }
 });

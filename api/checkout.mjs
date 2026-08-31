@@ -5,32 +5,46 @@ const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const LIVE_SESSION = /^cs_live_[A-Za-z0-9]+$/;
 const TEST_SESSION = /^cs_test_[A-Za-z0-9]+$/;
+export const TERMS_VERSION = '2026-08-30';
 
 export function validateOrder(order) {
   if (!order || typeof order !== 'object' || !UUID.test(order.orderId || '')) throw new Error('Nieprawidłowy numer zamówienia.');
+  if (order.termsAccepted !== true) throw new Error('Zaakceptuj regulamin przed przejściem do płatności.');
   if (typeof order.email !== 'string' || order.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.email)) throw new Error('Podaj poprawny adres e-mail.');
   if (!Array.isArray(order.items) || order.items.length < 1 || order.items.length > MAX_FIGURINES) throw new Error('Nieprawidłowa liczba figurek.');
   const items = order.items.map(item => {
     if (!item || !getPrice(item.size)) throw new Error('Nieprawidłowy rozmiar figurki.');
     return { size: item.size };
   });
-  return { orderId: order.orderId, email: order.email, items };
+  if (order.promotionCode !== undefined && typeof order.promotionCode !== 'string') throw new Error('Nieprawidłowy kod promocyjny.');
+  const promotionCode = (order.promotionCode || '').trim().toUpperCase();
+  if (promotionCode && !/^[A-Z0-9-]{1,500}$/.test(promotionCode)) throw new Error('Nieprawidłowy kod promocyjny.');
+  return { orderId: order.orderId, email: order.email, items, promotionCode, termsAccepted: true };
 }
 
-export function stripeParameters(order, siteOrigin, preview = false) {
+export function stripeParameters(order, siteOrigin, preview = false, promotionId = null) {
   const params = new URLSearchParams({
     mode: 'payment', customer_email: order.email, client_reference_id: order.orderId,
     // Pozostałe ustawienia zachowują zasady pięciu linków AXI3D (30.08.2026).
-    // Stripe sprawdza wpisany kod i oblicza rabat dopiero w Checkout.
-    'automatic_tax[enabled]': 'false', allow_promotion_codes: 'true',
+    // Kod jest wpisywany na AXI3D; Stripe weryfikuje go i oblicza kwotę.
+    'automatic_tax[enabled]': 'false',
     'invoice_creation[enabled]': 'false', billing_address_collection: 'auto',
     customer_creation: 'if_required',
     success_url: siteOrigin + (preview ? '/preview/success' : '/dziekujemy.html?session_id={CHECKOUT_SESSION_ID}'),
     cancel_url: siteOrigin + (preview ? '/preview/#zamow' : '/#zamow'),
     'metadata[order_id]': order.orderId,
     'payment_intent_data[metadata][order_id]': order.orderId,
-    'metadata[figurine_count]': String(order.items.length)
+    'metadata[figurine_count]': String(order.items.length),
+    'metadata[terms_accepted]': 'true',
+    'metadata[terms_version]': TERMS_VERSION,
+    'payment_intent_data[metadata][terms_accepted]': 'true',
+    'payment_intent_data[metadata][terms_version]': TERMS_VERSION
   });
+  // Nie łączymy discounts z allow_promotion_codes. Kod nie jest edytowany w Stripe.
+  if (promotionId) {
+    params.set('discounts[0][promotion_code]', promotionId);
+    params.set('metadata[promotion_code]', order.promotionCode);
+  } else params.set('allow_promotion_codes', 'false');
   if (preview) params.set('metadata[preview]', 'true');
   // payment_method_collection dotyczy wyłącznie subskrypcji. Dla dodatnich
   // kwot w mode: payment Stripe standardowo wymaga metody płatności.
@@ -137,15 +151,46 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
   }
 
   let order;
+  if (body?.termsAccepted !== true) return json(400, { error: 'Zaakceptuj regulamin przed przejściem do płatności.', code: 'terms_required' });
   try {
     order = validateOrder(body);
   } catch {
-    return json(400, { error: 'Sprawdź adres e-mail, liczbę figurek i ich rozmiary.' });
+    return json(400, { error: 'Sprawdź adres e-mail, liczbę figurek, rozmiary i kod promocyjny.' });
   }
-  const params = stripeParameters(order, config.siteOrigin, config.preview === true);
-  const digest = createHash('sha256').update(params.toString()).digest('hex');
   let diagnostic = { event: 'stripe_transport_error' };
+  const report = () => { try { config.reportStripeError?.(diagnostic); } catch { /* Log nie blokuje odpowiedzi. */ } };
+  const identifyResponse = (response, stage) => {
+    diagnostic = { event: response.ok ? 'stripe_invalid_response' : 'stripe_http_error', status: response.status };
+    if (stage) diagnostic.stage = stage;
+    const requestId = response.headers.get('request-id');
+    if (/^req_[A-Za-z0-9]{1,100}$/.test(requestId || '')) diagnostic.requestId = requestId;
+  };
   try {
+    let promotionId = null;
+    if (order.promotionCode) {
+      diagnostic.stage = 'promotion_lookup';
+      const query = new URLSearchParams({ code: order.promotionCode, active: 'true', limit: '100' });
+      const lookup = await stripeFetch('https://api.stripe.com/v1/promotion_codes?' + query, {
+        method: 'GET', headers: { Authorization: 'Bearer ' + config.stripeKey }, signal: AbortSignal.timeout(15000)
+      });
+      identifyResponse(lookup, 'promotion_lookup');
+      if (!lookup.ok) {
+        report();
+        return json(503, { error: 'Nie można teraz sprawdzić kodu promocyjnego. Spróbuj ponownie później lub usuń kod, aby zamówić bez rabatu.', code: 'promotion_codes_unavailable' });
+      }
+      const result = await lookup.json();
+      if (!Array.isArray(result.data)) throw new Error('Invalid promotion response');
+      // Bez kont klientów nie przypisujemy kodów zastrzeżonych dla konkretnego Customer.
+      // Pozostałe warunki (termin, limit, minimum, produkty) sprawdzi Stripe przy tworzeniu sesji.
+      const promotion = result.data.find(item => item.active === true &&
+        typeof item.code === 'string' && item.code.toUpperCase() === order.promotionCode &&
+        !item.customer && !item.customer_account && /^promo_[A-Za-z0-9]+$/.test(item.id || ''));
+      if (!promotion) return json(400, { error: 'Kod jest nieprawidłowy, nieaktywny lub niedostępny dla tego zamówienia.', code: 'invalid_promotion_code' });
+      promotionId = promotion.id;
+    }
+    const params = stripeParameters(order, config.siteOrigin, config.preview === true, promotionId);
+    const digest = createHash('sha256').update(params.toString()).digest('hex');
+    diagnostic = { event: 'stripe_transport_error' };
     const response = await stripeFetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
       headers: {
@@ -156,19 +201,28 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
       body: params,
       signal: AbortSignal.timeout(15000)
     });
-    diagnostic = { event: response.ok ? 'stripe_invalid_response' : 'stripe_http_error', status: response.status };
-    const requestId = response.headers.get('request-id');
-    if (/^req_[A-Za-z0-9]{1,100}$/.test(requestId || '')) diagnostic.requestId = requestId;
+    identifyResponse(response);
+    if (promotionId && response.status === 400) {
+      report();
+      return json(400, { error: 'Tego kodu nie można zastosować do zamówienia. Sprawdź jego ważność i warunki.', code: 'invalid_promotion_code' });
+    }
     if (!response.ok) throw new Error('Stripe unavailable');
     const session = await response.json();
     if (config.preview && session.livemode !== false) throw new Error('Preview requires sandbox');
     // Nie ujawniamy klientowi kluczy ani szczegółów błędów konta Stripe.
     if (!session.url || new URL(session.url).hostname !== 'checkout.stripe.com' || !session.url.startsWith('https://')) throw new Error('Stripe unavailable');
-    return json(200, { url: session.url });
+    const subtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).amount, 0);
+    const total = session.amount_total;
+    const discount = session.total_details?.amount_discount;
+    if (session.currency !== 'pln' || session.amount_subtotal !== subtotal ||
+        !Number.isInteger(total) || !Number.isInteger(discount) || discount < 0 || total < 0 ||
+        total + discount !== subtotal || (!promotionId && discount !== 0)) throw new Error('Invalid totals');
+    if (promotionId && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
+    return json(200, { url: session.url, checkoutVersion: 2, subtotal, discount, total, currency: 'pln', promotionCode: order.promotionCode });
   } catch {
     // Tylko kontrolowane pola diagnostyczne. Nigdy error.message Stripe,
     // treść odpowiedzi, dane zamówienia ani Authorization (mogą zawierać klucz).
-    try { config.reportStripeError?.(diagnostic); } catch { /* Log nie blokuje odpowiedzi. */ }
+    report();
     return json(502, { error: 'Nie udało się przygotować płatności. Spróbuj ponownie za chwilę.' });
   }
 }

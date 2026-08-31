@@ -1,5 +1,26 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 31.08.2026 — kod na stronie i akceptacja regulaminu
+
+Kod promocyjny wpisuje się teraz w końcowym oknie formularza AXI3D, przy danych dostawy. Usunięto oba wskazane przez właściciela opisy pod listą figurek. Przed przyciskiem znajduje się niezaznaczony, wymagany checkbox „Akceptuję regulamin sklepu”, z linkiem otwieranym w nowej karcie.
+
+Przy wpisanym kodzie przycisk „Sprawdź kod i cenę” przygotowuje sesję Stripe, ale nie wysyła zgłoszenia Basin i nie przekierowuje klienta. Backend wyszukuje aktywny kod przez `/v1/promotion_codes`, przekazuje zaufany identyfikator w `discounts[0][promotion_code]` i odczytuje faktyczny rabat z sesji Stripe. Formularz pokazuje rabat i końcową cenę. Dopiero „Przejdź do płatności” ponownie sprawdza kod/cenę i wysyła zamówienie. Zmieniona cena wymaga ponownego potwierdzenia. Zmiana kodu, rozmiarów lub e-maila usuwa poprzednią wycenę.
+
+Nie ma już pola dodawania kodu w Stripe. Przy kodzie pomijamy `allow_promotion_codes`, bez kodu ustawiamy `false`; nie łączymy tego parametru z `discounts`. Niepoprawny kod, brak uprawnień, zerowy rabat dla wybranych produktów i niezgodne kwoty blokują przejście — nie ma cichego powrotu do pełnej ceny. Nie wyliczamy kuponów lokalnie. Obsługiwane są kody publiczne, bez przypisania do konkretnego `customer` / `customer_account`; sklep nie ma uwierzytelnionych kont klientów. Inne ograniczenia kuponu sprawdza Stripe. Nie tworzono nowych kodów ani rabatów.
+
+Akceptacja jest wymagana zarówno w formularzu (także przy drugim kliknięciu), jak i w API tworzącym sesję (`termsAccepted: true`). Jest zapisywana w zgłoszeniu Basin oraz metadanych sesji i PaymentIntent razem z wersją regulaminu `2026-08-30`. Endpoint odczytu statusu istniejącej płatności pozostaje dostępny bez ponownej akceptacji. To zapis oświadczenia klienta, nie system uwierzytelniania ani gwarancja zgodności prawnej.
+
+Basin otrzymuje `kod_promocyjny`, `cena_przed_rabatem`, `rabat`, końcową `cena` oraz akceptację i wersję regulaminu. Dwa pola cenowe rabatu dodajemy tylko dla zamówienia z kodem. Opisy pozycji zachowują ceny katalogowe. Przed realizacją należy sprawdzić status i końcową kwotę w Stripe; samo wyliczenie ceny nie jest płatnością. Przy rabacie 100% kwota może wynosić 0 — takie zamówienie wymaga odrębnego sprawdzenia ukończenia sesji (nie będzie zwykłego obciążenia karty). Zachowano istniejącą analitykę i weryfikację płatności z `session_id`.
+
+### Wdrożenie
+
+1. Klucz produkcyjny używany przez Render potrzebuje dodatkowo **Promotion Codes: Read** (API `promotion_code_read`), oprócz dotychczasowego dostępu Checkout Sessions. Nie potrzeba uprawnień tworzenia kuponów/kodów ani odczytu Customers. Nie możemy potwierdzić uprawnień klucza serwera na podstawie uprawnień osobnego połączenia wtyczki Stripe.
+2. Po publikacji na `main` wykonaj **Manual Deploy → Deploy latest commit** na `axi-checkout`. Kod w GitHub Pages i kod backendu to osobne wdrożenia. Nie przełączaj klucza produkcyjnego na testowy.
+3. Nowy formularz blokuje użycie kodu, jeżeli stary backend nie potwierdzi rabatu (`checkoutVersion: 2`). Bez kodu zachowuje zgodność ze starszą odpowiedzią. Po wdrożeniu backendu odśwież już otwarte formularze: starsza wersja bez checkboxa nie utworzy nowej sesji.
+4. Sprawdź kod w osobnym środowisku testowym. Lokalne testy nie tworzą rzeczywistych sesji rabatowych i nie wysyłają Basin. Kontrola dostępu do kodów na wdrożonym API może użyć nieistniejącego kodu: oczekiwane 400, a 503 z logiem `promotion_lookup` / 403 wskazuje brak uprawnienia.
+
+Dokumentacja: [wyszukiwanie kodów](https://docs.stripe.com/api/promotion_codes/list), [sesje Checkout](https://docs.stripe.com/api/checkout/sessions/create). Poniżej zachowano wcześniejsze etapy prac; informacja o wpisywaniu kodu na Stripe opisuje poprzednią wersję.
+
 ## Kody promocyjne — gałąź robocza `codex/promotion-codes`
 
 Ta gałąź dodaje `allow_promotion_codes: true` przy tworzeniu Checkout Session. Klient wpisuje kod na stronie Stripe i widzi kwotę po rabacie przed zapłatą. Nie ma listy kodów ani obliczania rabatu po stronie przeglądarki: Stripe sprawdza aktywność, datę ważności, limity i warunki kodu. Nie zmieniono cennika, podatków, dostawy ani istniejących Payment Links.
