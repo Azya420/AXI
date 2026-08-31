@@ -12,6 +12,10 @@ Akceptacja jest wymagana zarówno w formularzu (także przy drugim kliknięciu),
 
 Basin otrzymuje `kod_promocyjny`, `cena_przed_rabatem`, `rabat`, końcową `cena` oraz akceptację i wersję regulaminu. Dwa pola cenowe rabatu dodajemy tylko dla zamówienia z kodem. Opisy pozycji zachowują ceny katalogowe. Przed realizacją należy sprawdzić status i końcową kwotę w Stripe; samo wyliczenie ceny nie jest płatnością. Przy rabacie 100% kwota może wynosić 0 — takie zamówienie wymaga odrębnego sprawdzenia ukończenia sesji (nie będzie zwykłego obciążenia karty). Zachowano istniejącą analitykę i weryfikację płatności z `session_id`.
 
+### Weryfikacja
+
+`npm run check` oraz 37 testów przeszły. Obejmują m.in. obowiązkową akceptację, brak uprawnień odczytu kodów, odrzucanie błędnych kodów bez powrotu do pełnej ceny, ceny po rabacie procentowym/kwotowym/100%, ponowne potwierdzenie zmienionej ceny i zachowanie dotychczasowej analityki. Nie wykonano rzeczywistej płatności ani wysyłki Basin.
+
 ### Wdrożenie
 
 1. Klucz produkcyjny używany przez Render potrzebuje dodatkowo **Promotion Codes: Read** (API `promotion_code_read`), oprócz dotychczasowego dostępu Checkout Sessions. Nie potrzeba uprawnień tworzenia kuponów/kodów ani odczytu Customers. Nie możemy potwierdzić uprawnień klucza serwera na podstawie uprawnień osobnego połączenia wtyczki Stripe.
