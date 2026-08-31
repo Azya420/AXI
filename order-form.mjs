@@ -16,8 +16,6 @@ export function initOrderForm(win) {
   const modal = byId('shipping-modal');
   const errorBox = byId('order-error');
   const preview = win.AXI_PREVIEW_MODE === true;
-  byId('figurine-sale').hidden = AUTOMATIC_DISCOUNT_PERCENT <= 0;
-  byId('figurine-sale-title').textContent = 'Promocja −' + AUTOMATIC_DISCOUNT_PERCENT + '%';
   byId('shipping-order-summary').setAttribute('role', 'status');
   const cards = () => Array.from(list.children);
   const field = (card, name) => card.querySelector('[data-field="' + name + '"]');

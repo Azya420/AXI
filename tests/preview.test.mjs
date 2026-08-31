@@ -27,6 +27,8 @@ test('preview renders the actual form, preserves navigation, loads public images
   const html = await response.text();
   assert.match(html, /PODGLĄD TESTOWY/);
   assert.match(html, /id="add-figurine-btn"/);
+  assert.ok(!html.includes('id="figurine-sale"'));
+  assert.ok(!html.includes('Na wszystkie figurki. Rabat naliczamy automatycznie.'));
   assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
