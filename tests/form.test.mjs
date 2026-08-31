@@ -64,24 +64,24 @@ function setup(preview = false) {
 test('add/remove preserves existing inputs, renumbers cards and sums different sizes', () => {
   const s = setup();
   assert.equal(s.$('promo-discount').textContent, '−30%');
-  assert.equal(s.$('promo-min-price').textContent, '70 zł');
+  assert.equal(s.$('promo-min-price').textContent, '98 zł');
   assert.equal(s.$('promo-spotlight').hidden, false);
   s.size(0, '32'); s.input(s.$('desc'), 'Pierwsza postać'); s.attach(0, 'first.png');
   s.$('add-figurine-btn').click(); s.size(1, '80');
   s.$('add-figurine-btn').click(); s.size(2, '120');
   assert.equal(s.$('desc').value, 'Pierwsza postać');
   assert.equal(s.$('photos').files[0].name, 'first.png');
-  assert.equal(s.$('price-hidden').value, '308 zł');
+  assert.equal(s.$('price-hidden').value, '399 zł');
   assert.equal(s.cards()[1].querySelector('textarea').value, '');
   const ids = [...s.doc.querySelectorAll('[id]')].map(el => el.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const label of s.$('figurine-list').querySelectorAll('label[for]')) assert.ok(s.$(label.htmlFor));
   s.cards()[1].querySelector('.remove-figurine').click();
-  assert.equal(s.$('price-hidden').value, '210 zł');
+  assert.equal(s.$('price-hidden').value, '273 zł');
   assert.equal(s.cards()[1].querySelector('legend').textContent, 'Figurka 2');
   assert.equal(s.cards()[1].querySelector('input[type=file]').name, 'figurka_2_zdjecia');
   s.cards()[0].querySelector('.remove-figurine').click();
-  assert.equal(s.$('price-hidden').value, '140 zł');
+  assert.equal(s.$('price-hidden').value, '175 zł');
   assert.equal(s.cards()[0].querySelector('input[type=number]').name, 'rozmiar');
   assert.ok(s.cards()[0].querySelector('.remove-figurine').hidden);
   s.dom.window.close();
@@ -108,7 +108,7 @@ test('one multipart submission carries independent files, sizes, prices and shar
   const checkout = JSON.parse(s.calls[0].body);
   assert.deepEqual(checkout.items, [{ size: 32 }, { size: 120 }]);
   const payload = s.calls[1].body;
-  assert.equal(payload.get('cena'), '210 zł');
+  assert.equal(payload.get('cena'), '273 zł');
   assert.equal(payload.get('liczba_figurek'), '2');
   assert.equal(payload.get('opis'), 'Druid'); assert.equal(payload.get('figurka_2_opis'), 'Smok');
   assert.equal(payload.get('zdjecia').name, 'druid.png');
@@ -118,7 +118,7 @@ test('one multipart submission carries independent files, sizes, prices and shar
   assert.equal(payload.get('miasto'), 'Warszawa');
   assert.equal(payload.get('numer_zamowienia'), checkout.orderId);
   assert.equal(payload.get('link_do_platnosci'), 'https://checkout.stripe.com/c/pay/cs_live_fixture');
-  assert.match(payload.get('podsumowanie_figurek'), /Figurka 2: 120 mm, 140 zł/);
+  assert.match(payload.get('podsumowanie_figurek'), /Figurka 2: 120 mm, 175 zł/);
   assert.equal(s.redirects.length, 1);
   await s.submit(); assert.equal(s.calls.length, 2, 'no duplicate submit after success');
   s.dom.window.close();
@@ -261,8 +261,8 @@ test('terms start unchecked and must be accepted before preparing payment or sen
   s.dom.window.close();
 });
 
-function discountResponse(total = 6300, discount = 700) {
-  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 2, pricingVersion: PRICING_VERSION, regularSubtotal: 10000, automaticDiscount: 3000, subtotal: 7000, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
+function discountResponse(total = 8820, discount = 980) {
+  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 2, pricingVersion: PRICING_VERSION, regularSubtotal: 14000, automaticDiscount: 4200, subtotal: 9800, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
 }
 test('onsite code shows discounted total for confirmation before submitting final Basin price', async () => {
   const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
@@ -278,8 +278,8 @@ test('onsite code shows discounted total for confirmation before submitting fina
   assert.equal(s.calls.length, 0, 'review never submits Basin');
   assert.equal(s.redirects.length, 0);
   assert.equal(requests[0].promotionCode, 'SAVE10');
-  assert.equal(s.$('order-total').textContent, 'Suma: 63 zł');
-  assert.match(s.$('promotion-result').textContent, /Rabat: 7 zł/);
+  assert.equal(s.$('order-total').textContent, 'Suma: 88,2 zł');
+  assert.match(s.$('promotion-result').textContent, /Rabat: 9,8 zł/);
   assert.equal(s.$('commission-submit').textContent, 'Przejdź do płatności');
   assert.equal(s.$('photos').files[0].name, 'first.png');
   s.$('terms-accepted').checked = false; await s.submit();
@@ -288,9 +288,9 @@ test('onsite code shows discounted total for confirmation before submitting fina
   assert.equal(requests.length, 2);
   assert.equal(requests[0].orderId, requests[1].orderId);
   assert.equal(s.calls.length, 1);
-  assert.equal(s.calls[0].body.get('cena'), '63 zł');
-  assert.equal(s.calls[0].body.get('cena_przed_rabatem'), '100 zł');
-  assert.equal(s.calls[0].body.get('rabat'), '37 zł');
+  assert.equal(s.calls[0].body.get('cena'), '88,2 zł');
+  assert.equal(s.calls[0].body.get('cena_przed_rabatem'), '140 zł');
+  assert.equal(s.calls[0].body.get('rabat'), '51,8 zł');
   assert.equal(s.calls[0].body.get('kod_promocyjny'), 'SAVE10');
   assert.equal(s.redirects.length, 1);
   s.dom.window.close();
@@ -324,7 +324,7 @@ test('editing code, email or figurine sizes clears the previous discount', async
     edit(s);
     assert.equal(s.$('promotion-result').hidden, true);
     assert.notEqual(s.$('commission-submit').textContent, 'Przejdź do płatności');
-    assert.notEqual(s.$('order-total').textContent, 'Suma: 63 zł');
+    assert.notEqual(s.$('order-total').textContent, 'Suma: 88,2 zł');
     s.dom.window.close();
   }
 });
@@ -334,16 +334,16 @@ test('a changed discounted price requires confirmation again before any redirect
   let count = 0;
   const fetch = s.win.fetch;
   s.win.fetch = async (url, options) => url.includes('/checkout-session')
-    ? Response.json(++count === 1 ? discountResponse() : discountResponse(6650, 350))
+    ? Response.json(++count === 1 ? discountResponse() : discountResponse(9310, 490))
     : fetch(url, options);
   await s.submit(); await s.submit();
   assert.equal(s.calls.length, 0); assert.equal(s.redirects.length, 0);
-  assert.equal(s.$('order-total').textContent, 'Suma: 66,5 zł');
+  assert.equal(s.$('order-total').textContent, 'Suma: 93,1 zł');
   await s.submit(); assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });
 
-test('all five new brackets sum to 707 zł in the form, shipping, Basin and analytics', async () => {
+test('all five new brackets sum to 903 zł in the form, shipping, Basin and analytics', async () => {
   const s = setup();
   assert.equal(s.$('order-total').textContent, 'Suma:');
   const events = [];
@@ -352,21 +352,21 @@ test('all five new brackets sum to 707 zł in the form, shipping, Basin and anal
     if (i) s.$('add-figurine-btn').click();
     s.size(i, size);
   }
-  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['70 zł', '98 zł', '140 zł', '175 zł', '224 zł']);
-  assert.equal(s.$('order-total').textContent, 'Suma: 707 zł');
+  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['98 zł', '126 zł', '175 zł', '224 zł', '280 zł']);
+  assert.equal(s.$('order-total').textContent, 'Suma: 903 zł');
   s.fillShipping();
-  assert.match(s.$('shipping-order-summary').textContent, /Suma: 707 zł/);
+  assert.match(s.$('shipping-order-summary').textContent, /Suma: 903 zł/);
   await s.submit();
   assert.equal(s.calls.length, 2);
   assert.equal(JSON.parse(s.calls[0].body).pricingVersion, PRICING_VERSION);
   const payload = s.calls[1].body;
-  assert.equal(payload.get('cena'), '707 zł');
-  assert.equal(payload.get('cena_przed_rabatem'), '1010 zł');
-  assert.equal(payload.get('rabat_automatyczny'), '303 zł');
+  assert.equal(payload.get('cena'), '903 zł');
+  assert.equal(payload.get('cena_przed_rabatem'), '1290 zł');
+  assert.equal(payload.get('rabat_automatyczny'), '387 zł');
   assert.equal(payload.get('rabat_automatyczny_procent'), '30');
-  assert.equal(payload.get('rabat'), '303 zł');
-  assert.equal(events.find(event => event[1] === 'begin_checkout')[2].value, 707);
-  assert.equal(events.find(event => event[1] === 'generate_lead')[2].value, 707);
+  assert.equal(payload.get('rabat'), '387 zł');
+  assert.equal(events.find(event => event[1] === 'begin_checkout')[2].value, 903);
+  assert.equal(events.find(event => event[1] === 'generate_lead')[2].value, 903);
   assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });
@@ -375,8 +375,8 @@ test('without a code an old backend, wrong amount or wrong pricing version never
   const valid = priceResponse({ items: [{ size: 32 }] });
   for (const response of [
     { url: valid.url }, { ...valid, pricingVersion: 'old' },
-    { ...valid, subtotal: 20000, total: 20000 }, { ...valid, total: 7001 },
-    { ...valid, total: 6300, discount: 700 }, { ...valid, automaticDiscount: 0 },
+    { ...valid, subtotal: 20000, total: 20000 }, { ...valid, total: 9801 },
+    { ...valid, total: 8820, discount: 980 }, { ...valid, automaticDiscount: 0 },
     { ...valid, regularSubtotal: 20000 }, { ...valid, currency: 'eur' }
   ]) {
     const s = setup(); s.size(0, '32'); s.attach(0, 'keep.png'); s.fillShipping();

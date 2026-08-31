@@ -8,11 +8,11 @@ const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: i
 const config = { stripeKey: 'test-only-not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const request = (body = order, headers = {}) => new Request('https://example.com/checkout-session', { method: 'POST', headers: { Origin: 'https://axi3d.pl', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
-test('different sizes become three PLN line items totalling 308 zł', () => {
+test('different sizes become three PLN line items totalling 399 zł', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '7000');
-  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '9800');
-  assert.equal(params.get('line_items[2][price_data][unit_amount]'), '14000');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '9800');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '12600');
+  assert.equal(params.get('line_items[2][price_data][unit_amount]'), '17500');
   assert.equal(params.get('line_items[2][quantity]'), '1');
   assert.equal(params.get('line_items[2][price_data][currency]'), 'pln');
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
@@ -33,14 +33,14 @@ test('checkout keeps code entry on the website while preserving shipping and tax
 test('client prices, quantities and redirect URLs cannot override server values', () => {
   const validated = validateOrder({ ...order, success_url: 'https://attacker.example', items: [{ size: 250, amount: 1, quantity: -8 }] });
   const params = stripeParameters(validated, config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '22400');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '28000');
   assert.equal(params.get('line_items[0][quantity]'), '1');
   assert.equal(params.get('success_url'), 'https://axi3d.pl/dziekujemy.html?session_id={CHECKOUT_SESSION_ID}');
 });
 test('multiple figures in the same bracket remain separate paid items', () => {
   const params = stripeParameters(validateOrder({ ...order, items: [{ size: 32 }, { size: 42 }] }), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '7000');
-  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '7000');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '9800');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '9800');
 });
 test('reject empty, oversized, fractional, string, out-of-range orders', () => {
   for (const items of [[], Array(21).fill({ size: 32 }), [{ size: 19 }], [{ size: 251 }], [{ size: 32.4 }], [{ size: '32' }], [null]]) {

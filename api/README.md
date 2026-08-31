@@ -4,33 +4,33 @@
 
 | Wysokość | Nowa cena bazowa | Do zapłaty bez dodatkowego kodu |
 | --- | --- | --- |
-| 20–60 mm | 100 zł | 70 zł |
-| 61–100 mm | 140 zł | 98 zł |
-| 101–150 mm | 200 zł | 140 zł |
-| 151–200 mm | 250 zł | 175 zł |
-| 201–250 mm | 320 zł | 224 zł |
+| 20–60 mm | 140 zł | 98 zł |
+| 61–100 mm | 180 zł | 126 zł |
+| 101–150 mm | 250 zł | 175 zł |
+| 151–200 mm | 320 zł | 224 zł |
+| 201–250 mm | 400 zł | 280 zł |
 
 `pricing.mjs` definiuje ceny bazowe w groszach oraz `AUTOMATIC_DISCOUNT_PERCENT = 30`. `amount` oznacza kwotę po tej obniżce. Formularz, suma, analityka i serwer korzystają z tych samych cen. Zakres 20–250 mm jest ciągły; nadal wymagamy pełnych milimetrów. Rabat nie ma jeszcze ustalonej daty zakończenia.
 
-Stripe otrzymuje już obniżone `unit_amount` (7000/9800/14000/17500/22400). Nie tworzymy kuponu, nie potrzebujemy nowych uprawnień klucza do automatycznej obniżki i nie zmieniamy istniejących Payment Links ani sesji. Dotychczasowe kody pozostają dodatkowym rabatem od obniżonej sumy; warunki i minimum sprawdza Stripe. Np. 32 mm kosztuje 70 zł, a poprawny kod 10% obniży tę kwotę do 63 zł, nie do 60 zł.
+Stripe otrzymuje już obniżone `unit_amount` (9800/12600/17500/22400/28000). Nie tworzymy kuponu, nie potrzebujemy nowych uprawnień klucza do automatycznej obniżki i nie zmieniamy istniejących Payment Links ani sesji. Dotychczasowe kody pozostają dodatkowym rabatem od obniżonej sumy; warunki i minimum sprawdza Stripe. Np. 32 mm kosztuje 98 zł, a poprawny kod 10% obniży tę kwotę do 88,20 zł.
 
 Basin zapisuje cenę bazową całego koszyka (`cena_przed_rabatem`), obniżkę automatyczną (`rabat_automatyczny`, `rabat_automatyczny_procent`), sumę przed dodatkowym kodem (`cena_przed_kodem`), ewentualny `rabat_z_kodu`, łączny `rabat` i ostateczną `cena`. Metadane Stripe zawierają wersję cennika i procent automatycznej obniżki. Pole `total_details.amount_discount` w Stripe dotyczy wyłącznie dodatkowego kuponu — automatyczna obniżka jest już w cenach pozycji.
 
 ### Oznaczenie promocji
 
-Właściciel potwierdził, że podane ceny bazowe były ostatnimi cenami przed obniżką. Zamiast wcześniejszego ogólnego banera formularz pokazuje dopasowany do motywu AXI panel „Własna figurka już od 70 zł” z oznaczeniem −30% i informacją, że promocja obejmuje wszystkie rozmiary. Kwota „od” jest pobierana automatycznie jako najniższa cena do zapłaty ze wspólnego cennika. Na kartach po wpisaniu rozmiaru nadal widać przekreśloną cenę przed obniżką, cenę do zapłaty oraz oznaczenie −30%. Wygląd nie zmienia kwot, kodów ani zasad płatności.
+Właściciel potwierdził, że podane ceny bazowe były ostatnimi cenami przed obniżką. Zamiast wcześniejszego ogólnego banera formularz pokazuje dopasowany do motywu AXI panel „Własna figurka już od 98 zł” z oznaczeniem −30% i informacją, że promocja obejmuje wszystkie rozmiary. Kwota „od” jest pobierana automatycznie jako najniższa cena do zapłaty ze wspólnego cennika. Na kartach po wpisaniu rozmiaru nadal widać przekreśloną cenę przed obniżką, cenę do zapłaty oraz oznaczenie −30%. Wygląd nie zmienia kwot, kodów ani zasad płatności.
 
 Potwierdzenie ostatniej ceny nie jest potwierdzeniem najniższej ceny z 30 dni. Nie oznaczamy tych wartości jako „najniższa cena z 30 dni”. Uzupełnienie tej informacji wymaga rzeczywistej historii cen od właściciela; ta zmiana nie stanowi oceny zgodności prawnej oznaczeń: [informacje UOKiK](https://prawakonsumenta.uokik.gov.pl/prawo-do-informacji/informacje-o-obnizkach-cen/).
 
 ### Bezpieczna publikacja
 
-Wymagana wersja cennika to `2026-08-31-sale30-v3`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, obniżki automatycznej i kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
+Wymagana wersja cennika to `2026-08-31-sale30-v4`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, obniżki automatycznej i kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
 
 Opublikuj ten sam aktualny `main` w GitHub Pages i na Renderze (**Manual Deploy → Deploy latest commit**). Obie usługi muszą zakończyć publikację, zanim nowe zamówienia będą działać. Przez czas różnicy wersji lub ze starej otwartej karty formularz może prosić o odświeżenie, ale nie naliczy niezgodnej kwoty. `/health` udostępnia `pricingVersion`. Nie zmieniaj klucza produkcyjnego. Testy lokalne używają atrap Stripe/Basin, bez płatności i wysyłania zgłoszeń; nie zastępują sprawdzenia obu wdrożeń.
 
 Poniżej zachowano historyczne etapy prac. Opis zgodności bez kodu ze starszym backendem oraz dawne kwoty dotyczą poprzednich wersji.
 
-Weryfikacja tej aktualizacji: kontrola składni oraz 43 testy przeszły. Testy obejmują wszystkie 231 dopuszczalnych rozmiarów, obniżone pozycje Stripe, sumę 707 zł za pięć progów, dodatkowy kod, analitykę i odmowę płatności przy różnicach wersji/cen. Bez rzeczywistych obciążeń i zgłoszeń Basin.
+Weryfikacja tej aktualizacji: kontrola składni oraz 43 testy przeszły. Testy obejmują wszystkie 231 dopuszczalnych rozmiarów, obniżone pozycje Stripe, sumę 903 zł za pięć progów, dodatkowy kod, analitykę i odmowę płatności przy różnicach wersji/cen. Bez rzeczywistych obciążeń i zgłoszeń Basin.
 
 ## Aktualizacja 31.08.2026 — kod na stronie i akceptacja regulaminu
 
