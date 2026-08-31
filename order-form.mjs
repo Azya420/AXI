@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, getPrice, formatPrice } from './pricing.mjs?v=20260831-sale30';
+import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, getPrice, formatPrice } from './pricing.mjs?v=20260831-sale30-v2';
 
 export function initOrderForm(win) {
   const doc = win.document;
