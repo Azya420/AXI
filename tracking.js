@@ -2,7 +2,7 @@
   'use strict';
   var GA_ID = 'G-M3L9ZPRGMB';
   var META_PIXEL_ID = '1665983241581980';
-  var CONSENT_KEY = 'cookie-consent-v2';
+  var CONSENT_KEY = 'cookie-consent-v3';
   var loaded = false;
 
   function loadGoogleAnalytics(){
@@ -67,13 +67,6 @@
         banner?.classList.add('active');
       });
     });
-    if (consent === 'accepted') {
-      enableTracking();
-      return;
-    }
-    if (consent === 'declined') return;
-    if (!banner) return;
-    banner.classList.add('active');
     doc.getElementById('cookie-accept')?.addEventListener('click', function(){
       win.localStorage.setItem(CONSENT_KEY, 'accepted');
       banner.classList.remove('active');
@@ -84,5 +77,12 @@
       banner.classList.remove('active');
       if (loaded) win.location.reload();
     });
+    if (consent === 'accepted') {
+      enableTracking();
+      return;
+    }
+    if (consent === 'declined') return;
+    if (!banner) return;
+    banner.classList.add('active');
   });
 })(window, document);
