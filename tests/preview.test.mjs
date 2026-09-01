@@ -27,6 +27,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   const html = await response.text();
   assert.match(html, /PODGLĄD TESTOWY/);
   assert.match(html, /id="add-figurine-btn"/);
+  assert.match(html, /class="photo-upload-button" for="photos">Dodaj zdjęcie<\/label>/);
   assert.match(html, /<body id="top">/);
   assert.match(html, /<a class="logo" href="#top" aria-label="AXI — przejdź na górę strony">/);
   assert.ok(!html.includes('id="figurine-sale"'));

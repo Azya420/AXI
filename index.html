@@ -932,6 +932,18 @@
     margin-right:12px;
     cursor:pointer;
   }
+  .photo-input-visually-hidden{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+  .photo-upload-button{
+    display:inline-flex; align-items:center; justify-content:center; width:auto; margin:0;
+    padding:10px 16px; border:1px solid rgba(167,139,250,0.45); background:rgba(109,40,217,0.12);
+    color:var(--violet-bright); font:600 0.78rem 'Sora',sans-serif; letter-spacing:normal;
+    text-transform:none; cursor:pointer; transition:background .18s,border-color .18s,color .18s;
+  }
+  .photo-upload-button:hover{ background:rgba(109,40,217,0.24); border-color:var(--violet-bright); color:var(--ink); }
+  .photo-input-visually-hidden:focus-visible + .photo-upload-button{ outline:2px solid var(--bronze); outline-offset:3px; }
   .photo-list{ list-style:none; margin-top:10px; display:grid; gap:7px; }
   .photo-list:empty{ display:none; }
   .photo-item{
@@ -2369,7 +2381,8 @@
         </div>
         <div>
           <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
-          <input id="photos" data-field="photos" name="zdjecia" type="file" accept="image/*" multiple>
+          <input class="photo-input-visually-hidden" id="photos" data-field="photos" name="zdjecia" type="file" accept="image/*" multiple>
+          <label class="photo-upload-button" for="photos">Dodaj zdjęcie</label>
           <ul class="photo-list" data-field="photo-list" aria-live="polite"></ul>
         </div>
         <div class="form-row">
