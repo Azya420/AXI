@@ -85,6 +85,7 @@
     font-weight:700;
     letter-spacing:0.14em;
     display:flex; align-items:center; gap:10px;
+    color:inherit; text-decoration:none;
   }
   .logo-mark{
     width:126px; height:126px;
@@ -956,9 +957,11 @@
     padding:12px 14px;
     display:flex;
     align-items:center;
-    min-height:45px;
-    flex-wrap:wrap;
+    height:47px;
+    min-height:47px;
+    flex-wrap:nowrap;
     gap:8px;
+    overflow:hidden;
   }
   .price-before{ color:var(--ink-dim); font-size:0.85rem; text-decoration-thickness:1px; white-space:nowrap; }
   .price-value{
@@ -1177,19 +1180,19 @@
 
   /* ---------- HERO V2 / idea to figure ---------- */
   nav.wrap{
-    height:90px;
+    height:104px;
   }
   .logo-mark{
-    width:88px;
-    height:88px;
+    width:102px;
+    height:102px;
   }
   section{
-    scroll-margin-top:90px;
+    scroll-margin-top:104px;
   }
 
   .hero.hero-v2{
     padding:58px 0 54px;
-    min-height:calc(100vh - 90px);
+    min-height:calc(100vh - 104px);
     display:flex;
     align-items:center;
     overflow:hidden;
@@ -1556,18 +1559,18 @@
 
   @media (max-width:680px){
     nav.wrap{
-      height:76px;
+      height:84px;
     }
     .logo-mark{
-      width:74px;
-      height:74px;
+      width:82px;
+      height:82px;
     }
     .nav-cta{
       padding:8px 13px;
       font-size:.73rem;
     }
     section{
-      scroll-margin-top:76px;
+      scroll-margin-top:84px;
     }
     .hero.hero-v2{
       padding:40px 0 46px;
@@ -1659,13 +1662,13 @@
 
 </style>
 </head>
-<body>
+<body id="top">
 
 <header>
   <nav class="wrap">
-    <div class="logo">
+    <a class="logo" href="#top" aria-label="AXI — przejdź na górę strony">
       <img class="logo-mark" src="logo%20white.png" alt="AXI">
-    </div>
+    </a>
     <div class="navlinks">
       <a href="#o-nas">O nas</a>
       <a href="#proces">Proces</a>
