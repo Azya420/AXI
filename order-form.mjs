@@ -55,6 +55,40 @@ export function initOrderForm(win) {
   let promotionReview = null;
   let geowidgetInitialized = false;
   let previousDisabled = [];
+  const selectedPhotos = new WeakMap();
+
+  function photoKey(file) {
+    return [file.name, file.size, file.lastModified, file.type].join(':');
+  }
+  function syncPhotoInput(input, files) {
+    try {
+      const transfer = new win.DataTransfer();
+      files.forEach(file => transfer.items.add(file));
+      input.files = transfer.files;
+    } catch {
+      // Używane wyłącznie przez środowiska bez DataTransfer (np. testy DOM).
+      Object.defineProperty(input, 'files', { configurable: true, value: files });
+    }
+  }
+  function renderPhotoList(card, files) {
+    const photoList = field(card, 'photo-list');
+    photoList.replaceChildren();
+    files.forEach((file, index) => {
+      const item = doc.createElement('li');
+      item.className = 'photo-item';
+      const name = doc.createElement('span');
+      name.className = 'photo-name';
+      name.textContent = file.name;
+      const remove = doc.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove-photo';
+      remove.dataset.photoIndex = String(index);
+      remove.textContent = 'Usuń';
+      remove.setAttribute('aria-label', 'Usuń zdjęcie ' + file.name);
+      item.append(name, remove);
+      photoList.appendChild(item);
+    });
+  }
 
   function countLabel(count) {
     if (count === 1) return '1 figurka';
@@ -181,6 +215,17 @@ export function initOrderForm(win) {
     field(card, 'description').focus();
   });
   list.addEventListener('click', event => {
+    const removePhoto = event.target.closest('.remove-photo');
+    if (removePhoto && !busy && !completed) {
+      const card = removePhoto.closest('.figurine-card');
+      const input = field(card, 'photos');
+      const files = (selectedPhotos.get(input) || Array.from(input.files)).filter((_, index) => index !== Number(removePhoto.dataset.photoIndex));
+      selectedPhotos.set(input, files);
+      syncPhotoInput(input, files);
+      renderPhotoList(card, files);
+      clearError();
+      return;
+    }
     const addCopy = event.target.closest('[data-field="add-copy"]');
     if (addCopy && !busy && !completed) {
       const card = addCopy.closest('.figurine-card');
@@ -205,6 +250,18 @@ export function initOrderForm(win) {
     clearError();
     refresh();
     addBtn.focus();
+  });
+  list.addEventListener('change', event => {
+    const input = event.target.closest('[data-field="photos"]');
+    if (!input || busy || completed) return;
+    const previous = selectedPhotos.get(input) || [];
+    const unique = new Map(previous.map(file => [photoKey(file), file]));
+    Array.from(input.files).forEach(file => unique.set(photoKey(file), file));
+    const files = Array.from(unique.values());
+    selectedPhotos.set(input, files);
+    syncPhotoInput(input, files);
+    renderPhotoList(input.closest('.figurine-card'), files);
+    clearError();
   });
   list.addEventListener('input', () => { if (!busy) { clearError(); refresh(); } });
   ['promotion-code', 'email'].forEach(id => byId(id).addEventListener('input', () => { if (!busy) { clearError(); refresh(); } }));

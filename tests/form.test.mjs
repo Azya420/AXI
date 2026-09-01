@@ -132,6 +132,23 @@ test('identical print count updates the visible total and checkout payload', asy
   assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 3 }]);
   s.dom.window.close();
 });
+test('selecting photos again appends files and every photo can be removed', () => {
+  const s = setup();
+  const photoInput = s.cards()[0].querySelector('[data-field="photos"]');
+  const choose = name => {
+    const file = new s.dom.window.File(['photo'], name, { type: 'image/png', lastModified: name.length });
+    Object.defineProperty(photoInput, 'files', { configurable: true, value: [file] });
+    photoInput.dispatchEvent(new s.dom.window.Event('change', { bubbles: true }));
+  };
+  choose('przod.png');
+  choose('tyl.png');
+  assert.deepEqual([...s.cards()[0].querySelectorAll('.photo-name')].map(item => item.textContent), ['przod.png', 'tyl.png']);
+  assert.deepEqual(Array.from(photoInput.files).map(file => file.name), ['przod.png', 'tyl.png']);
+  s.cards()[0].querySelector('.remove-photo').click();
+  assert.deepEqual([...s.cards()[0].querySelectorAll('.photo-name')].map(item => item.textContent), ['tyl.png']);
+  assert.deepEqual(Array.from(photoInput.files).map(file => file.name), ['tyl.png']);
+  s.dom.window.close();
+});
 test('blank, fractional and out-of-range sizes block shipping; maximum count enforced', () => {
   const s = setup();
   for (const size of ['', '19', '32.5', '251']) {

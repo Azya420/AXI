@@ -932,6 +932,18 @@
     margin-right:12px;
     cursor:pointer;
   }
+  .photo-list{ list-style:none; margin-top:10px; display:grid; gap:7px; }
+  .photo-list:empty{ display:none; }
+  .photo-item{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:8px 10px; border:1px solid var(--line); background:rgba(8,3,18,0.35);
+    color:var(--ink-dim); font-size:0.78rem;
+  }
+  .photo-name{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .remove-photo{
+    flex:0 0 auto; border:0; background:none; color:#ffb4b4; cursor:pointer;
+    font:inherit; font-size:0.74rem; text-decoration:underline;
+  }
   input[type="file"]::file-selector-button{
     background:var(--violet);
     color:#fff;
@@ -2358,6 +2370,7 @@
         <div>
           <label for="photos">Zdjęcia referencyjne (opcjonalnie)</label>
           <input id="photos" data-field="photos" name="zdjecia" type="file" accept="image/*" multiple>
+          <ul class="photo-list" data-field="photo-list" aria-live="polite"></ul>
         </div>
         <div class="form-row">
           <div>
@@ -2477,7 +2490,7 @@
   </div>
 
   <script src="checkout-config.js"></script>
-  <script type="module" src="order-form.mjs?v=20260901-copies-ui-v2"></script>
+  <script type="module" src="order-form.mjs?v=20260901-photo-list-v3"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">
