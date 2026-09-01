@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleCheckout, validateOrder, stripeParameters } from '../api/checkout.mjs';
-import { getPrice, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
+import { getPrice, getItemSubtotal, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
 
 const id = '081d9e64-638e-4a29-882e-39f5212cf96b';
 const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: id, email: 'test@example.com', deliveryMethod: 'locker', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
@@ -50,10 +50,22 @@ test('multiple figures in the same bracket remain separate paid items', () => {
   assert.equal(params.get('line_items[0][price_data][unit_amount]'), '9800');
   assert.equal(params.get('line_items[1][price_data][unit_amount]'), '9800');
 });
+test('one design with three identical prints charges the first figurine plus two cheap copies', () => {
+  const params = stripeParameters(validateOrder({ ...order, items: [{ size: 32, copies: 3 }] }), config.siteOrigin);
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '9800');
+  assert.equal(params.get('line_items[0][quantity]'), '1');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '1000');
+  assert.equal(params.get('line_items[1][quantity]'), '2');
+  assert.match(params.get('line_items[1][price_data][product_data][name]'), /Dodatkowy identyczny wydruk/);
+  assert.equal(params.get('metadata[figurine_count]'), '3');
+  assert.equal(params.get('metadata[design_count]'), '1');
+  assert.equal(params.get('metadata[bulk_pricing_applied]'), 'false');
+});
 test('reject empty, oversized, fractional, string, out-of-range orders', () => {
   for (const items of [[], Array(21).fill({ size: 32 }), [{ size: 19 }], [{ size: 251 }], [{ size: 32.4 }], [{ size: '32' }], [null]]) {
     assert.throws(() => validateOrder({ ...order, items }));
   }
+  for (const copies of [0, 21, 1.5, '2', -1]) assert.throws(() => validateOrder({ ...order, items: [{ size: 32, copies }] }));
   assert.throws(() => validateOrder({ ...order, email: 'invalid' }));
   assert.throws(() => validateOrder({ ...order, orderId: 'invalid' }));
   for (const deliveryMethod of [undefined, '', 'courier', 1]) assert.throws(() => validateOrder({ ...order, deliveryMethod }));
@@ -76,11 +88,11 @@ test('retries use stable idempotency and changed orders use a different key', as
     assert.equal(response.headers.get('Access-Control-Allow-Origin'), config.siteOrigin);
     const result = await response.json();
     assert.equal(result.url, 'https://checkout.stripe.com/c/pay/test-session');
-    assert.equal(result.checkoutVersion, 3);
+    assert.equal(result.checkoutVersion, 4);
     assert.equal(result.deliveryMethod, body.deliveryMethod);
     assert.equal(result.discount, 0);
     assert.equal(result.shippingAmount, SHIPPING_AMOUNT);
-    assert.equal(result.total, body.items.reduce((sum, item) => sum + getPrice(item.size, body.items.length).amount, 0) + SHIPPING_AMOUNT);
+    assert.equal(result.total, body.items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies ?? 1, body.items.length), 0) + SHIPPING_AMOUNT);
   }
   assert.equal(keys[0], keys[1]);
   assert.notEqual(keys[0], keys[2]);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getPrice, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
+import { getPrice, getItemSubtotal, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
 import { handleCheckout } from '../api/checkout.mjs';
 
 const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
@@ -26,6 +26,14 @@ test('all 231 integer sizes use the regular sale and requested 3+ prices', () =>
     }
   }
   for (const size of [19, 251, 60.5, NaN, Infinity, '61', null]) assert.equal(getPrice(size), null);
+});
+
+test('every additional identical print uses the requested size-bracket price', () => {
+  for (const [size, additional] of [[20, 1000], [61, 1500], [101, 3000], [151, 5000], [201, 10000]]) {
+    assert.equal(getPrice(size).additionalCopyAmount, additional);
+    assert.equal(getItemSubtotal(size, 3), getPrice(size).amount + 2 * additional);
+  }
+  for (const copies of [0, 21, 1.5, '2']) assert.equal(getItemSubtotal(32, copies), null);
 });
 
 test('all five 3+ line items plus shipping total 776,49 zł in Stripe', async () => {

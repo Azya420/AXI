@@ -44,7 +44,7 @@ test('server resolves the typed code, applies only its trusted ID and returns St
   });
   assert.equal(response.status, 200);
   assert.equal(calls.length, 2);
-  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 3, pricingVersion: PRICING_VERSION, regularSubtotal: 32000, saleSubtotal: 22400, automaticDiscount: 9600, bulkDiscount: 0, bulkPricing: false, subtotal: 22400, deliveryMethod: 'locker', shippingAmount: 1649, discount: 2240, total: 21809, currency: 'pln', promotionCode: 'SAVE10' });
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 4, pricingVersion: PRICING_VERSION, regularSubtotal: 32000, saleSubtotal: 22400, automaticDiscount: 9600, bulkDiscount: 0, bulkPricing: false, subtotal: 22400, deliveryMethod: 'locker', shippingAmount: 1649, discount: 2240, total: 21809, currency: 'pln', promotionCode: 'SAVE10' });
 });
 
 test('invalid, inactive and customer-restricted codes never create a full-price session', async () => {
@@ -103,7 +103,7 @@ test('a promotion code stacks on the trusted 3+ prices without discounting shipp
       total_details: { amount_discount: 3200, amount_shipping: 1649 } });
   });
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 3, pricingVersion: PRICING_VERSION,
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 4, pricingVersion: PRICING_VERSION,
     regularSubtotal: 57000, saleSubtotal: 39900, automaticDiscount: 17100,
     bulkDiscount: 7900, bulkPricing: true, subtotal: 32000, deliveryMethod: 'locker', shippingAmount: 1649,
     discount: 3200, total: 30449, currency: 'pln', promotionCode: 'SAVE10' });

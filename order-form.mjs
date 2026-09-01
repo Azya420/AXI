@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260901-delivery-v2';
+import { MAX_FIGURINES, MAX_COPIES_PER_FIGURINE, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260901-copies-v1';
 
 export const SPECIAL_OFFER_END = '2026-09-08T11:00:07Z';
 
@@ -67,18 +67,28 @@ export function initOrderForm(win) {
   }
   const currentPromotion = () => byId('promotion-code').value.trim().toUpperCase();
   const deliveryMethod = () => isLocker() ? 'locker' : 'address';
-  const pricingKey = () => JSON.stringify({ items: cards().map(card => Number(field(card, 'size').value)), email: byId('email').value.trim(), code: currentPromotion(), deliveryMethod: deliveryMethod() });
+  const cardItems = () => cards().map(card => ({ size: Number(field(card, 'size').value), copies: Number(field(card, 'copies').value) }));
+  const pricingKey = () => JSON.stringify({ items: cardItems(), email: byId('email').value.trim(), code: currentPromotion(), deliveryMethod: deliveryMethod() });
   function analyticsSnapshot(items) {
-    const analyticsItems = items.map((item, index) => {
+    const analyticsItems = items.flatMap((item, index) => {
       const price = getPrice(item.size, items.length);
-      return {
+      const result = [{
         item_id: 'axi-figurine-' + (index + 1),
         item_name: 'Personalizowana figurka',
         item_category: 'Figurka 3D',
         item_variant: item.size + ' mm',
         price: price.amount / 100,
         quantity: 1
-      };
+      }];
+      if (item.copies > 1) result.push({
+        item_id: 'axi-figurine-' + (index + 1) + '-copy',
+        item_name: 'Dodatkowy identyczny wydruk',
+        item_category: 'Figurka 3D — kopia',
+        item_variant: item.size + ' mm',
+        price: price.additionalCopyAmount / 100,
+        quantity: item.copies - 1
+      });
+      return result;
     });
     return {
       currency: 'PLN',
@@ -108,28 +118,36 @@ export function initOrderForm(win) {
       field(card, 'description').name = prefix + 'opis';
       field(card, 'photos').name = prefix + 'zdjecia';
       field(card, 'size').name = prefix + 'rozmiar';
+      field(card, 'copies').name = prefix + 'liczba_identycznych_wydrukow';
       const input = field(card, 'size');
+      const copiesInput = field(card, 'copies');
       input.setCustomValidity('');
+      copiesInput.setCustomValidity('');
       const price = getPrice(Number(input.value), all.length);
+      const copies = Number(copiesInput.value);
+      const itemSubtotal = getItemSubtotal(Number(input.value), copies, all.length);
       const discounted = price && price.amount < price.regularAmount;
       const regularPrice = field(card, 'regular-price');
       regularPrice.hidden = !discounted;
-      regularPrice.textContent = discounted ? formatPrice(bulkPricing ? price.saleAmount : price.regularAmount) : '';
-      regularPrice.setAttribute('aria-label', discounted ? (bulkPricing ? 'Cena przy 1–2 figurkach: ' : 'Cena przed obniżką: ') + formatPrice(bulkPricing ? price.saleAmount : price.regularAmount) : 'Cena przed obniżką');
-      field(card, 'price').setAttribute('aria-label', price ? (bulkPricing ? 'Cena przy co najmniej 3 figurkach: ' : 'Cena do zapłaty: ') + formatPrice(price.amount) : 'Cena');
-      if (price) {
-        total += price.amount;
-        field(card, 'price').textContent = formatPrice(price.amount);
+      const comparisonTotal = price ? (bulkPricing ? price.saleAmount : price.regularAmount) + Math.max(0, copies - 1) * price.additionalCopyAmount : 0;
+      regularPrice.textContent = discounted && itemSubtotal !== null ? formatPrice(comparisonTotal) : '';
+      regularPrice.setAttribute('aria-label', discounted && itemSubtotal !== null ? (bulkPricing ? 'Cena przy 1–2 projektach: ' : 'Cena przed obniżką: ') + formatPrice(comparisonTotal) : 'Cena przed obniżką');
+      field(card, 'price').setAttribute('aria-label', itemSubtotal !== null ? 'Cena za wszystkie identyczne wydruki tej figurki: ' + formatPrice(itemSubtotal) : 'Cena');
+      field(card, 'copy-price').textContent = price ? 'Każdy dodatkowy identyczny wydruk: ' + formatPrice(price.additionalCopyAmount) + '.' : 'Każdy dodatkowy wydruk zostanie doliczony według rozmiaru.';
+      if (itemSubtotal !== null) {
+        total += itemSubtotal;
+        field(card, 'price').textContent = formatPrice(itemSubtotal);
       } else {
         valid = false;
-        field(card, 'price').textContent = input.value ? 'Sprawdź rozmiar' : 'Wpisz rozmiar';
+        field(card, 'price').textContent = !input.value ? 'Wpisz rozmiar' : !Number.isInteger(copies) || copies < 1 || copies > MAX_COPIES_PER_FIGURINE ? 'Sprawdź liczbę wydruków' : 'Sprawdź rozmiar';
       }
     });
-    const label = countLabel(all.length);
+    const totalCopies = all.reduce((sum, card) => sum + (Number.isInteger(Number(field(card, 'copies').value)) ? Number(field(card, 'copies').value) : 0), 0);
+    const label = countLabel(totalCopies) + (totalCopies !== all.length ? ' · ' + all.length + (all.length === 1 ? ' projekt' : ' projekty') : '');
     const shippingAmount = getDeliveryOption(deliveryMethod()).amount;
     if (promotionReview?.key !== pricingKey()) promotionReview = null;
     const applied = valid && promotionReview;
-    byId('figurine-count').value = String(all.length);
+    byId('figurine-count').value = String(totalCopies);
     byId('order-count-label').textContent = label;
     const figurinesTotal = applied ? applied.total - applied.shippingAmount : total;
     byId('order-total').textContent = valid ? 'Suma: ' + formatPrice(figurinesTotal) : 'Suma:';
@@ -139,8 +157,8 @@ export function initOrderForm(win) {
     byId('shipping-order-summary').textContent = label + (valid ? ' · Suma figurek: ' + formatPrice(figurinesTotal) : '');
     byId('promotion-result').hidden = !applied;
     byId('promotion-result').textContent = applied ? 'Kod zastosowany. Rabat: ' + formatPrice(applied.discount) + ' · Suma figurek po rabacie: ' + formatPrice(figurinesTotal) + '. Koszt dostawy zostanie doliczony w Stripe.' : '';
-    openBtn.textContent = all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
-    submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
+    openBtn.textContent = totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
+    submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     addBtn.disabled = all.length >= MAX_FIGURINES;
     addBtn.textContent = all.length >= MAX_FIGURINES ? 'Maksymalnie ' + MAX_FIGURINES + ' figurek w zamówieniu' : '+ Dodaj kolejną figurkę';
   }
@@ -150,7 +168,7 @@ export function initOrderForm(win) {
     const suffix = '-figurine-' + (++nextId);
     card.querySelectorAll('[id]').forEach(el => { el.id += suffix; });
     card.querySelectorAll('label[for]').forEach(el => { el.htmlFor += suffix; });
-    card.querySelectorAll('input, textarea').forEach(el => { el.value = ''; });
+    card.querySelectorAll('input, textarea').forEach(el => { el.value = el.dataset.field === 'copies' ? '1' : ''; });
     list.appendChild(card);
     clearError();
     refresh();
@@ -169,7 +187,9 @@ export function initOrderForm(win) {
   function validateFigures() {
     for (const [index, card] of cards().entries()) {
       const input = field(card, 'size');
+      const copiesInput = field(card, 'copies');
       input.setCustomValidity('');
+      copiesInput.setCustomValidity('');
       if (!getPrice(Number(input.value))) {
         input.setCustomValidity('Figurka ' + (index + 1) + ': podaj rozmiar od 20 do 250 mm w pełnych milimetrach.');
       }
@@ -177,6 +197,16 @@ export function initOrderForm(win) {
         closeModal();
         input.reportValidity();
         input.focus();
+        return false;
+      }
+      const copies = Number(copiesInput.value);
+      if (!Number.isInteger(copies) || copies < 1 || copies > MAX_COPIES_PER_FIGURINE) {
+        copiesInput.setCustomValidity('Figurka ' + (index + 1) + ': wybierz od 1 do ' + MAX_COPIES_PER_FIGURINE + ' identycznych wydruków.');
+      }
+      if (!copiesInput.checkValidity()) {
+        closeModal();
+        copiesInput.reportValidity();
+        copiesInput.focus();
         return false;
       }
     }
@@ -301,7 +331,7 @@ export function initOrderForm(win) {
     if (isLocker() && !byId('paczkomat-hidden').value) { win.alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.'); return; }
     if (!isLocker() && ['ulica', 'kod', 'miasto'].some(id => !byId(id).value.trim())) { win.alert('Podaj pełny adres dostawy.'); return; }
     clearError();
-    const items = cards().map(card => ({ size: Number(field(card, 'size').value) }));
+    const items = cardItems();
     const selectedDeliveryMethod = deliveryMethod();
     const shippingAmount = getDeliveryOption(selectedDeliveryMethod).amount;
     const analytics = analyticsSnapshot(items);
@@ -320,14 +350,15 @@ export function initOrderForm(win) {
     payload.set('telefon', '+' + (digits.length === 11 && digits.startsWith('48') ? digits : '48' + digits));
     if (isLocker()) ['ulica', 'kod_pocztowy', 'miasto'].forEach(name => payload.delete(name));
     else payload.delete('paczkomat');
-    payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(items.length) + ' — AXI');
+    const totalCopies = items.reduce((sum, item) => sum + item.copies, 0);
+    payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(totalCopies) + ' — AXI');
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
     payload.set('kod_promocyjny', promotionCode);
     payload.set('wersja_cennika', PRICING_VERSION);
     payload.set('uwaga_dotyczaca_ceny', 'Ceny figurek uwzględniają automatyczną obniżkę 30%. Przy co najmniej 3 figurkach obowiązuje dodatkowy cennik ilościowy. Zaakceptowany kod może dodatkowo obniżyć sumę. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
-    const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
-    const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount, 0);
-    const subtotal = items.reduce((sum, item) => sum + getPrice(item.size, items.length).amount, 0);
+    const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
+    const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
+    const subtotal = items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, items.length), 0);
     payload.set('koszt_wysylki', formatPrice(shippingAmount));
     payload.set('cena_przed_rabatem', formatPrice(regularSubtotal + shippingAmount));
     payload.set('rabat_automatyczny_procent', String(AUTOMATIC_DISCOUNT_PERCENT));
@@ -339,7 +370,9 @@ export function initOrderForm(win) {
     payload.set('wersja_regulaminu', '2026-08-30');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
-      return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + formatPrice(getPrice(size, items.length).amount) + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
+      const copies = Number(field(card, 'copies').value);
+      const copiesLabel = copies === 1 ? '1 identyczny wydruk' : copies >= 2 && copies <= 4 ? copies + ' identyczne wydruki' : copies + ' identycznych wydruków';
+      return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + copiesLabel + ', razem ' + formatPrice(getItemSubtotal(size, copies, items.length)) + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
     }).join('\n\n'));
     // Ten sam koszyk zachowuje identyfikator przy ponowieniu po błędzie sieci.
     const fingerprint = JSON.stringify(Array.from(payload.entries()).filter(([key]) => !['numer_zamowienia', 'status_platnosci'].includes(key)).map(([key, val]) => [key, typeof val === 'string' ? val : [val.name, val.size, val.lastModified]]));
@@ -355,7 +388,7 @@ export function initOrderForm(win) {
         currency: analytics.currency,
         content_type: 'product',
         content_ids: items.map(item => 'personalizowana-figurka-' + item.size + 'mm'),
-        num_items: items.length
+        num_items: totalCopies
       }, { eventID: orderId + '-checkout' });
       attempt.beginCheckoutTracked = true;
     }
@@ -370,7 +403,7 @@ export function initOrderForm(win) {
         if (!preview && !/^\/c\/pay\/cs_live_[A-Za-z0-9]+$/.test(url.pathname)) throw new Error('Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
         paymentUrl = url.href;
         // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
-        if (data.checkoutVersion !== 3 || data.pricingVersion !== PRICING_VERSION ||
+        if (data.checkoutVersion !== 4 || data.pricingVersion !== PRICING_VERSION ||
             data.promotionCode !== promotionCode || data.currency !== 'pln' ||
             data.subtotal !== subtotal || data.saleSubtotal !== saleSubtotal || data.regularSubtotal !== regularSubtotal ||
             data.deliveryMethod !== selectedDeliveryMethod || data.shippingAmount !== shippingAmount ||

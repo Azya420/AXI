@@ -3,17 +3,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 import { JSDOM } from 'jsdom';
-import { getPrice, getDeliveryOption, PRICING_VERSION, BULK_MIN_FIGURINES } from '../pricing.mjs';
+import { getPrice, getItemSubtotal, getDeliveryOption, PRICING_VERSION, BULK_MIN_FIGURINES } from '../pricing.mjs';
 import { initOrderForm, formatSpecialOfferCountdown, SPECIAL_OFFER_END } from '../order-form.mjs';
 import { renderPreviewHtml } from '../api/preview.mjs';
 
 function priceResponse(order, preview = false) {
-  const subtotal = order.items.reduce((sum, item) => sum + getPrice(item.size, order.items.length).amount, 0);
-  const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount, 0);
-  const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
+  const subtotal = order.items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies ?? 1, order.items.length), 0);
+  const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + ((item.copies ?? 1) - 1) * getPrice(item.size).additionalCopyAmount, 0);
+  const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + ((item.copies ?? 1) - 1) * getPrice(item.size).additionalCopyAmount, 0);
   const shippingAmount = getDeliveryOption(order.deliveryMethod || 'address').amount;
   return { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://checkout.stripe.com/c/pay/cs_live_fixture',
-    checkoutVersion: 3, pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
+    checkoutVersion: 4, pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
     automaticDiscount: regularSubtotal - saleSubtotal, bulkDiscount: saleSubtotal - subtotal,
     bulkPricing: order.items.length >= BULK_MIN_FIGURINES, deliveryMethod: order.deliveryMethod || 'address', shippingAmount,
     total: subtotal + shippingAmount, discount: 0, currency: 'pln', promotionCode: '' };
@@ -112,6 +112,19 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.ok(s.cards()[0].querySelector('.remove-figurine').hidden);
   s.dom.window.close();
 });
+test('identical print count updates the visible total and checkout payload', async () => {
+  const s = setup();
+  s.size(0, '32');
+  s.input(s.cards()[0].querySelector('[data-field="copies"]'), '3');
+  assert.equal(s.cards()[0].querySelector('[data-field="copy-price"]').textContent, 'Każdy dodatkowy identyczny wydruk: 10 zł.');
+  assert.equal(s.cards()[0].querySelector('[data-field="price"]').textContent, '118 zł');
+  assert.equal(s.$('order-total').textContent, 'Suma: 118 zł');
+  assert.match(s.$('order-count-label').textContent, /3 figurki · 1 projekt/);
+  s.fillShipping();
+  await s.submit();
+  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 3 }]);
+  s.dom.window.close();
+});
 test('blank, fractional and out-of-range sizes block shipping; maximum count enforced', () => {
   const s = setup();
   for (const size of ['', '19', '32.5', '251']) {
@@ -132,7 +145,7 @@ test('one multipart submission carries independent files, sizes, prices and shar
   s.fillShipping(); await s.submit();
   assert.equal(s.calls.length, 2);
   const checkout = JSON.parse(s.calls[0].body);
-  assert.deepEqual(checkout.items, [{ size: 32 }, { size: 120 }]);
+  assert.deepEqual(checkout.items, [{ size: 32, copies: 1 }, { size: 120, copies: 1 }]);
   assert.equal(checkout.deliveryMethod, 'address');
   const payload = s.calls[1].body;
   assert.equal(payload.get('cena'), '292,49 zł');
@@ -146,7 +159,7 @@ test('one multipart submission carries independent files, sizes, prices and shar
   assert.equal(payload.get('miasto'), 'Warszawa');
   assert.equal(payload.get('numer_zamowienia'), checkout.orderId);
   assert.equal(payload.get('link_do_platnosci'), 'https://checkout.stripe.com/c/pay/cs_live_fixture');
-  assert.match(payload.get('podsumowanie_figurek'), /Figurka 2: 120 mm, 175 zł/);
+  assert.match(payload.get('podsumowanie_figurek'), /Figurka 2: 120 mm, 1 identyczny wydruk, razem 175 zł/);
   assert.equal(s.redirects.length, 1);
   await s.submit(); assert.equal(s.calls.length, 2, 'no duplicate submit after success');
   s.dom.window.close();
@@ -237,7 +250,7 @@ test('preview skips Basin and uploads while retaining the real order flow', asyn
   await s.submit();
   assert.equal(s.calls.length, 1);
   assert.ok(s.calls[0].url.includes('/checkout-session'));
-  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32 }]);
+  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 1 }]);
   assert.deepEqual(s.redirects, ['https://checkout.stripe.com/c/pay/cs_test_preview']);
   s.dom.window.close();
 });
@@ -292,7 +305,7 @@ test('terms start unchecked and must be accepted before preparing payment or sen
 });
 
 function discountResponse(total = 10769, discount = 980) {
-  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 3, pricingVersion: PRICING_VERSION, regularSubtotal: 14000, saleSubtotal: 9800, automaticDiscount: 4200, bulkDiscount: 0, bulkPricing: false, subtotal: 9800, deliveryMethod: 'address', shippingAmount: 1949, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
+  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 4, pricingVersion: PRICING_VERSION, regularSubtotal: 14000, saleSubtotal: 9800, automaticDiscount: 4200, bulkDiscount: 0, bulkPricing: false, subtotal: 9800, deliveryMethod: 'address', shippingAmount: 1949, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
 }
 test('onsite code shows discounted total for confirmation before submitting final Basin price', async () => {
   const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
