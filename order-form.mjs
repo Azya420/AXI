@@ -34,6 +34,7 @@ export function initOrderForm(win) {
   byId('promo-spotlight').hidden = AUTOMATIC_DISCOUNT_PERCENT <= 0;
   byId('promo-discount').textContent = '−' + AUTOMATIC_DISCOUNT_PERCENT + '%';
   byId('promo-min-price').textContent = formatPrice(minimumPrice);
+  byId('journey-min-price').textContent = formatPrice(minimumPrice);
   const promoCountdown = byId('promo-countdown');
   const refreshPromoCountdown = () => {
     const text = formatSpecialOfferCountdown(win.Date.now());

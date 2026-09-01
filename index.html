@@ -1387,6 +1387,16 @@
   .journey-final:hover{
     transform:translateY(-5px);
   }
+  .journey-price-sticker{
+    position:absolute; top:14px; right:14px; z-index:6;
+    width:82px; height:82px; border-radius:50%; display:grid; place-content:center; text-align:center;
+    color:#160c1f; background:var(--bronze); border:2px solid #ead29b;
+    box-shadow:0 8px 24px rgba(0,0,0,.38), 0 0 0 4px rgba(201,162,75,.14);
+    font-family:'JetBrains Mono',monospace; text-transform:uppercase; transform:rotate(6deg);
+  }
+  .journey-price-sticker span{ display:block; font-size:.58rem; line-height:1.1; letter-spacing:.09em; }
+  .journey-price-sticker strong{ display:block; margin-top:3px; font-family:'Cinzel',serif; font-size:1rem; line-height:1.05; white-space:nowrap; }
+  .journey-final .journey-label{ right:104px; }
   .journey-label{
     position:absolute;
     top:12px;
@@ -1596,6 +1606,8 @@
     .journey-final{
       height:390px;
     }
+    .journey-price-sticker{ width:74px; height:74px; top:12px; right:12px; }
+    .journey-final .journey-label{ right:94px; }
     .journey-connector{
       position:relative;
       left:auto;
@@ -1689,6 +1701,10 @@
 
         <div class="journey-card journey-final">
           <div class="journey-label"><b>03</b><span>Gotowa figurka</span></div>
+          <div class="journey-price-sticker" aria-label="Figurki już od 98 zł">
+            <span>Już od</span>
+            <strong id="journey-min-price">98 zł</strong>
+          </div>
           <div class="journey-media">
             <img src="GOTOWA.png" alt="Gotowa wydrukowana figurka wojownika">
           </div>
@@ -2421,7 +2437,7 @@
   </div>
 
   <script src="checkout-config.js"></script>
-  <script type="module" src="order-form.mjs?v=20260901-offer-countdown-v1"></script>
+  <script type="module" src="order-form.mjs?v=20260901-offer-countdown-v2"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">

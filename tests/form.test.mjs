@@ -77,6 +77,8 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   const s = setup();
   assert.equal(s.$('promo-discount').textContent, '−30%');
   assert.equal(s.$('promo-min-price').textContent, '98 zł');
+  assert.equal(s.$('journey-min-price').textContent, '98 zł');
+  assert.match(s.$('journey-min-price').closest('.journey-price-sticker').textContent, /Już od/);
   assert.equal(s.$('promo-spotlight').hidden, false);
   assert.match(s.$('promo-countdown').textContent, /^(\d+ dni |1 dzień )?\d{2}:\d{2}:\d{2}$/);
   assert.match(s.$('bulk-spotlight').textContent, /Im więcej figurek, tym taniej/);

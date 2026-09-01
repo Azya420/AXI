@@ -31,6 +31,8 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('Na wszystkie figurki. Rabat naliczamy automatycznie.'));
   assert.match(html, /id="promo-spotlight"/);
   assert.match(html, /Własna figurka już od/);
+  assert.match(html, /class="journey-price-sticker"/);
+  assert.match(html, /id="journey-min-price">98 zł/);
   assert.match(html, /id="promo-countdown"/);
   assert.match(html, /Oferta specjalna/);
   assert.match(html, /Im więcej figurek, tym taniej/);
@@ -41,7 +43,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
   assert.ok(!html.includes('data-field="sale-badge"'));
-  assert.match(html, /src="order-form.mjs\?v=20260901-offer-countdown-v1"/);
+  assert.match(html, /src="order-form.mjs\?v=20260901-offer-countdown-v2"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes(config.stripeKey));

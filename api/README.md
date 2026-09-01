@@ -1,5 +1,9 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 01.09.2026 — naklejka cenowa w sekcji otwierającej
+
+Kafelek „Gotowa figurka” w sekcji „Zamień swój pomysł” ma w prawym górnym rogu okrągłą, złotą naklejkę „Już od 98 zł”. Kwota jest wypełniana przez formularz z najniższej aktualnej ceny po promocji, dlatego pozostaje zgodna ze wspólnym cennikiem. Naklejka ma mniejszy rozmiar na telefonach i nie zasłania etykiety etapu.
+
 ## Aktualizacja 01.09.2026 — licznik oferty specjalnej
 
 Przy etykiecie „Oferta specjalna” znajduje się wspólny licznik do `2026-09-08T11:00:07Z`, czyli 08.09.2026 o 13:00 czasu polskiego. Pokazuje dni oraz `GG:MM:SS`, nie zapisuje terminu w przeglądarce i nie resetuje się po odświeżeniu. Po osiągnięciu zera pokazuje „Oferta zakończona”. Jest to licznik informacyjny; ta zmiana sama nie przełącza cennika ani ustawień Stripe. Kafelek „Twój pomysł” w szerokim układzie sekcji otwierającej został lekko zwężony z 232 do 218 px; układ mobilny pozostaje pełnej szerokości.
