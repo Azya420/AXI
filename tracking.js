@@ -51,28 +51,6 @@
     return true;
   }
 
-  function contactMethod(anchor){
-    var href = (anchor.getAttribute('href') || '').trim().toLowerCase();
-    if (href.indexOf('mailto:') === 0) return 'email';
-    if (href.indexOf('tel:') === 0) return 'phone';
-    if (href.indexOf('instagram.com') !== -1) return 'instagram';
-    if (href.indexOf('facebook.com') !== -1 || href.indexOf('m.me') !== -1 || href.indexOf('messenger.com') !== -1) return 'facebook';
-    return '';
-  }
-
-  function installContactTracking(){
-    doc.addEventListener('click', function(event){
-      var anchor = event.target.closest && event.target.closest('a[href]');
-      if (!anchor) return;
-      var method = contactMethod(anchor);
-      if (!method) return;
-      trackMeta('Contact', {
-        content_name: 'AXI3D contact',
-        contact_method: method
-      });
-    });
-  }
-
   win.AXI_TRACKING = {
     consentKey: CONSENT_KEY,
     metaPixelId: META_PIXEL_ID,
@@ -82,11 +60,11 @@
   };
 
   doc.addEventListener('DOMContentLoaded', function(){
-    installContactTracking();
     var consent = win.localStorage.getItem(CONSENT_KEY);
     var banner = doc.getElementById('cookie-banner');
     doc.querySelectorAll('[data-cookie-settings]').forEach(function(button){
-      button.addEventListener('click', function(){
+      button.addEventListener('click', function(event){
+        event.preventDefault();
         banner?.classList.add('active');
       });
     });
