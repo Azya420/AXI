@@ -4,7 +4,7 @@
 
 Przy zamówieniu co najmniej 3 figurek wszystkie pozycje automatycznie korzystają z cennika ilościowego: 20–60 mm — 65 zł, 61–100 mm — 105 zł, 101–150 mm — 150 zł, 151–200 mm — 195 zł, 201–250 mm — 245 zł. Przy 1–2 figurkach pozostają ceny po obecnej promocji −30%: 98/126/175/224/280 zł. Usunięcie trzeciej figurki natychmiast przywraca ceny dla 1–2 sztuk.
 
-Drugi baner w lewej kolumnie formularza informuje „Im więcej figurek, tym taniej” oraz „od 65 zł za figurkę”. Przy aktywnym cenniku 3+ karta figurki przekreśla cenę po obecnej promocji, pokazuje cenę ilościową i oznaczenie „CENA 3+”. Koszt wysyłki 16,49 zł pozostaje jeden na całe zamówienie. Dodatkowe kody promocyjne są nadal sprawdzane przez Stripe i mogą obniżyć ceny figurek po rabacie ilościowym, ale nie wysyłkę.
+Drugi baner w lewej kolumnie formularza informuje „Im więcej figurek, tym taniej” oraz „od 65 zł za figurkę”. Ma ten sam złoty znak i pasek co baner „Oferta specjalna”. Przy aktywnym cenniku 3+ karta figurki przekreśla cenę po obecnej promocji i pokazuje cenę ilościową, bez dodatkowych plakietek „−30%” lub „CENA 3+” w polu ceny. Koszt wysyłki 16,49 zł pozostaje jeden na całe zamówienie. Dodatkowe kody promocyjne są nadal sprawdzane przez Stripe i mogą obniżyć ceny figurek po rabacie ilościowym, ale nie wysyłkę.
 
 Wspólna wersja cennika to `2026-09-01-bulk3-v1`. Frontend i backend niezależnie liczą `saleSubtotal`, `bulkDiscount`, `bulkPricing` i końcowy `subtotal`; rozbieżność blokuje płatność. Stripe otrzymuje wyłącznie ceny wyliczone przez serwer. Basin zapisuje osobno standardową obniżkę 30%, `rabat_ilosciowy`, `cennik_3_plus`, koszt wysyłki i sumę końcową.
 

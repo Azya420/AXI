@@ -783,13 +783,8 @@
   .promo-copy strong span{ color:var(--violet-bright); white-space:nowrap; }
   .promo-copy p{ margin:5px 0 0; color:var(--ink-dim); font-size:0.78rem; line-height:1.5; }
   .commission-copy .promo-spotlight{ margin-top:32px; }
-  .commission-copy .bulk-spotlight{
-    margin-top:14px; border-left-color:var(--violet-bright);
-    background:radial-gradient(circle at 90% 10%, rgba(201,154,57,0.15), transparent 48%), var(--bg-card);
-  }
-  .bulk-spotlight .promo-mark{ color:var(--violet-bright); border-color:var(--violet-bright); }
+  .commission-copy .bulk-spotlight{ margin-top:14px; }
   .bulk-price{ color:var(--violet-bright); font-weight:700; white-space:nowrap; }
-  .sale-badge{ display:inline-flex; align-items:center; flex-shrink:0; white-space:nowrap; border:1px solid var(--bronze); border-radius:var(--radius); padding:4px 7px; color:var(--bronze); background:var(--bg); font-family:'Sora',sans-serif; font-weight:600; font-size:0.72rem; line-height:1.2; }
   .terms-consent{ display:flex; gap:12px; align-items:flex-start; margin:0; font-family:'Sora',sans-serif; font-size:0.86rem; line-height:1.6; letter-spacing:normal; text-transform:none; color:var(--ink-dim); cursor:pointer; }
   .terms-consent input{ width:18px; height:18px; flex:0 0 18px; margin-top:3px; padding:0; accent-color:var(--violet); }
   .terms-consent a{ color:var(--violet-bright); text-decoration:underline; text-underline-offset:3px; }
@@ -2323,7 +2318,6 @@
             <div class="price-box" id="price-box">
               <del class="price-before" data-field="regular-price" hidden></del>
               <span class="price-value" id="price-value" data-field="price" aria-live="polite">wpierw wpisz rozmiar</span>
-              <span class="sale-badge" data-field="sale-badge" hidden></span>
             </div>
           </div>
         </div>
@@ -2417,7 +2411,7 @@
   </div>
 
   <script src="checkout-config.js"></script>
-  <script type="module" src="order-form.mjs?v=20260901-bulk3-v1"></script>
+  <script type="module" src="order-form.mjs?v=20260901-bulk3-ui-v2"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">

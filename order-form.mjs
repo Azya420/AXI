@@ -88,8 +88,6 @@ export function initOrderForm(win) {
       regularPrice.hidden = !discounted;
       regularPrice.textContent = discounted ? formatPrice(bulkPricing ? price.saleAmount : price.regularAmount) : '';
       regularPrice.setAttribute('aria-label', discounted ? (bulkPricing ? 'Cena przy 1–2 figurkach: ' : 'Cena przed obniżką: ') + formatPrice(bulkPricing ? price.saleAmount : price.regularAmount) : 'Cena przed obniżką');
-      field(card, 'sale-badge').hidden = !discounted;
-      field(card, 'sale-badge').textContent = discounted ? (bulkPricing ? 'CENA 3+' : '−' + AUTOMATIC_DISCOUNT_PERCENT + '%') : '';
       field(card, 'price').setAttribute('aria-label', price ? (bulkPricing ? 'Cena przy co najmniej 3 figurkach: ' : 'Cena do zapłaty: ') + formatPrice(price.amount) : 'Cena');
       if (price) {
         total += price.amount;

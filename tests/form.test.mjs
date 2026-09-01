@@ -79,7 +79,7 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.equal(s.$('shipping-cost-label'), null);
   assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['65 zł', '105 zł', '150 zł']);
   assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="regular-price"]').textContent), ['98 zł', '126 zł', '175 zł']);
-  assert.ok(s.cards().every(card => card.querySelector('[data-field="sale-badge"]').textContent === 'CENA 3+'));
+  assert.ok(s.cards().every(card => !card.querySelector('[data-field="sale-badge"]')));
   assert.equal(s.$('order-total').textContent, 'Suma: 320 zł + wysyłka 16,49 zł = 336,49 zł');
   assert.equal(s.$('price-hidden').value, '336,49 zł');
   assert.equal(s.cards()[1].querySelector('textarea').value, '');

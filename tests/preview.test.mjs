@@ -38,7 +38,8 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
-  assert.match(html, /src="order-form.mjs\?v=20260901-bulk3-v1"/);
+  assert.ok(!html.includes('data-field="sale-badge"'));
+  assert.match(html, /src="order-form.mjs\?v=20260901-bulk3-ui-v2"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes(config.stripeKey));
