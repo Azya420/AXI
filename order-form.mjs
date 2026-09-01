@@ -20,7 +20,6 @@ export function initOrderForm(win) {
   byId('promo-spotlight').hidden = AUTOMATIC_DISCOUNT_PERCENT <= 0;
   byId('promo-discount').textContent = '−' + AUTOMATIC_DISCOUNT_PERCENT + '%';
   byId('promo-min-price').textContent = formatPrice(minimumPrice);
-  byId('shipping-cost-label').textContent = 'Wysyłka: ' + formatPrice(SHIPPING_AMOUNT);
   byId('shipping-order-summary').setAttribute('role', 'status');
   const cards = () => Array.from(list.children);
   const field = (card, name) => card.querySelector('[data-field="' + name + '"]');
@@ -105,7 +104,10 @@ export function initOrderForm(win) {
     byId('figurine-count').value = String(all.length);
     byId('order-count-label').textContent = label;
     const payableTotal = applied ? applied.total : total + SHIPPING_AMOUNT;
-    byId('order-total').textContent = valid ? 'Suma: ' + formatPrice(payableTotal) : 'Suma:';
+    const figurinesTotal = applied ? applied.total - SHIPPING_AMOUNT : total;
+    byId('order-total').textContent = valid
+      ? 'Suma: ' + formatPrice(figurinesTotal) + ' + wysyłka ' + formatPrice(SHIPPING_AMOUNT) + ' = ' + formatPrice(payableTotal)
+      : 'Suma:';
     byId('price-hidden').value = valid ? formatPrice(total + SHIPPING_AMOUNT) : '';
     byId('shipping-order-summary').textContent = label + (valid ? ' · Wysyłka: ' + formatPrice(SHIPPING_AMOUNT) + ' · Suma: ' + formatPrice(payableTotal) : '');
     byId('promotion-result').hidden = !applied;

@@ -72,7 +72,8 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   s.$('add-figurine-btn').click(); s.size(2, '120');
   assert.equal(s.$('desc').value, 'Pierwsza postać');
   assert.equal(s.$('photos').files[0].name, 'first.png');
-  assert.equal(s.$('shipping-cost-label').textContent, 'Wysyłka: 16,49 zł');
+  assert.equal(s.$('shipping-cost-label'), null);
+  assert.equal(s.$('order-total').textContent, 'Suma: 399 zł + wysyłka 16,49 zł = 415,49 zł');
   assert.equal(s.$('price-hidden').value, '415,49 zł');
   assert.equal(s.cards()[1].querySelector('textarea').value, '');
   const ids = [...s.doc.querySelectorAll('[id]')].map(el => el.id);
@@ -281,7 +282,7 @@ test('onsite code shows discounted total for confirmation before submitting fina
   assert.equal(s.calls.length, 0, 'review never submits Basin');
   assert.equal(s.redirects.length, 0);
   assert.equal(requests[0].promotionCode, 'SAVE10');
-  assert.equal(s.$('order-total').textContent, 'Suma: 104,69 zł');
+  assert.equal(s.$('order-total').textContent, 'Suma: 88,2 zł + wysyłka 16,49 zł = 104,69 zł');
   assert.match(s.$('promotion-result').textContent, /Rabat: 9,8 zł/);
   assert.equal(s.$('commission-submit').textContent, 'Przejdź do płatności');
   assert.equal(s.$('photos').files[0].name, 'first.png');
@@ -328,7 +329,7 @@ test('editing code, email or figurine sizes clears the previous discount', async
     edit(s);
     assert.equal(s.$('promotion-result').hidden, true);
     assert.notEqual(s.$('commission-submit').textContent, 'Przejdź do płatności');
-    assert.notEqual(s.$('order-total').textContent, 'Suma: 104,69 zł');
+    assert.notEqual(s.$('order-total').textContent, 'Suma: 88,2 zł + wysyłka 16,49 zł = 104,69 zł');
     s.dom.window.close();
   }
 });
@@ -342,7 +343,7 @@ test('a changed discounted price requires confirmation again before any redirect
     : fetch(url, options);
   await s.submit(); await s.submit();
   assert.equal(s.calls.length, 0); assert.equal(s.redirects.length, 0);
-  assert.equal(s.$('order-total').textContent, 'Suma: 109,59 zł');
+  assert.equal(s.$('order-total').textContent, 'Suma: 93,1 zł + wysyłka 16,49 zł = 109,59 zł');
   await s.submit(); assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });
@@ -357,7 +358,7 @@ test('all five brackets plus 16,49 zł shipping total 919,49 zł in the form, Ba
     s.size(i, size);
   }
   assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['98 zł', '126 zł', '175 zł', '224 zł', '280 zł']);
-  assert.equal(s.$('order-total').textContent, 'Suma: 919,49 zł');
+  assert.equal(s.$('order-total').textContent, 'Suma: 903 zł + wysyłka 16,49 zł = 919,49 zł');
   s.fillShipping();
   assert.match(s.$('shipping-order-summary').textContent, /Wysyłka: 16,49 zł · Suma: 919,49 zł/);
   await s.submit();

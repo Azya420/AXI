@@ -756,8 +756,8 @@
     box-shadow:0 0 24px rgba(109,40,217,0.22); transform:translateY(-1px);
   }
   .add-figurine:focus-visible{ outline:2px solid var(--bronze); outline-offset:4px; }
-  .order-summary{ border-top:1px solid var(--line); padding-top:18px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; color:var(--ink-dim); }
-  .order-summary strong{ color:var(--violet-bright); }
+  .order-summary{ border-top:1px solid var(--line); padding-top:18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; color:var(--ink-dim); }
+  .order-summary strong{ color:var(--violet-bright); margin-left:auto; text-align:right; line-height:1.55; }
   .order-error{ color:#ffb4b4; font-size:0.88rem; }
   .promotion-result{ color:var(--violet-bright); font-size:0.9rem; line-height:1.6; }
   .promo-spotlight{
@@ -782,6 +782,7 @@
   .promo-copy strong{ display:block; color:var(--ink); font-family:'Cinzel',serif; font-size:clamp(1rem,2vw,1.22rem); line-height:1.3; }
   .promo-copy strong span{ color:var(--violet-bright); white-space:nowrap; }
   .promo-copy p{ margin:5px 0 0; color:var(--ink-dim); font-size:0.78rem; line-height:1.5; }
+  .commission-copy .promo-spotlight{ margin-top:32px; }
   .sale-badge{ display:inline-flex; align-items:center; flex-shrink:0; white-space:nowrap; border:1px solid var(--bronze); border-radius:var(--radius); padding:4px 7px; color:var(--bronze); background:var(--bg); font-family:'Sora',sans-serif; font-weight:600; font-size:0.72rem; line-height:1.2; }
   .terms-consent{ display:flex; gap:12px; align-items:flex-start; margin:0; font-family:'Sora',sans-serif; font-size:0.86rem; line-height:1.6; letter-spacing:normal; text-transform:none; color:var(--ink-dim); cursor:pointer; }
   .terms-consent input{ width:18px; height:18px; flex:0 0 18px; margin-top:3px; padding:0; accent-color:var(--violet); }
@@ -2264,9 +2265,6 @@
           <li>Darmowe modyfikacje modelu</li>
           <li>Bezpieczna wysyłka w twardym opakowaniu</li>
         </ul>
-      </div>
-
-      <form id="commission-form" action="https://usebasin.com/f/8821ed0dbd34" method="POST" enctype="multipart/form-data">
         <aside class="promo-spotlight" id="promo-spotlight" aria-label="Promocja na figurki">
           <span class="promo-mark" id="promo-discount" aria-hidden="true"></span>
           <div class="promo-copy">
@@ -2275,6 +2273,9 @@
             <p>Promocja obejmuje wszystkie dostępne rozmiary.</p>
           </div>
         </aside>
+      </div>
+
+      <form id="commission-form" action="https://usebasin.com/f/8821ed0dbd34" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="subject" value="Nowe zapytanie o figurkę — AXI">
         <input type="hidden" name="cena" id="price-hidden" value="">
         <input type="hidden" name="status_platnosci" id="status-hidden" value="">
@@ -2320,7 +2321,6 @@
         <button type="button" class="btn add-figurine" id="add-figurine-btn">+ Dodaj kolejną figurkę</button>
         <div class="order-summary" aria-live="polite" aria-atomic="true">
           <span id="order-count-label">1 figurka</span>
-          <span id="shipping-cost-label">Wysyłka: 16,49 zł</span>
           <strong id="order-total">Suma:</strong>
         </div>
         <p class="order-error" id="order-error" role="alert" hidden></p>
@@ -2403,7 +2403,7 @@
   </div>
 
   <script src="checkout-config.js"></script>
-  <script type="module" src="order-form.mjs?v=20260831-shipping-v1"></script>
+  <script type="module" src="order-form.mjs?v=20260901-shipping-ui-v2"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">

@@ -2,7 +2,7 @@
 
 ## Aktualizacja 31.08.2026 — koszt wysyłki 16,49 zł
 
-Do każdego zamówienia doliczany jest jeden stały koszt wysyłki 16,49 zł, niezależnie od liczby figurek i wyboru paczkomatu lub adresu. Formularz pokazuje koszt osobno i uwzględnia go w sumie przed przejściem do płatności. Stripe otrzymuje go jako stałą stawkę dostawy, dzięki czemu dodatkowy kod promocyjny obniża figurki, a nie wysyłkę.
+Do każdego zamówienia doliczany jest jeden stały koszt wysyłki 16,49 zł, niezależnie od liczby figurek i wyboru paczkomatu lub adresu. Pole sumy pokazuje działanie „figurki + wysyłka = razem” przed przejściem do płatności. Stripe otrzymuje koszt jako stałą stawkę dostawy, dzięki czemu dodatkowy kod promocyjny obniża figurki, a nie wysyłkę. Baner „Własna figurka już od 98 zł” znajduje się w lewej kolumnie sekcji formularza, pod listą korzyści.
 
 Backend sprawdza zwrócone przez Stripe `total_details.amount_shipping`, sumę produktów, dodatkowy rabat i kwotę końcową. Odpowiedź zawiera `shippingAmount: 1649`; formularz odrzuca starszy backend lub inną kwotę. Basin otrzymuje osobne pole `koszt_wysylki`, a pola `cena`, `cena_przed_kodem` i `cena_przed_rabatem` obejmują wysyłkę. Wymagana wersja cennika to `2026-08-31-shipping-v1`.
 
