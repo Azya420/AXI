@@ -31,6 +31,8 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('Na wszystkie figurki. Rabat naliczamy automatycznie.'));
   assert.match(html, /id="promo-spotlight"/);
   assert.match(html, /Własna figurka już od/);
+  assert.match(html, /id="promo-countdown"/);
+  assert.match(html, /Oferta specjalna/);
   assert.match(html, /Im więcej figurek, tym taniej/);
   assert.match(html, /65 zł za figurkę/);
   assert.ok(html.indexOf('id="promo-spotlight"') < html.indexOf('<form id="commission-form"'));
@@ -39,7 +41,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
   assert.ok(!html.includes('data-field="sale-badge"'));
-  assert.match(html, /src="order-form.mjs\?v=20260901-bulk3-ui-v2"/);
+  assert.match(html, /src="order-form.mjs\?v=20260901-offer-countdown-v1"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes(config.stripeKey));

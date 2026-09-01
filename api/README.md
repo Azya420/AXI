@@ -1,5 +1,9 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 01.09.2026 — licznik oferty specjalnej
+
+Przy etykiecie „Oferta specjalna” znajduje się wspólny licznik do `2026-09-08T11:00:07Z`, czyli 08.09.2026 o 13:00 czasu polskiego. Pokazuje dni oraz `GG:MM:SS`, nie zapisuje terminu w przeglądarce i nie resetuje się po odświeżeniu. Po osiągnięciu zera pokazuje „Oferta zakończona”. Jest to licznik informacyjny; ta zmiana sama nie przełącza cennika ani ustawień Stripe. Kafelek „Twój pomysł” w szerokim układzie sekcji otwierającej został lekko zwężony z 232 do 218 px; układ mobilny pozostaje pełnej szerokości.
+
 ## Aktualizacja 01.09.2026 — ceny ilościowe od 3 figurek
 
 Przy zamówieniu co najmniej 3 figurek wszystkie pozycje automatycznie korzystają z cennika ilościowego: 20–60 mm — 65 zł, 61–100 mm — 105 zł, 101–150 mm — 150 zł, 151–200 mm — 195 zł, 201–250 mm — 245 zł. Przy 1–2 figurkach pozostają ceny po obecnej promocji −30%: 98/126/175/224/280 zł. Usunięcie trzeciej figurki natychmiast przywraca ceny dla 1–2 sztuk.

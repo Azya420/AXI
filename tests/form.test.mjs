@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 import { JSDOM } from 'jsdom';
 import { getPrice, PRICING_VERSION, SHIPPING_AMOUNT, BULK_MIN_FIGURINES } from '../pricing.mjs';
-import { initOrderForm } from '../order-form.mjs';
+import { initOrderForm, formatSpecialOfferCountdown, SPECIAL_OFFER_END } from '../order-form.mjs';
 import { renderPreviewHtml } from '../api/preview.mjs';
 
 function priceResponse(order, preview = false) {
@@ -26,7 +26,8 @@ function setup(preview = false) {
   let failure = '';
   const win = {
     document: doc, FormData: dom.window.FormData, crypto: webcrypto,
-    AbortController, setTimeout, clearTimeout,
+    AbortController, setTimeout, clearTimeout, Date: dom.window.Date,
+    setInterval: dom.window.setInterval.bind(dom.window), clearInterval: dom.window.clearInterval.bind(dom.window),
     requestAnimationFrame: () => {},
     alert: message => alerts.push(message), location: { assign: url => redirects.push(url) },
     AXI_CHECKOUT_ENDPOINT: 'https://api.example.com/checkout-session',
@@ -64,11 +65,20 @@ function setup(preview = false) {
   return { dom, doc, win, $, cards, size, input, calls, redirects, alerts, fillShipping, submit, attach, tick, fail: value => { failure = value; } };
 }
 
+test('special-offer countdown uses one shared seven-day deadline', () => {
+  assert.equal(SPECIAL_OFFER_END, '2026-09-08T11:00:07Z');
+  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-09-01T11:00:07Z')), '7 dni 00:00:00');
+  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-09-07T11:00:07Z')), '1 dzień 00:00:00');
+  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-09-08T11:00:06Z')), '00:00:01');
+  assert.equal(formatSpecialOfferCountdown(Date.parse(SPECIAL_OFFER_END)), 'Oferta zakończona');
+});
+
 test('add/remove preserves existing inputs, renumbers cards and sums different sizes', () => {
   const s = setup();
   assert.equal(s.$('promo-discount').textContent, '−30%');
   assert.equal(s.$('promo-min-price').textContent, '98 zł');
   assert.equal(s.$('promo-spotlight').hidden, false);
+  assert.match(s.$('promo-countdown').textContent, /^(\d+ dni |1 dzień )?\d{2}:\d{2}:\d{2}$/);
   assert.match(s.$('bulk-spotlight').textContent, /Im więcej figurek, tym taniej/);
   assert.match(s.$('bulk-spotlight').textContent, /65 zł za figurkę/);
   s.size(0, '32'); s.input(s.$('desc'), 'Pierwsza postać'); s.attach(0, 'first.png');

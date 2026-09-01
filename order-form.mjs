@@ -1,5 +1,19 @@
 import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, SHIPPING_AMOUNT, BULK_MIN_FIGURINES, getPrice, formatPrice } from './pricing.mjs?v=20260901-bulk3-v1';
 
+export const SPECIAL_OFFER_END = '2026-09-08T11:00:07Z';
+
+export function formatSpecialOfferCountdown(now) {
+  const remaining = Math.max(0, Date.parse(SPECIAL_OFFER_END) - now);
+  if (remaining <= 0) return 'Oferta zakończona';
+  const totalSeconds = Math.floor(remaining / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor(totalSeconds % 86400 / 3600);
+  const minutes = Math.floor(totalSeconds % 3600 / 60);
+  const seconds = totalSeconds % 60;
+  const time = [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':');
+  return days ? days + (days === 1 ? ' dzień ' : ' dni ') + time : time;
+}
+
 export function initOrderForm(win) {
   const doc = win.document;
   const byId = id => doc.getElementById(id);
@@ -20,6 +34,14 @@ export function initOrderForm(win) {
   byId('promo-spotlight').hidden = AUTOMATIC_DISCOUNT_PERCENT <= 0;
   byId('promo-discount').textContent = '−' + AUTOMATIC_DISCOUNT_PERCENT + '%';
   byId('promo-min-price').textContent = formatPrice(minimumPrice);
+  const promoCountdown = byId('promo-countdown');
+  const refreshPromoCountdown = () => {
+    const text = formatSpecialOfferCountdown(win.Date.now());
+    promoCountdown.textContent = text;
+    promoCountdown.setAttribute('aria-label', text === 'Oferta zakończona' ? text : 'Do końca oferty pozostało: ' + text);
+  };
+  refreshPromoCountdown();
+  win.setInterval(refreshPromoCountdown, 1000);
   byId('shipping-order-summary').setAttribute('role', 'status');
   const cards = () => Array.from(list.children);
   const field = (card, name) => card.querySelector('[data-field="' + name + '"]');
