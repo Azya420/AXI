@@ -8,15 +8,16 @@ const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: i
 const config = { stripeKey: 'test-only-not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const request = (body = order, headers = {}) => new Request('https://example.com/checkout-session', { method: 'POST', headers: { Origin: 'https://axi3d.pl', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
-test('different sizes become three PLN line items plus one 16,49 zł shipping rate', () => {
+test('three figurines use quantity prices plus one 16,49 zł shipping rate', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '9800');
-  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '12600');
-  assert.equal(params.get('line_items[2][price_data][unit_amount]'), '17500');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '6500');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '10500');
+  assert.equal(params.get('line_items[2][price_data][unit_amount]'), '15000');
   assert.equal(params.get('line_items[2][quantity]'), '1');
   assert.equal(params.get('line_items[2][price_data][currency]'), 'pln');
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
   assert.equal(params.get('client_reference_id'), id);
+  assert.equal(params.get('metadata[bulk_pricing_applied]'), 'true');
   assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '1649');
   assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][currency]'), 'pln');
   assert.equal(params.get('shipping_options[0][shipping_rate_data][display_name]'), 'Wysyłka');
@@ -73,7 +74,7 @@ test('retries use stable idempotency and changed orders use a different key', as
     assert.equal(result.checkoutVersion, 2);
     assert.equal(result.discount, 0);
     assert.equal(result.shippingAmount, SHIPPING_AMOUNT);
-    assert.equal(result.total, body.items.reduce((sum, item) => sum + getPrice(item.size).amount, 0) + SHIPPING_AMOUNT);
+    assert.equal(result.total, body.items.reduce((sum, item) => sum + getPrice(item.size, body.items.length).amount, 0) + SHIPPING_AMOUNT);
   }
   assert.equal(keys[0], keys[1]);
   assert.notEqual(keys[0], keys[2]);

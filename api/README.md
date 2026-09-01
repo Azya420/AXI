@@ -1,10 +1,18 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 01.09.2026 — ceny ilościowe od 3 figurek
+
+Przy zamówieniu co najmniej 3 figurek wszystkie pozycje automatycznie korzystają z cennika ilościowego: 20–60 mm — 65 zł, 61–100 mm — 105 zł, 101–150 mm — 150 zł, 151–200 mm — 195 zł, 201–250 mm — 245 zł. Przy 1–2 figurkach pozostają ceny po obecnej promocji −30%: 98/126/175/224/280 zł. Usunięcie trzeciej figurki natychmiast przywraca ceny dla 1–2 sztuk.
+
+Drugi baner w lewej kolumnie formularza informuje „Im więcej figurek, tym taniej” oraz „od 65 zł za figurkę”. Przy aktywnym cenniku 3+ karta figurki przekreśla cenę po obecnej promocji, pokazuje cenę ilościową i oznaczenie „CENA 3+”. Koszt wysyłki 16,49 zł pozostaje jeden na całe zamówienie. Dodatkowe kody promocyjne są nadal sprawdzane przez Stripe i mogą obniżyć ceny figurek po rabacie ilościowym, ale nie wysyłkę.
+
+Wspólna wersja cennika to `2026-09-01-bulk3-v1`. Frontend i backend niezależnie liczą `saleSubtotal`, `bulkDiscount`, `bulkPricing` i końcowy `subtotal`; rozbieżność blokuje płatność. Stripe otrzymuje wyłącznie ceny wyliczone przez serwer. Basin zapisuje osobno standardową obniżkę 30%, `rabat_ilosciowy`, `cennik_3_plus`, koszt wysyłki i sumę końcową.
+
 ## Aktualizacja 31.08.2026 — koszt wysyłki 16,49 zł
 
 Do każdego zamówienia doliczany jest jeden stały koszt wysyłki 16,49 zł, niezależnie od liczby figurek i wyboru paczkomatu lub adresu. Pole sumy pokazuje działanie „figurki + wysyłka = razem” przed przejściem do płatności. Stripe otrzymuje koszt jako stałą stawkę dostawy, dzięki czemu dodatkowy kod promocyjny obniża figurki, a nie wysyłkę. Baner „Własna figurka już od 98 zł” znajduje się w lewej kolumnie sekcji formularza, pod listą korzyści.
 
-Backend sprawdza zwrócone przez Stripe `total_details.amount_shipping`, sumę produktów, dodatkowy rabat i kwotę końcową. Odpowiedź zawiera `shippingAmount: 1649`; formularz odrzuca starszy backend lub inną kwotę. Basin otrzymuje osobne pole `koszt_wysylki`, a pola `cena`, `cena_przed_kodem` i `cena_przed_rabatem` obejmują wysyłkę. Wymagana wersja cennika to `2026-08-31-shipping-v1`.
+Backend sprawdza zwrócone przez Stripe `total_details.amount_shipping`, sumę produktów, dodatkowy rabat i kwotę końcową. Odpowiedź zawiera `shippingAmount: 1649`; formularz odrzuca starszy backend lub inną kwotę. Basin otrzymuje osobne pole `koszt_wysylki`, a pola `cena`, `cena_przed_kodem` i `cena_przed_rabatem` obejmują wysyłkę. Wymagana wersja cennika to `2026-09-01-bulk3-v1`.
 
 ## Aktualizacja 31.08.2026 — nowy cennik i automatyczne 30%
 
@@ -30,13 +38,13 @@ Potwierdzenie ostatniej ceny nie jest potwierdzeniem najniższej ceny z 30 dni. 
 
 ### Bezpieczna publikacja
 
-Wymagana wersja cennika to `2026-08-31-shipping-v1`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, kosztu wysyłki, obniżki automatycznej i kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
+Wymagana wersja cennika to `2026-09-01-bulk3-v1`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, cennika 3+, kosztu wysyłki, obniżki automatycznej i kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
 
 Opublikuj ten sam aktualny `main` w GitHub Pages i na Renderze (**Manual Deploy → Deploy latest commit**). Obie usługi muszą zakończyć publikację, zanim nowe zamówienia będą działać. Przez czas różnicy wersji lub ze starej otwartej karty formularz może prosić o odświeżenie, ale nie naliczy niezgodnej kwoty. `/health` udostępnia `pricingVersion`. Nie zmieniaj klucza produkcyjnego. Testy lokalne używają atrap Stripe/Basin, bez płatności i wysyłania zgłoszeń; nie zastępują sprawdzenia obu wdrożeń.
 
 Poniżej zachowano historyczne etapy prac. Opis zgodności bez kodu ze starszym backendem oraz dawne kwoty dotyczą poprzednich wersji.
 
-Weryfikacja tej aktualizacji: kontrola składni oraz 43 testy przeszły. Testy obejmują wszystkie 231 dopuszczalnych rozmiarów, obniżone pozycje Stripe, sumę 903 zł za pięć progów, dodatkowy kod, analitykę i odmowę płatności przy różnicach wersji/cen. Bez rzeczywistych obciążeń i zgłoszeń Basin.
+Weryfikacja tej aktualizacji: kontrola składni oraz 44 testy przeszły. Testy obejmują wszystkie 231 dopuszczalnych rozmiarów, próg 3 sztuk, powrót do cen 1–2 po usunięciu figurki, pozycje Stripe, sumę 760 zł za pięć progów, połączenie cennika 3+ z dodatkowym kodem, analitykę i odmowę płatności przy różnicach wersji/cen. Bez rzeczywistych obciążeń i zgłoszeń Basin.
 
 ## Aktualizacja 31.08.2026 — kod na stronie i akceptacja regulaminu
 

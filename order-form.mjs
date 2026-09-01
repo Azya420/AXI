@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, SHIPPING_AMOUNT, getPrice, formatPrice } from './pricing.mjs?v=20260831-shipping-v1';
+import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, SHIPPING_AMOUNT, BULK_MIN_FIGURINES, getPrice, formatPrice } from './pricing.mjs?v=20260901-bulk3-v1';
 
 export function initOrderForm(win) {
   const doc = win.document;
@@ -46,7 +46,7 @@ export function initOrderForm(win) {
   const pricingKey = () => JSON.stringify({ items: cards().map(card => Number(field(card, 'size').value)), email: byId('email').value.trim(), code: currentPromotion() });
   function analyticsSnapshot(items) {
     const analyticsItems = items.map((item, index) => {
-      const price = getPrice(item.size);
+      const price = getPrice(item.size, items.length);
       return {
         item_id: 'axi-figurine-' + (index + 1),
         item_name: 'Personalizowana figurka',
@@ -70,6 +70,7 @@ export function initOrderForm(win) {
     let total = 0;
     let valid = true;
     const all = cards();
+    const bulkPricing = all.length >= BULK_MIN_FIGURINES;
     all.forEach((card, index) => {
       card.querySelector('legend').textContent = 'Figurka ' + (index + 1);
       const remove = card.querySelector('.remove-figurine');
@@ -81,15 +82,15 @@ export function initOrderForm(win) {
       field(card, 'size').name = prefix + 'rozmiar';
       const input = field(card, 'size');
       input.setCustomValidity('');
-      const price = getPrice(Number(input.value));
+      const price = getPrice(Number(input.value), all.length);
       const discounted = price && price.amount < price.regularAmount;
       const regularPrice = field(card, 'regular-price');
       regularPrice.hidden = !discounted;
-      regularPrice.textContent = discounted ? formatPrice(price.regularAmount) : '';
-      regularPrice.setAttribute('aria-label', discounted ? 'Cena przed obniżką: ' + formatPrice(price.regularAmount) : 'Cena przed obniżką');
+      regularPrice.textContent = discounted ? formatPrice(bulkPricing ? price.saleAmount : price.regularAmount) : '';
+      regularPrice.setAttribute('aria-label', discounted ? (bulkPricing ? 'Cena przy 1–2 figurkach: ' : 'Cena przed obniżką: ') + formatPrice(bulkPricing ? price.saleAmount : price.regularAmount) : 'Cena przed obniżką');
       field(card, 'sale-badge').hidden = !discounted;
-      field(card, 'sale-badge').textContent = discounted ? '−' + AUTOMATIC_DISCOUNT_PERCENT + '%' : '';
-      field(card, 'price').setAttribute('aria-label', price ? 'Cena do zapłaty: ' + formatPrice(price.amount) : 'Cena');
+      field(card, 'sale-badge').textContent = discounted ? (bulkPricing ? 'CENA 3+' : '−' + AUTOMATIC_DISCOUNT_PERCENT + '%') : '';
+      field(card, 'price').setAttribute('aria-label', price ? (bulkPricing ? 'Cena przy co najmniej 3 figurkach: ' : 'Cena do zapłaty: ') + formatPrice(price.amount) : 'Cena');
       if (price) {
         total += price.amount;
         field(card, 'price').textContent = formatPrice(price.amount);
@@ -294,19 +295,22 @@ export function initOrderForm(win) {
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
     payload.set('kod_promocyjny', promotionCode);
     payload.set('wersja_cennika', PRICING_VERSION);
-    payload.set('uwaga_dotyczaca_ceny', 'Ceny figurek uwzględniają automatyczną obniżkę 30% od nowego cennika bazowego. Zaakceptowany kod może dodatkowo obniżyć sumę. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
+    payload.set('uwaga_dotyczaca_ceny', 'Ceny figurek uwzględniają automatyczną obniżkę 30%. Przy co najmniej 3 figurkach obowiązuje dodatkowy cennik ilościowy. Zaakceptowany kod może dodatkowo obniżyć sumę. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
     const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
-    const subtotal = items.reduce((sum, item) => sum + getPrice(item.size).amount, 0);
+    const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount, 0);
+    const subtotal = items.reduce((sum, item) => sum + getPrice(item.size, items.length).amount, 0);
     payload.set('koszt_wysylki', formatPrice(SHIPPING_AMOUNT));
     payload.set('cena_przed_rabatem', formatPrice(regularSubtotal + SHIPPING_AMOUNT));
     payload.set('rabat_automatyczny_procent', String(AUTOMATIC_DISCOUNT_PERCENT));
-    payload.set('rabat_automatyczny', formatPrice(regularSubtotal - subtotal));
+    payload.set('rabat_automatyczny', formatPrice(regularSubtotal - saleSubtotal));
+    payload.set('rabat_ilosciowy', formatPrice(saleSubtotal - subtotal));
+    payload.set('cennik_3_plus', items.length >= BULK_MIN_FIGURINES ? 'Tak' : 'Nie');
     payload.set('cena_przed_kodem', formatPrice(subtotal + SHIPPING_AMOUNT));
     payload.set('rabat', formatPrice(regularSubtotal - subtotal));
     payload.set('wersja_regulaminu', '2026-08-30');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
-      return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + formatPrice(getPrice(size).amount) + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
+      return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + formatPrice(getPrice(size, items.length).amount) + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
     }).join('\n\n'));
     // Ten sam koszyk zachowuje identyfikator przy ponowieniu po błędzie sieci.
     const fingerprint = JSON.stringify(Array.from(payload.entries()).filter(([key]) => !['numer_zamowienia', 'status_platnosci'].includes(key)).map(([key, val]) => [key, typeof val === 'string' ? val : [val.name, val.size, val.lastModified]]));
@@ -332,9 +336,10 @@ export function initOrderForm(win) {
         // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
         if (data.checkoutVersion !== 2 || data.pricingVersion !== PRICING_VERSION ||
             data.promotionCode !== promotionCode || data.currency !== 'pln' ||
-            data.subtotal !== subtotal || data.regularSubtotal !== regularSubtotal ||
+            data.subtotal !== subtotal || data.saleSubtotal !== saleSubtotal || data.regularSubtotal !== regularSubtotal ||
             data.shippingAmount !== SHIPPING_AMOUNT ||
-            data.automaticDiscount !== regularSubtotal - subtotal ||
+            data.automaticDiscount !== regularSubtotal - saleSubtotal ||
+            data.bulkDiscount !== saleSubtotal - subtotal || data.bulkPricing !== (items.length >= BULK_MIN_FIGURINES) ||
             !Number.isInteger(data.total) || !Number.isInteger(data.discount) ||
             data.total < SHIPPING_AMOUNT || data.discount < 0 || data.total + data.discount !== subtotal + SHIPPING_AMOUNT ||
             (!promotionCode && data.discount !== 0)) {

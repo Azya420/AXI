@@ -3,16 +3,18 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 import { JSDOM } from 'jsdom';
-import { getPrice, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
+import { getPrice, PRICING_VERSION, SHIPPING_AMOUNT, BULK_MIN_FIGURINES } from '../pricing.mjs';
 import { initOrderForm } from '../order-form.mjs';
 import { renderPreviewHtml } from '../api/preview.mjs';
 
 function priceResponse(order, preview = false) {
-  const subtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).amount, 0);
+  const subtotal = order.items.reduce((sum, item) => sum + getPrice(item.size, order.items.length).amount, 0);
+  const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount, 0);
   const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
   return { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://checkout.stripe.com/c/pay/cs_live_fixture',
-    checkoutVersion: 2, pricingVersion: PRICING_VERSION, subtotal, regularSubtotal,
-    automaticDiscount: regularSubtotal - subtotal, shippingAmount: SHIPPING_AMOUNT,
+    checkoutVersion: 2, pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
+    automaticDiscount: regularSubtotal - saleSubtotal, bulkDiscount: saleSubtotal - subtotal,
+    bulkPricing: order.items.length >= BULK_MIN_FIGURINES, shippingAmount: SHIPPING_AMOUNT,
     total: subtotal + SHIPPING_AMOUNT, discount: 0, currency: 'pln', promotionCode: '' };
 }
 
@@ -67,20 +69,26 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.equal(s.$('promo-discount').textContent, '−30%');
   assert.equal(s.$('promo-min-price').textContent, '98 zł');
   assert.equal(s.$('promo-spotlight').hidden, false);
+  assert.match(s.$('bulk-spotlight').textContent, /Im więcej figurek, tym taniej/);
+  assert.match(s.$('bulk-spotlight').textContent, /65 zł za figurkę/);
   s.size(0, '32'); s.input(s.$('desc'), 'Pierwsza postać'); s.attach(0, 'first.png');
   s.$('add-figurine-btn').click(); s.size(1, '80');
   s.$('add-figurine-btn').click(); s.size(2, '120');
   assert.equal(s.$('desc').value, 'Pierwsza postać');
   assert.equal(s.$('photos').files[0].name, 'first.png');
   assert.equal(s.$('shipping-cost-label'), null);
-  assert.equal(s.$('order-total').textContent, 'Suma: 399 zł + wysyłka 16,49 zł = 415,49 zł');
-  assert.equal(s.$('price-hidden').value, '415,49 zł');
+  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['65 zł', '105 zł', '150 zł']);
+  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="regular-price"]').textContent), ['98 zł', '126 zł', '175 zł']);
+  assert.ok(s.cards().every(card => card.querySelector('[data-field="sale-badge"]').textContent === 'CENA 3+'));
+  assert.equal(s.$('order-total').textContent, 'Suma: 320 zł + wysyłka 16,49 zł = 336,49 zł');
+  assert.equal(s.$('price-hidden').value, '336,49 zł');
   assert.equal(s.cards()[1].querySelector('textarea').value, '');
   const ids = [...s.doc.querySelectorAll('[id]')].map(el => el.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const label of s.$('figurine-list').querySelectorAll('label[for]')) assert.ok(s.$(label.htmlFor));
   s.cards()[1].querySelector('.remove-figurine').click();
   assert.equal(s.$('price-hidden').value, '289,49 zł');
+  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['98 zł', '175 zł']);
   assert.equal(s.cards()[1].querySelector('legend').textContent, 'Figurka 2');
   assert.equal(s.cards()[1].querySelector('input[type=file]').name, 'figurka_2_zdjecia');
   s.cards()[0].querySelector('.remove-figurine').click();
@@ -266,7 +274,7 @@ test('terms start unchecked and must be accepted before preparing payment or sen
 });
 
 function discountResponse(total = 10469, discount = 980) {
-  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 2, pricingVersion: PRICING_VERSION, regularSubtotal: 14000, automaticDiscount: 4200, subtotal: 9800, shippingAmount: SHIPPING_AMOUNT, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
+  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 2, pricingVersion: PRICING_VERSION, regularSubtotal: 14000, saleSubtotal: 9800, automaticDiscount: 4200, bulkDiscount: 0, bulkPricing: false, subtotal: 9800, shippingAmount: SHIPPING_AMOUNT, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
 }
 test('onsite code shows discounted total for confirmation before submitting final Basin price', async () => {
   const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
@@ -348,7 +356,7 @@ test('a changed discounted price requires confirmation again before any redirect
   s.dom.window.close();
 });
 
-test('all five brackets plus 16,49 zł shipping total 919,49 zł in the form, Basin and analytics', async () => {
+test('all five 3+ prices plus shipping total 776,49 zł in the form, Basin and analytics', async () => {
   const s = setup();
   assert.equal(s.$('order-total').textContent, 'Suma:');
   const events = [];
@@ -357,23 +365,25 @@ test('all five brackets plus 16,49 zł shipping total 919,49 zł in the form, Ba
     if (i) s.$('add-figurine-btn').click();
     s.size(i, size);
   }
-  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['98 zł', '126 zł', '175 zł', '224 zł', '280 zł']);
-  assert.equal(s.$('order-total').textContent, 'Suma: 903 zł + wysyłka 16,49 zł = 919,49 zł');
+  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['65 zł', '105 zł', '150 zł', '195 zł', '245 zł']);
+  assert.equal(s.$('order-total').textContent, 'Suma: 760 zł + wysyłka 16,49 zł = 776,49 zł');
   s.fillShipping();
-  assert.match(s.$('shipping-order-summary').textContent, /Wysyłka: 16,49 zł · Suma: 919,49 zł/);
+  assert.match(s.$('shipping-order-summary').textContent, /Wysyłka: 16,49 zł · Suma: 776,49 zł/);
   await s.submit();
   assert.equal(s.calls.length, 2);
   assert.equal(JSON.parse(s.calls[0].body).pricingVersion, PRICING_VERSION);
   const payload = s.calls[1].body;
-  assert.equal(payload.get('cena'), '919,49 zł');
+  assert.equal(payload.get('cena'), '776,49 zł');
   assert.equal(payload.get('cena_przed_rabatem'), '1306,49 zł');
   assert.equal(payload.get('koszt_wysylki'), '16,49 zł');
   assert.equal(payload.get('rabat_automatyczny'), '387 zł');
+  assert.equal(payload.get('rabat_ilosciowy'), '143 zł');
+  assert.equal(payload.get('cennik_3_plus'), 'Tak');
   assert.equal(payload.get('rabat_automatyczny_procent'), '30');
-  assert.equal(payload.get('rabat'), '387 zł');
-  assert.equal(events.find(event => event[1] === 'begin_checkout')[2].value, 919.49);
+  assert.equal(payload.get('rabat'), '530 zł');
+  assert.equal(events.find(event => event[1] === 'begin_checkout')[2].value, 776.49);
   assert.equal(events.find(event => event[1] === 'begin_checkout')[2].shipping, 16.49);
-  assert.equal(events.find(event => event[1] === 'generate_lead')[2].value, 919.49);
+  assert.equal(events.find(event => event[1] === 'generate_lead')[2].value, 776.49);
   assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });
@@ -384,6 +394,7 @@ test('without a code an old backend, wrong amount or wrong pricing version never
     { url: valid.url }, { ...valid, pricingVersion: 'old' },
     { ...valid, subtotal: 20000, total: 21649 }, { ...valid, total: 9801 },
     { ...valid, shippingAmount: 0 }, { ...valid, total: 10469, discount: 980 }, { ...valid, automaticDiscount: 0 },
+    { ...valid, saleSubtotal: 1 }, { ...valid, bulkDiscount: 1 }, { ...valid, bulkPricing: true },
     { ...valid, regularSubtotal: 20000 }, { ...valid, currency: 'eur' }
   ]) {
     const s = setup(); s.size(0, '32'); s.attach(0, 'keep.png'); s.fillShipping();

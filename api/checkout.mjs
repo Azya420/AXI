@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, SHIPPING_AMOUNT, getPrice } from '../pricing.mjs';
+import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, SHIPPING_AMOUNT, BULK_MIN_FIGURINES, getPrice } from '../pricing.mjs';
 
 const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -39,10 +39,12 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'metadata[terms_version]': TERMS_VERSION,
     'metadata[pricing_version]': PRICING_VERSION,
     'metadata[automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
+    'metadata[bulk_pricing_applied]': String(order.items.length >= BULK_MIN_FIGURINES),
     'metadata[shipping_amount]': String(SHIPPING_AMOUNT),
     'metadata[regular_subtotal]': String(order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0)),
     'payment_intent_data[metadata][pricing_version]': PRICING_VERSION,
     'payment_intent_data[metadata][automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
+    'payment_intent_data[metadata][bulk_pricing_applied]': String(order.items.length >= BULK_MIN_FIGURINES),
     'payment_intent_data[metadata][shipping_amount]': String(SHIPPING_AMOUNT),
     'payment_intent_data[metadata][terms_accepted]': 'true',
     'payment_intent_data[metadata][terms_version]': TERMS_VERSION
@@ -65,8 +67,8 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     const prefix = 'line_items[' + index + ']';
     params.set(prefix + '[quantity]', '1');
     params.set(prefix + '[price_data][currency]', 'pln');
-    params.set(prefix + '[price_data][unit_amount]', String(getPrice(item.size).amount));
-    params.set(prefix + '[price_data][product_data][name]', 'Figurka ' + (index + 1) + ' — ' + item.size + ' mm');
+    params.set(prefix + '[price_data][unit_amount]', String(getPrice(item.size, order.items.length).amount));
+    params.set(prefix + '[price_data][product_data][name]', 'Figurka ' + (index + 1) + ' — ' + item.size + ' mm' + (order.items.length >= BULK_MIN_FIGURINES ? ' — cena 3+' : ''));
   });
   return params;
 }
@@ -226,7 +228,7 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     if (config.preview && session.livemode !== false) throw new Error('Preview requires sandbox');
     // Nie ujawniamy klientowi kluczy ani szczegółów błędów konta Stripe.
     if (!session.url || new URL(session.url).hostname !== 'checkout.stripe.com' || !session.url.startsWith('https://')) throw new Error('Stripe unavailable');
-    const subtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).amount, 0);
+    const subtotal = order.items.reduce((sum, item) => sum + getPrice(item.size, order.items.length).amount, 0);
     const total = session.amount_total;
     const discount = session.total_details?.amount_discount;
     const shippingAmount = session.total_details?.amount_shipping;
@@ -236,8 +238,10 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
         (!promotionId && discount !== 0)) throw new Error('Invalid totals');
     if (promotionId && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
     const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
+    const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount, 0);
     return json(200, { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION,
-      regularSubtotal, automaticDiscount: regularSubtotal - subtotal,
+      regularSubtotal, saleSubtotal, automaticDiscount: regularSubtotal - saleSubtotal,
+      bulkDiscount: saleSubtotal - subtotal, bulkPricing: order.items.length >= BULK_MIN_FIGURINES,
       subtotal, shippingAmount, discount, total, currency: 'pln', promotionCode: order.promotionCode });
   } catch {
     // Tylko kontrolowane pola diagnostyczne. Nigdy error.message Stripe,

@@ -44,7 +44,7 @@ test('server resolves the typed code, applies only its trusted ID and returns St
   });
   assert.equal(response.status, 200);
   assert.equal(calls.length, 2);
-  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION, regularSubtotal: 32000, automaticDiscount: 9600, subtotal: 22400, shippingAmount: 1649, discount: 2240, total: 21809, currency: 'pln', promotionCode: 'SAVE10' });
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION, regularSubtotal: 32000, saleSubtotal: 22400, automaticDiscount: 9600, bulkDiscount: 0, bulkPricing: false, subtotal: 22400, shippingAmount: 1649, discount: 2240, total: 21809, currency: 'pln', promotionCode: 'SAVE10' });
 });
 
 test('invalid, inactive and customer-restricted codes never create a full-price session', async () => {
@@ -91,4 +91,20 @@ test('percentage, fixed amount and full discount use Stripe amounts without brow
     assert.equal(response.status, 200);
     assert.equal((await response.json()).total, 22400 + 1649 - discount);
   }
+});
+
+test('a promotion code stacks on the trusted 3+ prices without discounting shipping', async () => {
+  const bulkOrder = { ...order, items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
+  const response = await handleCheckout(request(bulkOrder), config, async (_, options) => {
+    if (options.method === 'GET') return Response.json({ data: [promotion] });
+    assert.deepEqual([0, 1, 2].map(index => options.body.get('line_items[' + index + '][price_data][unit_amount]')), ['6500', '10500', '15000']);
+    assert.equal(options.body.get('metadata[bulk_pricing_applied]'), 'true');
+    return Response.json({ ...session, amount_subtotal: 32000, amount_total: 30449,
+      total_details: { amount_discount: 3200, amount_shipping: 1649 } });
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION,
+    regularSubtotal: 57000, saleSubtotal: 39900, automaticDiscount: 17100,
+    bulkDiscount: 7900, bulkPricing: true, subtotal: 32000, shippingAmount: 1649,
+    discount: 3200, total: 30449, currency: 'pln', promotionCode: 'SAVE10' });
 });
