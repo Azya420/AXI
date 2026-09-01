@@ -1,5 +1,9 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 01.09.2026 — pełny kadr „Twój pomysł” na telefonach
+
+W układzie mobilnym obraz w pierwszym kafelku sekcji „Zamień swój pomysł” używa `object-fit: contain` i mniejszego wewnętrznego odstępu. Dzięki temu cała referencja jest widoczna bez przycinania od góry i dołu. Kadrowanie kafelków „Model 3D” oraz „Gotowa figurka” pozostaje bez zmian.
+
 ## Aktualizacja 01.09.2026 — dwie stawki dostawy naliczane w Stripe
 
 Formularz pokazuje przy metodach dostawy: „Paczkomat InPost (16,49 zł)” oraz „Na adres (19,49 zł)”. Pole „Suma” i podsumowanie w oknie danych pokazują wyłącznie ceny figurek; koszt dostawy jest dodawany do końcowej kwoty dopiero w Stripe. Do API trafia techniczna wartość `deliveryMethod` (`locker` albo `address`), a backend wybiera z zaufanej konfiguracji jedną stawkę Stripe. Klient nie może przesłać własnej kwoty wysyłki.

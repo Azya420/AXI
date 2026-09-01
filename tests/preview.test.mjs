@@ -32,6 +32,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /id="promo-spotlight"/);
   assert.match(html, /Własna figurka już od/);
   assert.match(html, /class="journey-price-sticker"/);
+  assert.match(html, /\.journey-source \.journey-media img\{\s*object-fit:contain;/);
   assert.match(html, /id="journey-min-price">98 zł/);
   assert.match(html, /id="promo-countdown"/);
   assert.match(html, /Oferta specjalna/);
