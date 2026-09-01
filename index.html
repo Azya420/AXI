@@ -1156,6 +1156,11 @@
   }
   .footer-bottom a{ text-decoration:underline; }
   .footer-bottom a:hover{ color:var(--violet-bright); }
+  .footer-legal-links{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
 
   /* ---------- RESPONSIVE ---------- */
   @media (max-width: 900px){
@@ -2564,8 +2569,10 @@
     </div>
     <div class="footer-bottom">
       <span>© 2026 AXI. Wszystkie prawa zastrzeżone.</span>
-      <a href="regulamin.html">Regulamin</a>
-      <a href="#cookie-settings" data-cookie-settings>Cookies</a>
+      <div class="footer-legal-links">
+        <a href="regulamin.html">Regulamin</a>
+        <a href="#cookie-settings" data-cookie-settings>Cookies</a>
+      </div>
     </div>
   </div>
 </footer>
