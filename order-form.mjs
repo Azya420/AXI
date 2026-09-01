@@ -126,6 +126,12 @@ export function initOrderForm(win) {
       const price = getPrice(Number(input.value), all.length);
       const copies = Number(copiesInput.value);
       const itemSubtotal = getItemSubtotal(Number(input.value), copies, all.length);
+      const addCopy = field(card, 'add-copy');
+      const copyControls = field(card, 'copy-controls');
+      const hasCopies = Number.isInteger(copies) && copies > 1;
+      addCopy.hidden = hasCopies;
+      copyControls.hidden = !hasCopies;
+      addCopy.textContent = price ? '＋ Dodaj kolejny wydruk za ' + formatPrice(price.additionalCopyAmount) : '＋ Dodaj kolejny identyczny wydruk';
       const discounted = price && price.amount < price.regularAmount;
       const regularPrice = field(card, 'regular-price');
       regularPrice.hidden = !discounted;
@@ -175,6 +181,24 @@ export function initOrderForm(win) {
     field(card, 'description').focus();
   });
   list.addEventListener('click', event => {
+    const addCopy = event.target.closest('[data-field="add-copy"]');
+    if (addCopy && !busy && !completed) {
+      const card = addCopy.closest('.figurine-card');
+      field(card, 'copies').value = '2';
+      clearError();
+      refresh();
+      field(card, 'copies').focus();
+      return;
+    }
+    const removeCopies = event.target.closest('.remove-copies');
+    if (removeCopies && !busy && !completed) {
+      const card = removeCopies.closest('.figurine-card');
+      field(card, 'copies').value = '1';
+      clearError();
+      refresh();
+      field(card, 'add-copy').focus();
+      return;
+    }
     const remove = event.target.closest('.remove-figurine');
     if (!remove || busy || completed || cards().length < 2) return;
     remove.closest('.figurine-card').remove();

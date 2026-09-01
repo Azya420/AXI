@@ -115,6 +115,13 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
 test('identical print count updates the visible total and checkout payload', async () => {
   const s = setup();
   s.size(0, '32');
+  const addCopy = s.cards()[0].querySelector('[data-field="add-copy"]');
+  const controls = s.cards()[0].querySelector('[data-field="copy-controls"]');
+  assert.equal(addCopy.textContent, '＋ Dodaj kolejny wydruk za 10 zł');
+  assert.equal(controls.hidden, true);
+  addCopy.click();
+  assert.equal(controls.hidden, false);
+  assert.equal(s.cards()[0].querySelector('[data-field="copies"]').value, '2');
   s.input(s.cards()[0].querySelector('[data-field="copies"]'), '3');
   assert.equal(s.cards()[0].querySelector('[data-field="copy-price"]').textContent, 'Każdy dodatkowy identyczny wydruk: 10 zł.');
   assert.equal(s.cards()[0].querySelector('[data-field="price"]').textContent, '118 zł');
