@@ -11,6 +11,7 @@ export function renderPreviewHtml(source, siteOrigin) {
   </aside>`;
   let html = source
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, script => script.includes('var GA_ID') ? '' : script)
+    .replace(/<script\b[^>]*\bdata-analytics\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/\b(src|href|data-full|data-ref)="([^"]+)"/g, (full, attribute, value) => {
       if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(value)) return full;
       if (/\.(?:png|jpe?g|webp|svg|gif|ico)(?:[?#]|$)/i.test(value) || value === 'regulamin.html') {

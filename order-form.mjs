@@ -90,6 +90,10 @@ export function initOrderForm(win) {
     if (preview || typeof win.gtag !== 'function') return;
     win.gtag('event', name, params);
   }
+  function trackMetaEvent(name, params, options) {
+    if (preview || !win.AXI_TRACKING?.trackMeta) return;
+    win.AXI_TRACKING.trackMeta(name, params, options);
+  }
   function refresh() {
     let total = 0;
     let valid = true;
@@ -346,6 +350,13 @@ export function initOrderForm(win) {
     payload.set('status_platnosci', preview ? 'TEST — płatność w piaskownicy, bez prawdziwych pieniędzy' : 'Oczekuje na płatność — sprawdź opłacenie zamówienia w Stripe');
     if (!attempt.beginCheckoutTracked) {
       trackGaEvent('begin_checkout', analytics);
+      trackMetaEvent('InitiateCheckout', {
+        value: analytics.value,
+        currency: analytics.currency,
+        content_type: 'product',
+        content_ids: items.map(item => 'personalizowana-figurka-' + item.size + 'mm'),
+        num_items: items.length
+      }, { eventID: orderId + '-checkout' });
       attempt.beginCheckoutTracked = true;
     }
     setBusy(true);
@@ -393,6 +404,7 @@ export function initOrderForm(win) {
         await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
         if (!attempt.leadTracked) {
           trackGaEvent('generate_lead', { currency: analytics.currency, value: analytics.value, lead_source: 'order_form' });
+          trackMetaEvent('Lead', { currency: analytics.currency, value: analytics.value }, { eventID: orderId + '-lead' });
           attempt.leadTracked = true;
         }
       }

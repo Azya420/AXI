@@ -139,7 +139,7 @@
 <main>
   <div class="wrap">
     <h1>Regulamin sklepu AXI</h1>
-    <p class="updated">Ostatnia aktualizacja: 30.08.2026</p>
+    <p class="updated">Ostatnia aktualizacja: 01.09.2026</p>
 
     <section>
       <h2>§1. Postanowienia ogólne</h2>
@@ -210,8 +210,10 @@
       <h2>§8. Dane osobowe</h2>
       <ol>
         <li>Administratorem danych osobowych podanych przez Klienta w formularzu zamówienia (imię i nazwisko, adres e-mail, numer telefonu, adres dostawy) jest Sprzedawca.</li>
-        <li>Dane osobowe przetwarzane są wyłącznie w celu realizacji zamówienia, kontaktu w jego sprawie oraz wypełnienia obowiązków prawnych ciążących na Sprzedawcy (np. rachunkowych), zgodnie z Rozporządzeniem Parlamentu Europejskiego i Rady (UE) 2016/679 (RODO).</li>
+        <li>Dane osobowe podane w formularzu zamówienia przetwarzane są w celu realizacji zamówienia, kontaktu w jego sprawie oraz wypełnienia obowiązków prawnych ciążących na Sprzedawcy (np. rachunkowych), zgodnie z Rozporządzeniem Parlamentu Europejskiego i Rady (UE) 2016/679 (RODO).</li>
         <li>Podanie danych jest dobrowolne, lecz niezbędne do realizacji zamówienia. Klientowi przysługuje prawo dostępu do swoich danych, ich sprostowania, usunięcia lub ograniczenia przetwarzania.</li>
+        <li>Po uzyskaniu odrębnej zgody Serwis wykorzystuje Google Analytics oraz Meta Pixel do analizy ruchu, pomiaru skuteczności reklam i zakupów oraz prowadzenia działań marketingowych. W związku z tym dostawcy tych narzędzi mogą przetwarzać identyfikatory internetowe oraz informacje o urządzeniu, przeglądarce i interakcjach z Serwisem.</li>
+        <li>Zgoda na analityczne i marketingowe pliki cookie jest dobrowolna i nie jest wymagana do złożenia zamówienia. Użytkownik może zmienić decyzję przyciskiem „Ustawienia cookies” w stopce Serwisu. Wycofanie zgody nie wpływa na zgodność z prawem przetwarzania dokonanego przed jej wycofaniem.</li>
       </ol>
     </section>
 
@@ -236,52 +238,17 @@
 </main>
 
 <footer>
-  © 2026 AXI. Wszystkie prawa zastrzeżone.
+  © 2026 AXI. Wszystkie prawa zastrzeżone. <button type="button" class="cookie-btn" data-cookie-settings>Ustawienia cookies</button>
 </footer>
 
 <div class="cookie-banner" id="cookie-banner">
-  <p>Używamy plików cookie do analizy ruchu na stronie za pomocą Google Analytics. Możesz zaakceptować lub odrzucić — więcej informacji w <a href="regulamin.html">regulaminie</a>.</p>
+  <p>Za Twoją zgodą używamy Google Analytics i Meta Pixel do analizy ruchu, skuteczności reklam oraz zakupów. Możesz zaakceptować analityczne i marketingowe pliki cookie albo pozostać przy niezbędnych — więcej informacji w <a href="regulamin.html">regulaminie</a>.</p>
   <div class="cookie-banner-actions">
-    <button type="button" class="cookie-btn" id="cookie-decline">Odrzuć</button>
-    <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję</button>
+    <button type="button" class="cookie-btn" id="cookie-decline">Tylko niezbędne</button>
+    <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję analityczne i marketingowe</button>
   </div>
 </div>
-<script>
-(function(){
-  var GA_ID = 'G-M3L9ZPRGMB';
-  function loadGA(){
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
-    document.head.appendChild(s);
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){ dataLayer.push(arguments); }
-    window.gtag = gtag;
-    gtag('js', new Date());
-    gtag('config', GA_ID);
-  }
-  document.addEventListener('DOMContentLoaded', function(){
-    var consent = localStorage.getItem('cookie-consent');
-    if(consent === 'accepted'){
-      loadGA();
-      return;
-    }
-    if(consent === 'declined') return;
-    var banner = document.getElementById('cookie-banner');
-    if(!banner) return;
-    banner.classList.add('active');
-    document.getElementById('cookie-accept').addEventListener('click', function(){
-      localStorage.setItem('cookie-consent', 'accepted');
-      banner.classList.remove('active');
-      loadGA();
-    });
-    document.getElementById('cookie-decline').addEventListener('click', function(){
-      localStorage.setItem('cookie-consent', 'declined');
-      banner.classList.remove('active');
-    });
-  });
-})();
-</script>
+<script src="tracking.js?v=20260901-meta-pixel-v1" data-analytics></script>
 
 </body>
 </html>

@@ -379,7 +379,9 @@ test('form shows figurines only while address shipping is added in Stripe, Basin
   const s = setup();
   assert.equal(s.$('order-total').textContent, 'Suma:');
   const events = [];
+  const metaEvents = [];
   s.win.gtag = (...args) => events.push(args);
+  s.win.AXI_TRACKING = { trackMeta: (...args) => { metaEvents.push(args); return true; } };
   for (const [i, size] of ['60', '61', '101', '151', '201'].entries()) {
     if (i) s.$('add-figurine-btn').click();
     s.size(i, size);
@@ -404,6 +406,13 @@ test('form shows figurines only while address shipping is added in Stripe, Basin
   assert.equal(events.find(event => event[1] === 'begin_checkout')[2].value, 779.49);
   assert.equal(events.find(event => event[1] === 'begin_checkout')[2].shipping, 19.49);
   assert.equal(events.find(event => event[1] === 'generate_lead')[2].value, 779.49);
+  assert.equal(metaEvents.find(event => event[0] === 'InitiateCheckout')[1].value, 779.49);
+  assert.equal(metaEvents.find(event => event[0] === 'InitiateCheckout')[1].currency, 'PLN');
+  assert.deepEqual(metaEvents.find(event => event[0] === 'InitiateCheckout')[1].content_ids,
+    ['personalizowana-figurka-60mm', 'personalizowana-figurka-61mm', 'personalizowana-figurka-101mm', 'personalizowana-figurka-151mm', 'personalizowana-figurka-201mm']);
+  assert.match(metaEvents.find(event => event[0] === 'InitiateCheckout')[2].eventID, /-checkout$/);
+  assert.equal(metaEvents.find(event => event[0] === 'Lead')[1].value, 779.49);
+  assert.match(metaEvents.find(event => event[0] === 'Lead')[2].eventID, /-lead$/);
   assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });

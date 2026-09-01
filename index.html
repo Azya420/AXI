@@ -2506,53 +2506,19 @@
     <div class="footer-bottom">
       <span>© 2026 AXI. Wszystkie prawa zastrzeżone.</span>
       <a href="regulamin.html">Regulamin</a>
+      <button type="button" class="cookie-btn" data-cookie-settings>Ustawienia cookies</button>
     </div>
   </div>
 </footer>
 
 <div class="cookie-banner" id="cookie-banner">
-  <p>Używamy plików cookie do analizy ruchu na stronie za pomocą Google Analytics. Możesz zaakceptować lub odrzucić — więcej informacji w <a href="regulamin.html">regulaminie</a>.</p>
+  <p>Za Twoją zgodą używamy Google Analytics i Meta Pixel do analizy ruchu, skuteczności reklam oraz zakupów. Możesz zaakceptować analityczne i marketingowe pliki cookie albo pozostać przy niezbędnych — więcej informacji w <a href="regulamin.html">regulaminie</a>.</p>
   <div class="cookie-banner-actions">
-    <button type="button" class="cookie-btn" id="cookie-decline">Odrzuć</button>
-    <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję</button>
+    <button type="button" class="cookie-btn" id="cookie-decline">Tylko niezbędne</button>
+    <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję analityczne i marketingowe</button>
   </div>
 </div>
-<script>
-(function(){
-  var GA_ID = 'G-M3L9ZPRGMB';
-  function loadGA(){
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
-    document.head.appendChild(s);
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){ dataLayer.push(arguments); }
-    window.gtag = gtag;
-    gtag('js', new Date());
-    gtag('config', GA_ID);
-  }
-  document.addEventListener('DOMContentLoaded', function(){
-    var consent = localStorage.getItem('cookie-consent');
-    if(consent === 'accepted'){
-      loadGA();
-      return;
-    }
-    if(consent === 'declined') return;
-    var banner = document.getElementById('cookie-banner');
-    if(!banner) return;
-    banner.classList.add('active');
-    document.getElementById('cookie-accept').addEventListener('click', function(){
-      localStorage.setItem('cookie-consent', 'accepted');
-      banner.classList.remove('active');
-      loadGA();
-    });
-    document.getElementById('cookie-decline').addEventListener('click', function(){
-      localStorage.setItem('cookie-consent', 'declined');
-      banner.classList.remove('active');
-    });
-  });
-})();
-</script>
+<script src="tracking.js?v=20260901-meta-pixel-v1" data-analytics></script>
 
 </body>
 </html>

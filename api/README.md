@@ -1,5 +1,11 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 01.09.2026 — Meta Pixel i zdarzenia kampanii
+
+Strona korzysta z Meta Pixel `1665983241581980`. Wspólny plik `tracking.js` ładuje Google Analytics i Meta Pixel dopiero po świadomej zgodzie zapisanej jako `cookie-consent-v2=accepted`; nie ma obrazka `noscript`, który omijałby zgodę. Treść banera wskazuje analityczne i marketingowe zastosowanie, a odmowa pozostawia wyłącznie niezbędne mechanizmy strony. Poprzednia zgoda dotycząca tylko Google Analytics nie jest automatycznie rozszerzana na Meta — użytkownik zobaczy nowy komunikat.
+
+Meta otrzymuje `PageView` po zgodzie, `InitiateCheckout` przy pierwszym rozpoczęciu płatności, `Lead` dopiero po przyjęciu zgłoszenia przez Basin oraz `Purchase` dopiero po serwerowym potwierdzeniu płatności Stripe. Zdarzenia zawierają wartość i `PLN`; zakup ma identyfikator sesji Stripe jako `eventID`, przygotowany do późniejszej deduplikacji z Conversions API. `localStorage` zapobiega ponownemu wysłaniu zakupu z tej samej przeglądarki. Podgląd testowy Rendera usuwa skrypt analityczny i nie wysyła zdarzeń GA ani Meta.
+
 ## Aktualizacja 01.09.2026 — pełny kadr „Twój pomysł” na telefonach
 
 W układzie mobilnym obraz w pierwszym kafelku sekcji „Zamień swój pomysł” używa `object-fit: contain` i mniejszego wewnętrznego odstępu. Dzięki temu cała referencja jest widoczna bez przycinania od góry i dołu. Kadrowanie kafelków „Model 3D” oraz „Gotowa figurka” pozostaje bez zmian.

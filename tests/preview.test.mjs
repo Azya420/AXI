@@ -49,6 +49,9 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /src="order-form.mjs\?v=20260901-delivery-v2"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
+  assert.ok(!html.includes('tracking.js'));
+  assert.ok(!html.includes('connect.facebook.net'));
+  assert.ok(!html.includes('1665983241581980'));
   assert.ok(!html.includes(config.stripeKey));
   assert.match(await (await previewResponse('/preview/checkout-config.js', 'GET', config)).text(), /AXI_PREVIEW_MODE = true/);
   assert.equal(await (await previewResponse('/preview/order-form.mjs', 'HEAD', config)).text(), '');

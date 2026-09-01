@@ -196,28 +196,26 @@
 </main>
 
 <footer>
-  © 2026 AXI. Wszystkie prawa zastrzeżone.
+  © 2026 AXI. Wszystkie prawa zastrzeżone. <button type="button" class="cookie-btn" data-cookie-settings>Ustawienia cookies</button>
 </footer>
 
 <div class="cookie-banner" id="cookie-banner">
-  <p>Używamy plików cookie do analizy ruchu na stronie za pomocą Google Analytics. Możesz zaakceptować lub odrzucić — więcej informacji w <a href="regulamin.html">regulaminie</a>.</p>
+  <p>Za Twoją zgodą używamy Google Analytics i Meta Pixel do analizy ruchu, skuteczności reklam oraz zakupów. Możesz zaakceptować analityczne i marketingowe pliki cookie albo pozostać przy niezbędnych — więcej informacji w <a href="regulamin.html">regulaminie</a>.</p>
   <div class="cookie-banner-actions">
-    <button type="button" class="cookie-btn" id="cookie-decline">Odrzuć</button>
-    <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję</button>
+    <button type="button" class="cookie-btn" id="cookie-decline">Tylko niezbędne</button>
+    <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję analityczne i marketingowe</button>
   </div>
 </div>
 <script src="checkout-config.js"></script>
+<script src="tracking.js?v=20260901-meta-pixel-v1" data-analytics></script>
 <script>
 (function(){
-  var GA_ID = 'G-M3L9ZPRGMB';
   var verifiedPurchase = null;
 
   function sendPurchaseIfReady(){
-    if (!verifiedPurchase || typeof window.gtag !== 'function') return;
+    if (!verifiedPurchase) return;
     var transactionId = verifiedPurchase.transactionId;
     if (!transactionId) return;
-    var storageKey = 'ga4-purchase:' + transactionId;
-    if (localStorage.getItem(storageKey) === 'sent') return;
     var eventData = {
       transaction_id: transactionId,
       affiliation: 'AXI3D',
@@ -225,21 +223,25 @@
       currency: verifiedPurchase.currency || 'PLN'
     };
     if (Array.isArray(verifiedPurchase.items) && verifiedPurchase.items.length) eventData.items = verifiedPurchase.items;
-    window.gtag('event', 'purchase', eventData);
-    localStorage.setItem(storageKey, 'sent');
-  }
-
-  function loadGA(){
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
-    document.head.appendChild(s);
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){ dataLayer.push(arguments); }
-    window.gtag = gtag;
-    gtag('js', new Date());
-    gtag('config', GA_ID);
-    sendPurchaseIfReady();
+    var gaStorageKey = 'ga4-purchase:' + transactionId;
+    if (typeof window.gtag === 'function' && localStorage.getItem(gaStorageKey) !== 'sent') {
+      window.gtag('event', 'purchase', eventData);
+      localStorage.setItem(gaStorageKey, 'sent');
+    }
+    var metaStorageKey = 'meta-purchase:' + transactionId;
+    if (window.AXI_TRACKING?.trackMeta && localStorage.getItem(metaStorageKey) !== 'sent') {
+      var metaItems = Array.isArray(verifiedPurchase.items) ? verifiedPurchase.items : [];
+      var metaData = {
+        value: verifiedPurchase.value,
+        currency: verifiedPurchase.currency || 'PLN',
+        content_type: 'product',
+        content_ids: metaItems.map(function(item){ return item.item_id; }),
+        num_items: metaItems.reduce(function(sum, item){ return sum + (item.quantity || 1); }, 0)
+      };
+      if (window.AXI_TRACKING.trackMeta('Purchase', metaData, { eventID: transactionId })) {
+        localStorage.setItem(metaStorageKey, 'sent');
+      }
+    }
   }
 
   async function verifyPurchase(){
@@ -265,25 +267,8 @@
 
   document.addEventListener('DOMContentLoaded', function(){
     verifyPurchase();
-    var consent = localStorage.getItem('cookie-consent');
-    if(consent === 'accepted'){
-      loadGA();
-      return;
-    }
-    if(consent === 'declined') return;
-    var banner = document.getElementById('cookie-banner');
-    if(!banner) return;
-    banner.classList.add('active');
-    document.getElementById('cookie-accept').addEventListener('click', function(){
-      localStorage.setItem('cookie-consent', 'accepted');
-      banner.classList.remove('active');
-      loadGA();
-    });
-    document.getElementById('cookie-decline').addEventListener('click', function(){
-      localStorage.setItem('cookie-consent', 'declined');
-      banner.classList.remove('active');
-    });
   });
+  window.addEventListener('axi-tracking-ready', sendPurchaseIfReady);
 })();
 </script>
 
