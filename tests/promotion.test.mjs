@@ -5,7 +5,7 @@ import { handleCheckout, validateOrder } from '../api/checkout.mjs';
 import { PRICING_VERSION } from '../pricing.mjs';
 
 const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
-const order = { pricingVersion: PRICING_VERSION, orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com', items: [{ size: 32 }, { size: 80 }], termsAccepted: true, promotionCode: '  SAVE10  ' };
+const order = { pricingVersion: PRICING_VERSION, orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com', deliveryMethod: 'locker', items: [{ size: 32 }, { size: 80 }], termsAccepted: true, promotionCode: '  SAVE10  ' };
 const request = body => new Request('https://api.example/checkout-session', { method: 'POST', headers: { Origin: config.siteOrigin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const promotion = { id: 'promo_Valid123', active: true, code: 'save10', customer: null, customer_account: null };
 const session = { url: 'https://checkout.stripe.com/c/pay/cs_live_Test123', currency: 'pln', amount_subtotal: 22400, amount_total: 21809, total_details: { amount_discount: 2240, amount_shipping: 1649 } };
@@ -44,7 +44,7 @@ test('server resolves the typed code, applies only its trusted ID and returns St
   });
   assert.equal(response.status, 200);
   assert.equal(calls.length, 2);
-  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION, regularSubtotal: 32000, saleSubtotal: 22400, automaticDiscount: 9600, bulkDiscount: 0, bulkPricing: false, subtotal: 22400, shippingAmount: 1649, discount: 2240, total: 21809, currency: 'pln', promotionCode: 'SAVE10' });
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 3, pricingVersion: PRICING_VERSION, regularSubtotal: 32000, saleSubtotal: 22400, automaticDiscount: 9600, bulkDiscount: 0, bulkPricing: false, subtotal: 22400, deliveryMethod: 'locker', shippingAmount: 1649, discount: 2240, total: 21809, currency: 'pln', promotionCode: 'SAVE10' });
 });
 
 test('invalid, inactive and customer-restricted codes never create a full-price session', async () => {
@@ -103,8 +103,8 @@ test('a promotion code stacks on the trusted 3+ prices without discounting shipp
       total_details: { amount_discount: 3200, amount_shipping: 1649 } });
   });
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION,
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 3, pricingVersion: PRICING_VERSION,
     regularSubtotal: 57000, saleSubtotal: 39900, automaticDiscount: 17100,
-    bulkDiscount: 7900, bulkPricing: true, subtotal: 32000, shippingAmount: 1649,
+    bulkDiscount: 7900, bulkPricing: true, subtotal: 32000, deliveryMethod: 'locker', shippingAmount: 1649,
     discount: 3200, total: 30449, currency: 'pln', promotionCode: 'SAVE10' });
 });

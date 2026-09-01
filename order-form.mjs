@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, SHIPPING_AMOUNT, BULK_MIN_FIGURINES, getPrice, formatPrice } from './pricing.mjs?v=20260901-bulk3-v1';
+import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260901-delivery-v2';
 
 export const SPECIAL_OFFER_END = '2026-09-08T11:00:07Z';
 
@@ -66,7 +66,8 @@ export function initOrderForm(win) {
     errorBox.hidden = false;
   }
   const currentPromotion = () => byId('promotion-code').value.trim().toUpperCase();
-  const pricingKey = () => JSON.stringify({ items: cards().map(card => Number(field(card, 'size').value)), email: byId('email').value.trim(), code: currentPromotion() });
+  const deliveryMethod = () => isLocker() ? 'locker' : 'address';
+  const pricingKey = () => JSON.stringify({ items: cards().map(card => Number(field(card, 'size').value)), email: byId('email').value.trim(), code: currentPromotion(), deliveryMethod: deliveryMethod() });
   function analyticsSnapshot(items) {
     const analyticsItems = items.map((item, index) => {
       const price = getPrice(item.size, items.length);
@@ -121,19 +122,19 @@ export function initOrderForm(win) {
       }
     });
     const label = countLabel(all.length);
+    const shippingAmount = getDeliveryOption(deliveryMethod()).amount;
     if (promotionReview?.key !== pricingKey()) promotionReview = null;
     const applied = valid && promotionReview;
     byId('figurine-count').value = String(all.length);
     byId('order-count-label').textContent = label;
-    const payableTotal = applied ? applied.total : total + SHIPPING_AMOUNT;
-    const figurinesTotal = applied ? applied.total - SHIPPING_AMOUNT : total;
-    byId('order-total').textContent = valid
-      ? 'Suma: ' + formatPrice(figurinesTotal) + ' + wysyłka ' + formatPrice(SHIPPING_AMOUNT) + ' = ' + formatPrice(payableTotal)
-      : 'Suma:';
-    byId('price-hidden').value = valid ? formatPrice(total + SHIPPING_AMOUNT) : '';
-    byId('shipping-order-summary').textContent = label + (valid ? ' · Wysyłka: ' + formatPrice(SHIPPING_AMOUNT) + ' · Suma: ' + formatPrice(payableTotal) : '');
+    const figurinesTotal = applied ? applied.total - applied.shippingAmount : total;
+    byId('order-total').textContent = valid ? 'Suma: ' + formatPrice(figurinesTotal) : 'Suma:';
+    // Wartość pola ukrytego pozostaje ceną przed kodem. Po potwierdzeniu kodu
+    // wpisujemy końcową kwotę do zgłoszenia bez zmiany identyfikatora próby.
+    byId('price-hidden').value = valid ? formatPrice(total + shippingAmount) : '';
+    byId('shipping-order-summary').textContent = label + (valid ? ' · Suma figurek: ' + formatPrice(figurinesTotal) : '');
     byId('promotion-result').hidden = !applied;
-    byId('promotion-result').textContent = applied ? 'Kod zastosowany. Rabat: ' + formatPrice(applied.discount) + ' · Wysyłka: ' + formatPrice(SHIPPING_AMOUNT) + ' · Do zapłaty: ' + formatPrice(applied.total) : '';
+    byId('promotion-result').textContent = applied ? 'Kod zastosowany. Rabat: ' + formatPrice(applied.discount) + ' · Suma figurek po rabacie: ' + formatPrice(figurinesTotal) + '. Koszt dostawy zostanie doliczony w Stripe.' : '';
     openBtn.textContent = all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : all.length === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     addBtn.disabled = all.length >= MAX_FIGURINES;
@@ -205,6 +206,7 @@ export function initOrderForm(win) {
     byId('address-wrap').style.display = locker ? 'none' : 'block';
     byId('locker-wrap').style.display = locker ? 'block' : 'none';
     ['ulica', 'kod', 'miasto'].forEach(id => { byId(id).required = !locker; });
+    if (!busy) { clearError(); refresh(); }
     if (locker && modal.classList.contains('active')) win.requestAnimationFrame(initGeowidgetIfNeeded);
   }
   doc.querySelectorAll('input[name="dostawa"]').forEach(radio => radio.addEventListener('change', updateDelivery));
@@ -296,9 +298,11 @@ export function initOrderForm(win) {
     if (!isLocker() && ['ulica', 'kod', 'miasto'].some(id => !byId(id).value.trim())) { win.alert('Podaj pełny adres dostawy.'); return; }
     clearError();
     const items = cards().map(card => ({ size: Number(field(card, 'size').value) }));
+    const selectedDeliveryMethod = deliveryMethod();
+    const shippingAmount = getDeliveryOption(selectedDeliveryMethod).amount;
     const analytics = analyticsSnapshot(items);
-    analytics.value += SHIPPING_AMOUNT / 100;
-    analytics.shipping = SHIPPING_AMOUNT / 100;
+    analytics.value += shippingAmount / 100;
+    analytics.shipping = shippingAmount / 100;
     const promotionCode = currentPromotion();
     const endpoint = (win.AXI_CHECKOUT_ENDPOINT || '').trim();
     if (!endpoint) {
@@ -320,13 +324,13 @@ export function initOrderForm(win) {
     const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
     const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount, 0);
     const subtotal = items.reduce((sum, item) => sum + getPrice(item.size, items.length).amount, 0);
-    payload.set('koszt_wysylki', formatPrice(SHIPPING_AMOUNT));
-    payload.set('cena_przed_rabatem', formatPrice(regularSubtotal + SHIPPING_AMOUNT));
+    payload.set('koszt_wysylki', formatPrice(shippingAmount));
+    payload.set('cena_przed_rabatem', formatPrice(regularSubtotal + shippingAmount));
     payload.set('rabat_automatyczny_procent', String(AUTOMATIC_DISCOUNT_PERCENT));
     payload.set('rabat_automatyczny', formatPrice(regularSubtotal - saleSubtotal));
     payload.set('rabat_ilosciowy', formatPrice(saleSubtotal - subtotal));
     payload.set('cennik_3_plus', items.length >= BULK_MIN_FIGURINES ? 'Tak' : 'Nie');
-    payload.set('cena_przed_kodem', formatPrice(subtotal + SHIPPING_AMOUNT));
+    payload.set('cena_przed_kodem', formatPrice(subtotal + shippingAmount));
     payload.set('rabat', formatPrice(regularSubtotal - subtotal));
     payload.set('wersja_regulaminu', '2026-08-30');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
@@ -348,21 +352,21 @@ export function initOrderForm(win) {
     try {
       let paymentUrl;
       if (endpoint) {
-        const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId, promotionCode, termsAccepted: byId('terms-accepted').checked, pricingVersion: PRICING_VERSION });
+        const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId, deliveryMethod: selectedDeliveryMethod, promotionCode, termsAccepted: byId('terms-accepted').checked, pricingVersion: PRICING_VERSION });
         const url = new URL(data.url);
         if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Nieprawidłowy adres płatności.');
         if (preview && !url.pathname.includes('/cs_test_')) throw new Error('Podgląd obsługuje wyłącznie płatności testowe.');
         if (!preview && !/^\/c\/pay\/cs_live_[A-Za-z0-9]+$/.test(url.pathname)) throw new Error('Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
         paymentUrl = url.href;
         // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
-        if (data.checkoutVersion !== 2 || data.pricingVersion !== PRICING_VERSION ||
+        if (data.checkoutVersion !== 3 || data.pricingVersion !== PRICING_VERSION ||
             data.promotionCode !== promotionCode || data.currency !== 'pln' ||
             data.subtotal !== subtotal || data.saleSubtotal !== saleSubtotal || data.regularSubtotal !== regularSubtotal ||
-            data.shippingAmount !== SHIPPING_AMOUNT ||
+            data.deliveryMethod !== selectedDeliveryMethod || data.shippingAmount !== shippingAmount ||
             data.automaticDiscount !== regularSubtotal - saleSubtotal ||
             data.bulkDiscount !== saleSubtotal - subtotal || data.bulkPricing !== (items.length >= BULK_MIN_FIGURINES) ||
             !Number.isInteger(data.total) || !Number.isInteger(data.discount) ||
-            data.total < SHIPPING_AMOUNT || data.discount < 0 || data.total + data.discount !== subtotal + SHIPPING_AMOUNT ||
+            data.total < shippingAmount || data.discount < 0 || data.total + data.discount !== subtotal + shippingAmount ||
             (!promotionCode && data.discount !== 0)) {
           throw new Error('Nie udało się potwierdzić aktualnej ceny. Odśwież stronę i spróbuj ponownie. Zamówienie nie zostało wysłane.');
         }
@@ -371,13 +375,13 @@ export function initOrderForm(win) {
             throw new Error('Nie udało się potwierdzić rabatu. Zamówienie nie zostało wysłane.');
           }
           if (!promotionReview || promotionReview.key !== pricingKey() || promotionReview.total !== data.total || promotionReview.discount !== data.discount) {
-            promotionReview = { key: pricingKey(), total: data.total, discount: data.discount };
+            promotionReview = { key: pricingKey(), total: data.total, shippingAmount: data.shippingAmount, discount: data.discount };
             setBusy(false);
             submitBtn.focus();
             return; // Klient najpierw widzi cenę po rabacie, dopiero potem potwierdza zamówienie.
           }
           payload.set('rabat_z_kodu', formatPrice(data.discount));
-          payload.set('rabat', formatPrice(regularSubtotal + SHIPPING_AMOUNT - data.total));
+          payload.set('rabat', formatPrice(regularSubtotal + shippingAmount - data.total));
           payload.set('cena', formatPrice(data.total));
           analytics.value = data.total / 100;
         }

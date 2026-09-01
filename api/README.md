@@ -1,5 +1,11 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 01.09.2026 — dwie stawki dostawy naliczane w Stripe
+
+Formularz pokazuje przy metodach dostawy: „Paczkomat InPost (16,49 zł)” oraz „Na adres (19,49 zł)”. Pole „Suma” i podsumowanie w oknie danych pokazują wyłącznie ceny figurek; koszt dostawy jest dodawany do końcowej kwoty dopiero w Stripe. Do API trafia techniczna wartość `deliveryMethod` (`locker` albo `address`), a backend wybiera z zaufanej konfiguracji jedną stawkę Stripe. Klient nie może przesłać własnej kwoty wysyłki.
+
+Stripe pokazuje odpowiednio „Paczkomat InPost” lub „Dostawa na adres”. Backend sprawdza metodę, `total_details.amount_shipping` i końcową sumę; odpowiedź ma `checkoutVersion: 3`, `deliveryMethod` i właściwe `shippingAmount`. Basin oraz analityka zapisują koszt zgodny z wyborem. Kod promocyjny nadal obniża figurki, nie wysyłkę, a zmiana metody dostawy unieważnia wcześniej przygotowaną wycenę kodu. Wspólna wersja cennika to `2026-09-01-delivery-v2`.
+
 ## Aktualizacja 01.09.2026 — naklejka cenowa w sekcji otwierającej
 
 Kafelek „Gotowa figurka” w sekcji „Zamień swój pomysł” ma w prawym górnym rogu okrągłą, złotą naklejkę „Już od 98 zł”. Kwota jest wypełniana przez formularz z najniższej aktualnej ceny po promocji, dlatego pozostaje zgodna ze wspólnym cennikiem. Naklejka ma mniejszy rozmiar na telefonach i nie zasłania etykiety etapu.
@@ -12,15 +18,15 @@ Przy etykiecie „Oferta specjalna” znajduje się wspólny licznik do `2026-09
 
 Przy zamówieniu co najmniej 3 figurek wszystkie pozycje automatycznie korzystają z cennika ilościowego: 20–60 mm — 65 zł, 61–100 mm — 105 zł, 101–150 mm — 150 zł, 151–200 mm — 195 zł, 201–250 mm — 245 zł. Przy 1–2 figurkach pozostają ceny po obecnej promocji −30%: 98/126/175/224/280 zł. Usunięcie trzeciej figurki natychmiast przywraca ceny dla 1–2 sztuk.
 
-Drugi baner w lewej kolumnie formularza informuje „Im więcej figurek, tym taniej” oraz „od 65 zł za figurkę”. Ma ten sam złoty znak i pasek co baner „Oferta specjalna”. Przy aktywnym cenniku 3+ karta figurki przekreśla cenę po obecnej promocji i pokazuje cenę ilościową, bez dodatkowych plakietek „−30%” lub „CENA 3+” w polu ceny. Koszt wysyłki 16,49 zł pozostaje jeden na całe zamówienie. Dodatkowe kody promocyjne są nadal sprawdzane przez Stripe i mogą obniżyć ceny figurek po rabacie ilościowym, ale nie wysyłkę.
+Drugi baner w lewej kolumnie formularza informuje „Im więcej figurek, tym taniej” oraz „od 65 zł za figurkę”. Ma ten sam złoty znak i pasek co baner „Oferta specjalna”. Przy aktywnym cenniku 3+ karta figurki przekreśla cenę po obecnej promocji i pokazuje cenę ilościową, bez dodatkowych plakietek „−30%” lub „CENA 3+” w polu ceny. Koszt wysyłki pozostaje jeden na całe zamówienie i zależy od wybranej metody. Dodatkowe kody promocyjne są nadal sprawdzane przez Stripe i mogą obniżyć ceny figurek po rabacie ilościowym, ale nie wysyłkę.
 
-Wspólna wersja cennika to `2026-09-01-bulk3-v1`. Frontend i backend niezależnie liczą `saleSubtotal`, `bulkDiscount`, `bulkPricing` i końcowy `subtotal`; rozbieżność blokuje płatność. Stripe otrzymuje wyłącznie ceny wyliczone przez serwer. Basin zapisuje osobno standardową obniżkę 30%, `rabat_ilosciowy`, `cennik_3_plus`, koszt wysyłki i sumę końcową.
+Wspólna wersja cennika to `2026-09-01-delivery-v2`. Frontend i backend niezależnie liczą `saleSubtotal`, `bulkDiscount`, `bulkPricing` i końcowy `subtotal`; rozbieżność blokuje płatność. Stripe otrzymuje wyłącznie ceny i stawkę dostawy wyliczone przez serwer. Basin zapisuje osobno standardową obniżkę 30%, `rabat_ilosciowy`, `cennik_3_plus`, koszt wysyłki i sumę końcową.
 
-## Aktualizacja 31.08.2026 — koszt wysyłki 16,49 zł
+## Historyczna aktualizacja 31.08.2026 — stały koszt wysyłki 16,49 zł
 
-Do każdego zamówienia doliczany jest jeden stały koszt wysyłki 16,49 zł, niezależnie od liczby figurek i wyboru paczkomatu lub adresu. Pole sumy pokazuje działanie „figurki + wysyłka = razem” przed przejściem do płatności. Stripe otrzymuje koszt jako stałą stawkę dostawy, dzięki czemu dodatkowy kod promocyjny obniża figurki, a nie wysyłkę. Baner „Własna figurka już od 98 zł” znajduje się w lewej kolumnie sekcji formularza, pod listą korzyści.
+Ten opis dotyczy poprzedniej wersji. Wtedy do każdego zamówienia doliczany był jeden stały koszt wysyłki 16,49 zł, niezależnie od liczby figurek i wyboru paczkomatu lub adresu. Obecne zasady opisano na początku dokumentu.
 
-Backend sprawdza zwrócone przez Stripe `total_details.amount_shipping`, sumę produktów, dodatkowy rabat i kwotę końcową. Odpowiedź zawiera `shippingAmount: 1649`; formularz odrzuca starszy backend lub inną kwotę. Basin otrzymuje osobne pole `koszt_wysylki`, a pola `cena`, `cena_przed_kodem` i `cena_przed_rabatem` obejmują wysyłkę. Wymagana wersja cennika to `2026-09-01-bulk3-v1`.
+Backend nadal sprawdza zwrócone przez Stripe `total_details.amount_shipping`, sumę produktów, dodatkowy rabat i kwotę końcową. Basin otrzymuje osobne pole `koszt_wysylki`, a pola `cena`, `cena_przed_kodem` i `cena_przed_rabatem` obejmują wysyłkę.
 
 ## Aktualizacja 31.08.2026 — nowy cennik i automatyczne 30%
 
@@ -46,13 +52,13 @@ Potwierdzenie ostatniej ceny nie jest potwierdzeniem najniższej ceny z 30 dni. 
 
 ### Bezpieczna publikacja
 
-Wymagana wersja cennika to `2026-09-01-bulk3-v1`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, cennika 3+, kosztu wysyłki, obniżki automatycznej i kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
+Wymagana wersja cennika to `2026-09-01-delivery-v2`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, cennika 3+, metody i kosztu wysyłki, obniżki automatycznej oraz kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
 
 Opublikuj ten sam aktualny `main` w GitHub Pages i na Renderze (**Manual Deploy → Deploy latest commit**). Obie usługi muszą zakończyć publikację, zanim nowe zamówienia będą działać. Przez czas różnicy wersji lub ze starej otwartej karty formularz może prosić o odświeżenie, ale nie naliczy niezgodnej kwoty. `/health` udostępnia `pricingVersion`. Nie zmieniaj klucza produkcyjnego. Testy lokalne używają atrap Stripe/Basin, bez płatności i wysyłania zgłoszeń; nie zastępują sprawdzenia obu wdrożeń.
 
 Poniżej zachowano historyczne etapy prac. Opis zgodności bez kodu ze starszym backendem oraz dawne kwoty dotyczą poprzednich wersji.
 
-Weryfikacja tej aktualizacji: kontrola składni oraz 44 testy przeszły. Testy obejmują wszystkie 231 dopuszczalnych rozmiarów, próg 3 sztuk, powrót do cen 1–2 po usunięciu figurki, pozycje Stripe, sumę 760 zł za pięć progów, połączenie cennika 3+ z dodatkowym kodem, analitykę i odmowę płatności przy różnicach wersji/cen. Bez rzeczywistych obciążeń i zgłoszeń Basin.
+Weryfikacja aktualnego kodu: kontrola składni oraz 45 testów przeszły. Testy obejmują wszystkie 231 dopuszczalnych rozmiarów, próg 3 sztuk, obie stawki dostawy, pozycje Stripe, sumę 760 zł za pięć progów, połączenie cennika 3+ z dodatkowym kodem, analitykę i odmowę płatności przy różnicach wersji/cen. Bez rzeczywistych obciążeń i zgłoszeń Basin.
 
 ## Aktualizacja 31.08.2026 — kod na stronie i akceptacja regulaminu
 
@@ -74,7 +80,7 @@ Basin otrzymuje `kod_promocyjny`, `cena_przed_rabatem`, `rabat`, końcową `cena
 
 1. Klucz produkcyjny używany przez Render potrzebuje dodatkowo **Promotion Codes: Read** (API `promotion_code_read`), oprócz dotychczasowego dostępu Checkout Sessions. Nie potrzeba uprawnień tworzenia kuponów/kodów ani odczytu Customers. Nie możemy potwierdzić uprawnień klucza serwera na podstawie uprawnień osobnego połączenia wtyczki Stripe.
 2. Po publikacji na `main` wykonaj **Manual Deploy → Deploy latest commit** na `axi-checkout`. Kod w GitHub Pages i kod backendu to osobne wdrożenia. Nie przełączaj klucza produkcyjnego na testowy.
-3. Nowy formularz blokuje użycie kodu, jeżeli stary backend nie potwierdzi rabatu (`checkoutVersion: 2`). Bez kodu zachowuje zgodność ze starszą odpowiedzią. Po wdrożeniu backendu odśwież już otwarte formularze: starsza wersja bez checkboxa nie utworzy nowej sesji.
+3. Aktualny formularz wymaga odpowiedzi `checkoutVersion: 3` oraz zgodnej metody i kwoty dostawy. Po wdrożeniu backendu odśwież już otwarte formularze: starsza wersja nie utworzy sesji według nowych zasad.
 4. Sprawdź kod w osobnym środowisku testowym. Lokalne testy nie tworzą rzeczywistych sesji rabatowych i nie wysyłają Basin. Kontrola dostępu do kodów na wdrożonym API może użyć nieistniejącego kodu: oczekiwane 400, a 503 z logiem `promotion_lookup` / 403 wskazuje brak uprawnienia.
 
 Dokumentacja: [wyszukiwanie kodów](https://docs.stripe.com/api/promotion_codes/list), [sesje Checkout](https://docs.stripe.com/api/checkout/sessions/create). Poniżej zachowano wcześniejsze etapy prac; informacja o wpisywaniu kodu na Stripe opisuje poprzednią wersję.

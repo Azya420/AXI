@@ -4,7 +4,7 @@ import { handleCheckout, validateOrder, stripeParameters } from '../api/checkout
 import { getPrice, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
 
 const id = '081d9e64-638e-4a29-882e-39f5212cf96b';
-const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: id, email: 'test@example.com', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
+const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: id, email: 'test@example.com', deliveryMethod: 'locker', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
 const config = { stripeKey: 'test-only-not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const request = (body = order, headers = {}) => new Request('https://example.com/checkout-session', { method: 'POST', headers: { Origin: 'https://axi3d.pl', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
@@ -20,7 +20,11 @@ test('three figurines use quantity prices plus one 16,49 zł shipping rate', () 
   assert.equal(params.get('metadata[bulk_pricing_applied]'), 'true');
   assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '1649');
   assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][currency]'), 'pln');
-  assert.equal(params.get('shipping_options[0][shipping_rate_data][display_name]'), 'Wysyłka');
+  assert.equal(params.get('shipping_options[0][shipping_rate_data][display_name]'), 'Paczkomat InPost');
+  assert.equal(params.get('metadata[shipping_method]'), 'locker');
+  const address = stripeParameters(validateOrder({ ...order, deliveryMethod: 'address' }), config.siteOrigin);
+  assert.equal(address.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '1949');
+  assert.equal(address.get('shipping_options[0][shipping_rate_data][display_name]'), 'Dostawa na adres');
 });
 test('checkout keeps code entry on the website while preserving shipping and tax rules', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
@@ -52,6 +56,7 @@ test('reject empty, oversized, fractional, string, out-of-range orders', () => {
   }
   assert.throws(() => validateOrder({ ...order, email: 'invalid' }));
   assert.throws(() => validateOrder({ ...order, orderId: 'invalid' }));
+  for (const deliveryMethod of [undefined, '', 'courier', 1]) assert.throws(() => validateOrder({ ...order, deliveryMethod }));
   for (let size = 20; size <= 250; size++) assert.ok(getPrice(size), `missing price: ${size}`);
   for (const size of [20, 60, 70, 100, 110, 150, 160, 200, 210, 250]) assert.ok(getPrice(size));
 });
@@ -71,7 +76,8 @@ test('retries use stable idempotency and changed orders use a different key', as
     assert.equal(response.headers.get('Access-Control-Allow-Origin'), config.siteOrigin);
     const result = await response.json();
     assert.equal(result.url, 'https://checkout.stripe.com/c/pay/test-session');
-    assert.equal(result.checkoutVersion, 2);
+    assert.equal(result.checkoutVersion, 3);
+    assert.equal(result.deliveryMethod, body.deliveryMethod);
     assert.equal(result.discount, 0);
     assert.equal(result.shippingAmount, SHIPPING_AMOUNT);
     assert.equal(result.total, body.items.reduce((sum, item) => sum + getPrice(item.size, body.items.length).amount, 0) + SHIPPING_AMOUNT);

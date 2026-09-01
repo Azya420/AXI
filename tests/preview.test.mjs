@@ -43,7 +43,9 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
   assert.ok(!html.includes('data-field="sale-badge"'));
-  assert.match(html, /src="order-form.mjs\?v=20260901-offer-countdown-v2"/);
+  assert.match(html, /Paczkomat InPost \(16,49 zł\)/);
+  assert.match(html, /Na adres \(19,49 zł\)/);
+  assert.match(html, /src="order-form.mjs\?v=20260901-delivery-v2"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes(config.stripeKey));
@@ -58,7 +60,7 @@ test('preview does not rewrite remote references or empty image placeholders', (
   assert.match(html, /href="https:\/\/axi3d.pl\/regulamin.html"/);
 });
 test('preview checkout returns to preview and rejects any non-test Stripe session', async () => {
-  const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', items: [{ size: 32 }] };
+  const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', deliveryMethod: 'locker', items: [{ size: 32 }] };
   const origin = 'https://axi-checkout.onrender.com';
   const params = stripeParameters(order, origin, true);
   assert.equal(params.get('success_url'), origin + '/preview/success');

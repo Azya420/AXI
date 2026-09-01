@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, SHIPPING_AMOUNT, BULK_MIN_FIGURINES, getPrice } from '../pricing.mjs';
+import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getDeliveryOption } from '../pricing.mjs';
 
 const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -16,13 +16,16 @@ export function validateOrder(order) {
     if (!item || !getPrice(item.size)) throw new Error('Nieprawidłowy rozmiar figurki.');
     return { size: item.size };
   });
+  const deliveryMethod = order.deliveryMethod;
+  if (!getDeliveryOption(deliveryMethod)) throw new Error('Nieprawidłowy sposób dostawy.');
   if (order.promotionCode !== undefined && typeof order.promotionCode !== 'string') throw new Error('Nieprawidłowy kod promocyjny.');
   const promotionCode = (order.promotionCode || '').trim().toUpperCase();
   if (promotionCode && !/^[A-Z0-9-]{1,500}$/.test(promotionCode)) throw new Error('Nieprawidłowy kod promocyjny.');
-  return { orderId: order.orderId, email: order.email, items, promotionCode, termsAccepted: true };
+  return { orderId: order.orderId, email: order.email, items, deliveryMethod, promotionCode, termsAccepted: true };
 }
 
 export function stripeParameters(order, siteOrigin, preview = false, promotionId = null) {
+  const delivery = getDeliveryOption(order.deliveryMethod);
   const params = new URLSearchParams({
     mode: 'payment', customer_email: order.email, client_reference_id: order.orderId,
     // Pozostałe ustawienia zachowują zasady pięciu linków AXI3D (30.08.2026).
@@ -40,19 +43,21 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'metadata[pricing_version]': PRICING_VERSION,
     'metadata[automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
     'metadata[bulk_pricing_applied]': String(order.items.length >= BULK_MIN_FIGURINES),
-    'metadata[shipping_amount]': String(SHIPPING_AMOUNT),
+    'metadata[shipping_method]': order.deliveryMethod,
+    'metadata[shipping_amount]': String(delivery.amount),
     'metadata[regular_subtotal]': String(order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0)),
     'payment_intent_data[metadata][pricing_version]': PRICING_VERSION,
     'payment_intent_data[metadata][automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
     'payment_intent_data[metadata][bulk_pricing_applied]': String(order.items.length >= BULK_MIN_FIGURINES),
-    'payment_intent_data[metadata][shipping_amount]': String(SHIPPING_AMOUNT),
+    'payment_intent_data[metadata][shipping_method]': order.deliveryMethod,
+    'payment_intent_data[metadata][shipping_amount]': String(delivery.amount),
     'payment_intent_data[metadata][terms_accepted]': 'true',
     'payment_intent_data[metadata][terms_version]': TERMS_VERSION
   });
   params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
-  params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(SHIPPING_AMOUNT));
+  params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(delivery.amount));
   params.set('shipping_options[0][shipping_rate_data][fixed_amount][currency]', 'pln');
-  params.set('shipping_options[0][shipping_rate_data][display_name]', 'Wysyłka');
+  params.set('shipping_options[0][shipping_rate_data][display_name]', delivery.displayName);
   // Nie łączymy discounts z allow_promotion_codes. Kod nie jest edytowany w Stripe.
   if (promotionId) {
     params.set('discounts[0][promotion_code]', promotionId);
@@ -229,20 +234,21 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     // Nie ujawniamy klientowi kluczy ani szczegółów błędów konta Stripe.
     if (!session.url || new URL(session.url).hostname !== 'checkout.stripe.com' || !session.url.startsWith('https://')) throw new Error('Stripe unavailable');
     const subtotal = order.items.reduce((sum, item) => sum + getPrice(item.size, order.items.length).amount, 0);
+    const delivery = getDeliveryOption(order.deliveryMethod);
     const total = session.amount_total;
     const discount = session.total_details?.amount_discount;
     const shippingAmount = session.total_details?.amount_shipping;
     if (session.currency !== 'pln' || session.amount_subtotal !== subtotal ||
-        shippingAmount !== SHIPPING_AMOUNT || !Number.isInteger(total) || !Number.isInteger(discount) ||
-        discount < 0 || total < SHIPPING_AMOUNT || total + discount !== subtotal + SHIPPING_AMOUNT ||
+        shippingAmount !== delivery.amount || !Number.isInteger(total) || !Number.isInteger(discount) ||
+        discount < 0 || total < delivery.amount || total + discount !== subtotal + delivery.amount ||
         (!promotionId && discount !== 0)) throw new Error('Invalid totals');
     if (promotionId && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
     const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount, 0);
     const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount, 0);
-    return json(200, { url: session.url, checkoutVersion: 2, pricingVersion: PRICING_VERSION,
+    return json(200, { url: session.url, checkoutVersion: 3, pricingVersion: PRICING_VERSION,
       regularSubtotal, saleSubtotal, automaticDiscount: regularSubtotal - saleSubtotal,
       bulkDiscount: saleSubtotal - subtotal, bulkPricing: order.items.length >= BULK_MIN_FIGURINES,
-      subtotal, shippingAmount, discount, total, currency: 'pln', promotionCode: order.promotionCode });
+      subtotal, deliveryMethod: order.deliveryMethod, shippingAmount, discount, total, currency: 'pln', promotionCode: order.promotionCode });
   } catch {
     // Tylko kontrolowane pola diagnostyczne. Nigdy error.message Stripe,
     // treść odpowiedzi, dane zamówienia ani Authorization (mogą zawierać klucz).
