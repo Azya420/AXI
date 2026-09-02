@@ -180,10 +180,13 @@ export function initOrderForm(win) {
       addCopy.textContent = price ? '＋ Dodaj kolejny wydruk za ' + formatPrice(price.additionalCopyAmount) : '＋ Dodaj kolejny identyczny wydruk';
       const discounted = price && price.amount < price.regularAmount;
       const regularPrice = field(card, 'regular-price');
+      const lowestPriceNote = field(card, 'lowest-price-note');
       regularPrice.hidden = !discounted;
       const comparisonTotal = price ? (bulkPricing ? price.saleAmount : price.regularAmount) + Math.max(0, copies - 1) * price.additionalCopyAmount : 0;
       regularPrice.textContent = discounted && itemSubtotal !== null ? formatPrice(comparisonTotal) : '';
       regularPrice.setAttribute('aria-label', discounted && itemSubtotal !== null ? (bulkPricing ? 'Cena przy 1–2 projektach: ' : 'Cena przed obniżką: ') + formatPrice(comparisonTotal) : 'Cena przed obniżką');
+      lowestPriceNote.hidden = !price;
+      lowestPriceNote.textContent = price ? 'Najniższa cena pojedynczej figurki z 30 dni przed obniżką: ' + formatPrice(price.regularAmount) + '.' : '';
       field(card, 'price').setAttribute('aria-label', itemSubtotal !== null ? 'Cena za wszystkie identyczne wydruki tej figurki: ' + formatPrice(itemSubtotal) : 'Cena');
       field(card, 'copy-price').textContent = price ? 'Każdy dodatkowy identyczny wydruk: ' + formatPrice(price.additionalCopyAmount) + '.' : 'Każdy dodatkowy wydruk zostanie doliczony według rozmiaru.';
       if (itemSubtotal !== null) {

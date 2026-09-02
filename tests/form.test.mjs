@@ -103,6 +103,7 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   const s = setup();
   assert.equal(s.$('promo-discount').textContent, '−30%');
   assert.equal(s.$('promo-min-price').textContent, '98 zł');
+  assert.match(s.$('promo-spotlight').textContent, /Najniższa cena z 30 dni przed obniżką: od 140 zł/);
   assert.equal(s.$('journey-min-price').textContent, '98 zł');
   assert.match(s.$('journey-min-price').closest('.journey-price-sticker').textContent, /Już od/);
   assert.equal(s.$('promo-spotlight').hidden, false);
@@ -119,6 +120,11 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.match(s.doc.querySelector('input[value="Na adres"]').closest('label').textContent, /19,49 zł/);
   assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['65 zł', '105 zł', '150 zł']);
   assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="regular-price"]').textContent), ['98 zł', '126 zł', '175 zł']);
+  assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="lowest-price-note"]').textContent), [
+    'Najniższa cena pojedynczej figurki z 30 dni przed obniżką: 140 zł.',
+    'Najniższa cena pojedynczej figurki z 30 dni przed obniżką: 180 zł.',
+    'Najniższa cena pojedynczej figurki z 30 dni przed obniżką: 250 zł.'
+  ]);
   assert.ok(s.cards().every(card => !card.querySelector('[data-field="sale-badge"]')));
   assert.equal(s.$('order-total').textContent, 'Suma: 320 zł');
   assert.equal(s.$('price-hidden').value, '336,49 zł');
