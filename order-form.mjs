@@ -55,6 +55,8 @@ export function initOrderForm(win) {
   let promotionReview = null;
   let geowidgetInitialized = false;
   let previousDisabled = [];
+  let figurineFormStarted = false;
+  let shippingDetailsStarted = false;
   const selectedPhotos = new WeakMap();
 
   function photoKey(file) {
@@ -131,13 +133,23 @@ export function initOrderForm(win) {
     };
   }
   function trackGaEvent(name, params) {
-    if (preview || typeof win.gtag !== 'function') return;
+    if (preview || typeof win.gtag !== 'function') return false;
     win.gtag('event', name, params);
+    return true;
   }
   function trackMetaEvent(name, params, options) {
     if (preview || !win.AXI_TRACKING?.trackMeta) return;
     win.AXI_TRACKING.trackMeta(name, params, options);
   }
+  function trackFigurineFormStart(event) {
+    if (figurineFormStarted || !event.target.closest('.figurine-card')) return;
+    figurineFormStarted = trackGaEvent('figurine_form_start', {
+      form_id: 'commission-form',
+      form_name: 'Zamówienie figurki'
+    });
+  }
+  form.addEventListener('input', trackFigurineFormStart);
+  form.addEventListener('change', trackFigurineFormStart);
   function refresh() {
     let total = 0;
     let valid = true;
@@ -340,6 +352,14 @@ export function initOrderForm(win) {
     modal.setAttribute('aria-hidden', 'false');
     doc.body.style.overflow = 'hidden';
     updateDelivery();
+    if (!shippingDetailsStarted) {
+      const analytics = analyticsSnapshot(cardItems());
+      shippingDetailsStarted = trackGaEvent('shipping_details_start', {
+        form_id: 'commission-form',
+        form_name: 'Dane do wysyłki',
+        ...analytics
+      });
+    }
     byId('name').focus();
   }
   function closeModal() {

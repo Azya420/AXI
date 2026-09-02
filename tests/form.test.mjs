@@ -74,6 +74,31 @@ test('special-offer countdown uses one shared seven-day deadline', () => {
   assert.equal(formatSpecialOfferCountdown(Date.parse(SPECIAL_OFFER_END)), 'Oferta zakończona');
 });
 
+test('GA records the first figurine edit and the first valid transition to shipping details once', () => {
+  const s = setup();
+  const events = [];
+  s.win.gtag = (...args) => events.push(args);
+
+  s.input(s.$('desc'), 'Wojownik');
+  s.input(s.$('desc'), 'Wojownik z mieczem');
+  assert.equal(events.filter(event => event[1] === 'figurine_form_start').length, 1);
+  assert.deepEqual(events.find(event => event[1] === 'figurine_form_start')[2], {
+    form_id: 'commission-form', form_name: 'Zamówienie figurki'
+  });
+
+  s.$('open-shipping-btn').click();
+  assert.equal(events.filter(event => event[1] === 'shipping_details_start').length, 0);
+  s.size(0, '32');
+  s.$('open-shipping-btn').click();
+  s.$('shipping-modal-close').click();
+  s.$('open-shipping-btn').click();
+  const shippingEvents = events.filter(event => event[1] === 'shipping_details_start');
+  assert.equal(shippingEvents.length, 1);
+  assert.equal(shippingEvents[0][2].form_name, 'Dane do wysyłki');
+  assert.equal(shippingEvents[0][2].value, 98);
+  s.dom.window.close();
+});
+
 test('add/remove preserves existing inputs, renumbers cards and sums different sizes', () => {
   const s = setup();
   assert.equal(s.$('promo-discount').textContent, '−30%');
