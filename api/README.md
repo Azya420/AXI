@@ -14,11 +14,11 @@ W układzie mobilnym obraz w pierwszym kafelku sekcji „Zamień swój pomysł�
 
 Formularz pokazuje przy metodach dostawy: „Paczkomat InPost (16,49 zł)” oraz „Na adres (19,49 zł)”. Pole „Suma” i podsumowanie w oknie danych pokazują wyłącznie ceny figurek; koszt dostawy jest dodawany do końcowej kwoty dopiero w Stripe. Do API trafia techniczna wartość `deliveryMethod` (`locker` albo `address`), a backend wybiera z zaufanej konfiguracji jedną stawkę Stripe. Klient nie może przesłać własnej kwoty wysyłki.
 
-Stripe pokazuje odpowiednio „Paczkomat InPost” lub „Dostawa na adres”. Backend sprawdza metodę, `total_details.amount_shipping` i końcową sumę; odpowiedź ma `checkoutVersion: 4`, `deliveryMethod` i właściwe `shippingAmount`. Basin oraz analityka zapisują koszt zgodny z wyborem. Kod promocyjny nadal obniża figurki, nie wysyłkę, a zmiana metody dostawy unieważnia wcześniej przygotowaną wycenę kodu. Wspólna wersja cennika to `2026-09-01-copies-v1`.
+Stripe pokazuje odpowiednio „Paczkomat InPost” lub „Dostawa na adres”. Backend sprawdza metodę, `total_details.amount_shipping` i końcową sumę; odpowiedź ma `checkoutVersion: 4`, `deliveryMethod` i właściwe `shippingAmount`. Basin oraz analityka zapisują koszt zgodny z wyborem. Kod promocyjny nadal obniża figurki, nie wysyłkę, a zmiana metody dostawy unieważnia wcześniej przygotowaną wycenę kodu. Wspólna wersja cennika to `2026-09-03-copies-v2`.
 
 ## Identyczne wydruki tej samej figurki (01.09.2026)
 
-Każda karta figurki ma pole liczby identycznych wydruków (1–20). Pierwszy egzemplarz korzysta z aktualnej ceny projektu, a każdy kolejny kosztuje odpowiednio 10 / 15 / 30 / 50 / 100 zł dla progów 20–60 / 61–100 / 101–150 / 151–200 / 201–250 mm. Próg 3+ dotyczy liczby różnych projektów, a nie liczby kopii tego samego projektu.
+Każda karta figurki ma pole liczby identycznych wydruków (1–20). Pierwszy egzemplarz korzysta z aktualnej ceny projektu, a każdy kolejny kosztuje odpowiednio 10 / 20 / 40 / 80 / 150 zł dla progów 20–60 / 61–100 / 101–150 / 151–200 / 201–250 mm. Próg 3+ dotyczy liczby różnych projektów, a nie liczby kopii tego samego projektu.
 
 Frontend pokazuje łączną cenę wszystkich kopii, stawkę kolejnego wydruku oraz fizyczną liczbę zamawianych figurek. Backend ignoruje kwoty przesłane przez klienta, waliduje `copies`, a w Stripe tworzy osobną pozycję dla pierwszego egzemplarza i pozycję ilościową dla tańszych kopii. Metadane zawierają osobno `figurine_count` i `design_count`; Basin oraz GA4/Meta otrzymują ilości kopii.
 
@@ -36,7 +36,7 @@ Przy zamówieniu co najmniej 3 figurek wszystkie pozycje automatycznie korzystaj
 
 Drugi baner w lewej kolumnie formularza informuje „Im więcej figurek, tym taniej” oraz „od 65 zł za figurkę”. Ma ten sam złoty znak i pasek co baner „Oferta specjalna”. Przy aktywnym cenniku 3+ karta figurki przekreśla cenę po obecnej promocji i pokazuje cenę ilościową, bez dodatkowych plakietek „−30%” lub „CENA 3+” w polu ceny. Koszt wysyłki pozostaje jeden na całe zamówienie i zależy od wybranej metody. Dodatkowe kody promocyjne są nadal sprawdzane przez Stripe i mogą obniżyć ceny figurek po rabacie ilościowym, ale nie wysyłkę.
 
-Wspólna wersja cennika to `2026-09-01-copies-v1`. Frontend i backend niezależnie liczą `saleSubtotal`, `bulkDiscount`, `bulkPricing`, dopłaty za identyczne wydruki i końcowy `subtotal`; rozbieżność blokuje płatność. Stripe otrzymuje wyłącznie ceny, ilości i stawkę dostawy wyliczone przez serwer. Basin zapisuje osobno standardową obniżkę 30%, `rabat_ilosciowy`, `cennik_3_plus`, koszt wysyłki i sumę końcową.
+Wspólna wersja cennika to `2026-09-03-copies-v2`. Frontend i backend niezależnie liczą `saleSubtotal`, `bulkDiscount`, `bulkPricing`, dopłaty za identyczne wydruki i końcowy `subtotal`; rozbieżność blokuje płatność. Stripe otrzymuje wyłącznie ceny, ilości i stawkę dostawy wyliczone przez serwer. Basin zapisuje osobno standardową obniżkę 30%, `rabat_ilosciowy`, `cennik_3_plus`, koszt wysyłki i sumę końcową.
 
 ## Historyczna aktualizacja 31.08.2026 — stały koszt wysyłki 16,49 zł
 
@@ -68,7 +68,7 @@ Potwierdzenie ostatniej ceny nie jest potwierdzeniem najniższej ceny z 30 dni. 
 
 ### Bezpieczna publikacja
 
-Wymagana wersja cennika to `2026-09-01-copies-v1`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, dopłat za kopie, cennika 3+, metody i kosztu wysyłki, obniżki automatycznej oraz kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
+Wymagana wersja cennika to `2026-09-03-copies-v2`. Nowy backend odrzuca stare formularze (HTTP 409 `pricing_changed`) przed utworzeniem sesji Stripe. Nowy formularz wymaga od backendu tej samej wersji, zgodnych kwot bazowych, dopłat za kopie, cennika 3+, metody i kosztu wysyłki, obniżki automatycznej oraz kwoty końcowej, również bez kodu. Nie wysyła Basin ani nie przekierowuje przy rozbieżności. Usunięto awaryjne przekierowania do starych Payment Links, ponieważ miałyby nieaktualne ceny.
 
 Opublikuj ten sam aktualny `main` w GitHub Pages i na Renderze (**Manual Deploy → Deploy latest commit**). Obie usługi muszą zakończyć publikację, zanim nowe zamówienia będą działać. Przez czas różnicy wersji lub ze starej otwartej karty formularz może prosić o odświeżenie, ale nie naliczy niezgodnej kwoty. `/health` udostępnia `pricingVersion`. Nie zmieniaj klucza produkcyjnego. Testy lokalne używają atrap Stripe/Basin, bez płatności i wysyłania zgłoszeń; nie zastępują sprawdzenia obu wdrożeń.
 

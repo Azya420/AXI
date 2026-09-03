@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, MAX_COPIES_PER_FIGURINE, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260901-copies-v1';
+import { MAX_FIGURINES, MAX_COPIES_PER_FIGURINE, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260903-copies-v2';
 
 export const SPECIAL_OFFER_END = '2026-09-08T11:00:07Z';
 

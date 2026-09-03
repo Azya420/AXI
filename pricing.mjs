@@ -1,6 +1,6 @@
 export const MAX_FIGURINES = 20;
 export const MAX_COPIES_PER_FIGURINE = 20;
-export const PRICING_VERSION = '2026-09-01-copies-v1';
+export const PRICING_VERSION = '2026-09-03-copies-v2';
 export const AUTOMATIC_DISCOUNT_PERCENT = 30;
 export const SHIPPING_AMOUNT = 1649;
 export const DELIVERY_OPTIONS = Object.freeze({
@@ -12,10 +12,10 @@ export const BULK_MIN_FIGURINES = 3;
 // Rabat jest naliczany także na serwerze; klient nie przekazuje własnych kwot.
 export const PRICE_BRACKETS = [
   { min: 20, max: 60, label: '20–60 mm', regularAmount: 14000, bulkAmount: 6500, additionalCopyAmount: 1000 },
-  { min: 61, max: 100, label: '61–100 mm', regularAmount: 18000, bulkAmount: 10500, additionalCopyAmount: 1500 },
-  { min: 101, max: 150, label: '101–150 mm', regularAmount: 25000, bulkAmount: 15000, additionalCopyAmount: 3000 },
-  { min: 151, max: 200, label: '151–200 mm', regularAmount: 32000, bulkAmount: 19500, additionalCopyAmount: 5000 },
-  { min: 201, max: 250, label: '201–250 mm', regularAmount: 40000, bulkAmount: 24500, additionalCopyAmount: 10000 }
+  { min: 61, max: 100, label: '61–100 mm', regularAmount: 18000, bulkAmount: 10500, additionalCopyAmount: 2000 },
+  { min: 101, max: 150, label: '101–150 mm', regularAmount: 25000, bulkAmount: 15000, additionalCopyAmount: 4000 },
+  { min: 151, max: 200, label: '151–200 mm', regularAmount: 32000, bulkAmount: 19500, additionalCopyAmount: 8000 },
+  { min: 201, max: 250, label: '201–250 mm', regularAmount: 40000, bulkAmount: 24500, additionalCopyAmount: 15000 }
 ].map(price => Object.freeze({
   ...price,
   saleAmount: Math.round(price.regularAmount * (100 - AUTOMATIC_DISCOUNT_PERCENT) / 100),

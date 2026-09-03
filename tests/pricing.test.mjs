@@ -29,7 +29,7 @@ test('all 231 integer sizes use the regular sale and requested 3+ prices', () =>
 });
 
 test('every additional identical print uses the requested size-bracket price', () => {
-  for (const [size, additional] of [[20, 1000], [61, 1500], [101, 3000], [151, 5000], [201, 10000]]) {
+  for (const [size, additional] of [[20, 1000], [61, 2000], [101, 4000], [151, 8000], [201, 15000]]) {
     assert.equal(getPrice(size).additionalCopyAmount, additional);
     assert.equal(getItemSubtotal(size, 3), getPrice(size).amount + 2 * additional);
   }
