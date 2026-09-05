@@ -1469,8 +1469,10 @@
   }
   .journey-price-sticker:hover{ transform:rotate(2deg) scale(1.05); box-shadow:0 10px 30px rgba(0,0,0,.44), 0 0 0 5px rgba(201,162,75,.2); }
   .journey-price-sticker:focus-visible{ outline:2px solid var(--ink); outline-offset:4px; }
-  .journey-price-sticker span{ display:block; font-size:.58rem; line-height:1.1; letter-spacing:.09em; }
-  .journey-price-sticker strong{ display:block; margin-top:3px; font-family:'Cinzel',serif; font-size:1rem; line-height:1.05; white-space:nowrap; }
+  .journey-price-sticker span{ display:block; font-size:.5rem; line-height:1; letter-spacing:.09em; }
+  .journey-price-sticker strong{ display:block; margin-top:2px; font-family:'Cinzel',serif; font-size:.88rem; line-height:1.05; white-space:nowrap; }
+  .journey-price-sticker strong small{ font:inherit; font-size:.58rem; }
+  .journey-price-sticker em{ display:block; max-width:68px; margin:3px auto 0; font-style:normal; font-size:.43rem; font-weight:700; line-height:1.15; letter-spacing:.02em; }
   .journey-final .journey-label{ right:104px; }
   .journey-label{
     position:absolute;
@@ -1783,9 +1785,10 @@
 
         <div class="journey-card journey-final">
           <div class="journey-label"><b>03</b><span>Gotowa figurka</span></div>
-          <a href="#zamow" class="journey-price-sticker" aria-label="Figurki już od 98 zł — przejdź do formularza zamówienia">
-            <span>Już od</span>
-            <strong id="journey-min-price">98 zł</strong>
+          <a href="#zamow" class="journey-price-sticker" aria-label="Figurki od 65 zł za sztukę przy zamówieniu co najmniej 3 projektów — przejdź do formularza zamówienia">
+            <span>od</span>
+            <strong><b id="journey-min-price">65 zł</b><small>/szt.</small></strong>
+            <em>przy 3+ projektach</em>
           </a>
           <div class="journey-media">
             <img src="GOTOWA.png" alt="Gotowa wydrukowana figurka wojownika">
@@ -2539,7 +2542,7 @@
   </div>
 
   <script src="checkout-config.js"></script>
-  <script type="module" src="order-form.mjs?v=20260905-thirty-day-offer"></script>
+  <script type="module" src="order-form.mjs?v=20260905-bulk-price-sticker"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">

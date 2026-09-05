@@ -31,10 +31,11 @@ export function initOrderForm(win) {
   const errorBox = byId('order-error');
   const preview = win.AXI_PREVIEW_MODE === true;
   const minimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.amount));
+  const bulkMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.bulkAmount));
   byId('promo-spotlight').hidden = AUTOMATIC_DISCOUNT_PERCENT <= 0;
   byId('promo-discount').textContent = '−' + AUTOMATIC_DISCOUNT_PERCENT + '%';
   byId('promo-min-price').textContent = formatPrice(minimumPrice);
-  byId('journey-min-price').textContent = formatPrice(minimumPrice);
+  byId('journey-min-price').textContent = formatPrice(bulkMinimumPrice);
   const promoCountdown = byId('promo-countdown');
   const refreshPromoCountdown = () => {
     const text = formatSpecialOfferCountdown(win.Date.now());

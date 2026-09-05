@@ -36,7 +36,8 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /Własna figurka już od/);
   assert.match(html, /class="journey-price-sticker"/);
   assert.match(html, /\.journey-source \.journey-media img\{\s*object-fit:contain;/);
-  assert.match(html, /id="journey-min-price">98 zł/);
+  assert.match(html, /id="journey-min-price">65 zł/);
+  assert.match(html, /przy 3\+ projektach/);
   assert.match(html, /id="promo-countdown"/);
   assert.match(html, /Oferta specjalna/);
   assert.doesNotMatch(html, /Im więcej figurek, tym taniej/);
@@ -49,7 +50,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('data-field="sale-badge"'));
   assert.match(html, /Paczkomat InPost \(16,49 zł\)/);
   assert.match(html, /Na adres \(19,49 zł\)/);
-  assert.match(html, /src="order-form.mjs\?v=20260905-thirty-day-offer"/);
+  assert.match(html, /src="order-form.mjs\?v=20260905-bulk-price-sticker"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes('tracking.js'));

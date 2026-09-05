@@ -104,8 +104,8 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.equal(s.$('promo-discount').textContent, '−30%');
   assert.equal(s.$('promo-min-price').textContent, '98 zł');
   assert.match(s.$('promo-spotlight').textContent, /Najniższa cena z 30 dni przed obniżką: od 140 zł/);
-  assert.equal(s.$('journey-min-price').textContent, '98 zł');
-  assert.match(s.$('journey-min-price').closest('.journey-price-sticker').textContent, /Już od/);
+  assert.equal(s.$('journey-min-price').textContent, '65 zł');
+  assert.match(s.$('journey-min-price').closest('.journey-price-sticker').textContent, /przy 3\+ projektach/);
   assert.equal(s.$('promo-spotlight').hidden, false);
   assert.match(s.$('promo-countdown').textContent, /^(\d+ dni |1 dzień )?\d{2}:\d{2}:\d{2}$/);
   assert.equal(s.$('bulk-spotlight'), null);
