@@ -824,6 +824,8 @@
   .terms-consent{ display:flex; gap:12px; align-items:flex-start; margin:0; font-family:'Sora',sans-serif; font-size:0.86rem; line-height:1.6; letter-spacing:normal; text-transform:none; color:var(--ink-dim); cursor:pointer; }
   .terms-consent input{ width:18px; height:18px; flex:0 0 18px; margin-top:3px; padding:0; accent-color:var(--violet); }
   .terms-consent a{ color:var(--violet-bright); text-decoration:underline; text-underline-offset:3px; }
+  .product-safety-note{ margin:-2px 0 0 30px; color:var(--ink-faint); font-family:'Sora',sans-serif; font-size:0.68rem; line-height:1.55; letter-spacing:normal; text-transform:none; }
+  .footer-manufacturer{ display:block; margin-top:6px; color:var(--ink-faint); font-family:'Sora',sans-serif; font-size:0.66rem; line-height:1.5; }
   #shipping-modal [hidden]{ display:none; }
   #commission-form [hidden]{ display:none; }
   #commission-form button:disabled, #shipping-modal button:disabled{ opacity:0.55; cursor:wait; }
@@ -2530,6 +2532,7 @@
         <input id="terms-accepted" name="akceptacja_regulaminu" form="commission-form" type="checkbox" value="Tak" required>
         <span>Akceptuję <a href="regulamin.html" target="_blank" rel="noopener">regulamin sklepu</a>.</span>
       </label>
+      <p class="product-safety-note">Produkt kolekcjonerski 14+. Nie jest zabawką. Wykonany z utwardzonej żywicy; zawiera małe i kruche elementy.</p>
       <button type="submit" form="commission-form" class="btn btn-primary" id="commission-submit">Zamów figurkę</button>
     </div>
   </div>
@@ -2595,7 +2598,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2026 AXI. Wszystkie prawa zastrzeżone.</span>
+      <span>© 2026 AXI. Wszystkie prawa zastrzeżone.<small class="footer-manufacturer">Producent: Wojciech Nowakowski (AXI) · Nowy Świat 7/I, 44-100 Gliwice · <a href="mailto:kontakt@axi3d.pl">kontakt@axi3d.pl</a></small></span>
       <div class="footer-legal-links">
         <a href="regulamin.html">Regulamin</a>
         <a href="polityka-prywatnosci.html">Polityka prywatności</a>
