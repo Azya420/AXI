@@ -1455,7 +1455,10 @@
     color:#160c1f; background:var(--bronze); border:2px solid #ead29b;
     box-shadow:0 8px 24px rgba(0,0,0,.38), 0 0 0 4px rgba(201,162,75,.14);
     font-family:'JetBrains Mono',monospace; text-transform:uppercase; transform:rotate(6deg);
+    text-decoration:none; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease;
   }
+  .journey-price-sticker:hover{ transform:rotate(2deg) scale(1.05); box-shadow:0 10px 30px rgba(0,0,0,.44), 0 0 0 5px rgba(201,162,75,.2); }
+  .journey-price-sticker:focus-visible{ outline:2px solid var(--ink); outline-offset:4px; }
   .journey-price-sticker span{ display:block; font-size:.58rem; line-height:1.1; letter-spacing:.09em; }
   .journey-price-sticker strong{ display:block; margin-top:3px; font-family:'Cinzel',serif; font-size:1rem; line-height:1.05; white-space:nowrap; }
   .journey-final .journey-label{ right:104px; }
@@ -1734,7 +1737,7 @@
     <div class="wrap hero-v2-grid">
       <div class="hero-copy hero-v2-copy">
         <div class="eyebrow">Od pomysłu do figurki</div>
-        <h1>Zamień swój pomysł<br><em>w prawdziwą figurkę.</em></h1>
+        <h1>Zamień swój pomysł<br><em>w prawdziwą figurkę</em></h1>
         <p class="lead">Wyślij opis, szkic, kartę postaci lub zdjęcia. Stworzymy model 3D, prześlemy Ci go do akceptacji a potem zamienimy w wysokiej jakości figurkę z żywicy.</p>
         <div class="hero-ctas">
           <a href="#zamow" class="btn btn-primary">Stwórz swoją figurkę</a>
@@ -1770,16 +1773,16 @@
 
         <div class="journey-card journey-final">
           <div class="journey-label"><b>03</b><span>Gotowa figurka</span></div>
-          <div class="journey-price-sticker" aria-label="Figurki już od 98 zł">
+          <a href="#zamow" class="journey-price-sticker" aria-label="Figurki już od 98 zł — przejdź do formularza zamówienia">
             <span>Już od</span>
             <strong id="journey-min-price">98 zł</strong>
-          </div>
+          </a>
           <div class="journey-media">
             <img src="GOTOWA.png" alt="Gotowa wydrukowana figurka wojownika">
           </div>
         </div>
 
-        <div class="journey-caption"><strong>Prawdziwa realizacja</strong> · od referencji do druku</div>
+        <div class="journey-caption"><strong>Realizacja zamówienia</strong> - od zdjęcia do figurki</div>
       </div>
     </div>
   </section>
