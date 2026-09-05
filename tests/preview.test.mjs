@@ -33,7 +33,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('id="figurine-sale"'));
   assert.ok(!html.includes('Na wszystkie figurki. Rabat naliczamy automatycznie.'));
   assert.match(html, /id="promo-spotlight"/);
-  assert.match(html, /Im więcej projektów figurek, tym taniej/);
+  assert.match(html, /Im więcej figurek, tym taniej/);
   assert.match(html, /id="promo-pair-price"/);
   assert.match(html, /id="promo-bulk-price"/);
   assert.match(html, /class="journey-price-sticker"/);
@@ -42,7 +42,6 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /w zestawie/);
   assert.doesNotMatch(html, /id="promo-countdown"/);
   assert.match(html, /Rabat ilościowy/);
-  assert.doesNotMatch(html, /Im więcej figurek, tym taniej/);
   assert.match(html, /65 zł\/szt\./);
   assert.ok(html.indexOf('id="promo-spotlight"') < html.indexOf('<form id="commission-form"'));
   assert.ok(!html.includes('id="shipping-cost-label"'));

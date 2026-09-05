@@ -96,7 +96,7 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.equal(s.$('promo-discount').textContent, '2+');
   assert.equal(s.$('promo-pair-price').textContent, '88 zł');
   assert.equal(s.$('promo-bulk-price').textContent, '65 zł');
-  assert.match(s.$('promo-spotlight').textContent, /Im więcej projektów figurek, tym taniej/);
+  assert.match(s.$('promo-spotlight').textContent, /Im więcej figurek, tym taniej/);
   assert.doesNotMatch(s.$('promo-spotlight').textContent, /−30%|Najniższa cena/);
   assert.equal(s.$('journey-min-price').textContent, '65 zł');
   assert.match(s.$('journey-min-price').closest('.journey-price-sticker').textContent, /w zestawie/);
