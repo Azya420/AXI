@@ -217,7 +217,7 @@ export function initOrderForm(win) {
     openBtn.textContent = totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     addBtn.disabled = all.length >= MAX_FIGURINES;
-    addBtn.textContent = all.length >= MAX_FIGURINES ? 'Maksymalnie ' + MAX_FIGURINES + ' figurek w zamówieniu' : '+ Dodaj kolejną figurkę';
+    addBtn.textContent = all.length >= MAX_FIGURINES ? 'Maksymalnie ' + MAX_FIGURINES + ' projektów w zamówieniu' : '+ Dodaj kolejny projekt';
     const progress = Math.min(all.length, BULK_MIN_FIGURINES);
     byId('discount-progress-fill').style.width = ((progress - 1) / (BULK_MIN_FIGURINES - 1) * 100) + '%';
     byId('discount-progress').dataset.level = String(progress);
