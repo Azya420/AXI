@@ -66,11 +66,11 @@ function setup(preview = false) {
   return { dom, doc, win, $, cards, size, input, calls, redirects, alerts, fillShipping, submit, attach, tick, fail: value => { failure = value; } };
 }
 
-test('special-offer countdown uses one shared seven-day deadline', () => {
-  assert.equal(SPECIAL_OFFER_END, '2026-09-08T11:00:07Z');
-  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-09-01T11:00:07Z')), '7 dni 00:00:00');
-  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-09-07T11:00:07Z')), '1 dzień 00:00:00');
-  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-09-08T11:00:06Z')), '00:00:01');
+test('special-offer countdown uses one shared thirty-day deadline', () => {
+  assert.equal(SPECIAL_OFFER_END, '2026-10-05T13:28:36Z');
+  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-09-05T13:28:36Z')), '30 dni 00:00:00');
+  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-10-04T13:28:36Z')), '1 dzień 00:00:00');
+  assert.equal(formatSpecialOfferCountdown(Date.parse('2026-10-05T13:28:35Z')), '00:00:01');
   assert.equal(formatSpecialOfferCountdown(Date.parse(SPECIAL_OFFER_END)), 'Oferta zakończona');
 });
 

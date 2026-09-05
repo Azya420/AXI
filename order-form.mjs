@@ -1,6 +1,6 @@
 import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260905-unlimited-copies';
 
-export const SPECIAL_OFFER_END = '2026-09-08T11:00:07Z';
+export const SPECIAL_OFFER_END = '2026-10-05T13:28:36Z';
 
 export function formatSpecialOfferCountdown(now) {
   const remaining = Math.max(0, Date.parse(SPECIAL_OFFER_END) - now);
