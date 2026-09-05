@@ -110,13 +110,17 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.match(s.$('promo-countdown').textContent, /^(\d+ dni |1 dzień )?\d{2}:\d{2}:\d{2}$/);
   assert.match(s.$('bulk-spotlight').textContent, /Im więcej figurek, tym taniej/);
   assert.match(s.$('bulk-spotlight').textContent, /65 zł za figurkę/);
-  assert.match(s.$('discount-progress-message').textContent, /odblokuj ceny od 88 zł/);
+  assert.equal(s.$('discount-step-price-1').textContent, 'od 98 zł');
+  assert.equal(s.$('discount-step-price-2').textContent, 'od 88 zł');
+  assert.equal(s.$('discount-step-price-3').textContent, 'od 65 zł');
   assert.equal(s.$('discount-progress-fill').style.width, '0%');
   s.size(0, '32'); s.input(s.$('desc'), 'Pierwsza postać'); s.attach(0, 'first.png');
+  assert.equal(s.$('discount-step-price-1').textContent, '98 zł');
+  assert.equal(s.$('discount-step-price-2').textContent, '88 zł');
+  assert.equal(s.$('discount-step-price-3').textContent, '65 zł');
   s.$('add-figurine-btn').click(); s.size(1, '80');
   assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['88 zł', '116 zł']);
   assert.equal(s.$('order-total').textContent, 'Suma: 204 zł');
-  assert.match(s.$('discount-progress-message').textContent, /Cena za 2 projekty odblokowana/);
   assert.equal(s.$('discount-progress-fill').style.width, '50%');
   s.$('add-figurine-btn').click(); s.size(2, '120');
   assert.equal(s.$('desc').value, 'Pierwsza postać');
@@ -133,7 +137,6 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   ]);
   assert.ok(s.cards().every(card => !card.querySelector('[data-field="sale-badge"]')));
   assert.equal(s.$('order-total').textContent, 'Suma: 320 zł');
-  assert.match(s.$('discount-progress-message').textContent, /Najlepsza cena odblokowana/);
   assert.equal(s.$('discount-progress-fill').style.width, '100%');
   assert.equal(s.$('price-hidden').value, '336,49 zł');
   assert.equal(s.cards()[1].querySelector('textarea').value, '');

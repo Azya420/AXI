@@ -774,12 +774,8 @@
     box-shadow:0 0 24px rgba(109,40,217,0.22); transform:translateY(-1px);
   }
   .add-figurine:focus-visible{ outline:2px solid var(--bronze); outline-offset:4px; }
-  .discount-progress{
-    margin:16px 0 22px; padding:18px 18px 15px; border:1px solid rgba(201,162,75,.26);
-    background:linear-gradient(135deg,rgba(109,40,217,.12),rgba(201,162,75,.06));
-  }
-  .discount-progress-message{ display:block; margin-bottom:14px; color:var(--ink); font-size:.82rem; font-weight:600; text-align:center; }
-  .discount-progress-track{ position:relative; height:5px; margin:0 12px 10px; background:rgba(167,139,250,.18); border-radius:99px; }
+  .discount-progress{ margin:10px 0 16px; padding:8px 4px 4px; }
+  .discount-progress-track{ position:relative; height:5px; margin:0 12px 8px; background:rgba(167,139,250,.18); border-radius:99px; }
   .discount-progress-fill{ position:absolute; inset:0 auto 0 0; width:0; border-radius:inherit; background:linear-gradient(90deg,var(--violet-bright),var(--bronze)); box-shadow:0 0 14px rgba(201,162,75,.4); transition:width .35s ease; }
   .discount-progress-dots{ position:absolute; inset:50% 0 auto; display:flex; justify-content:space-between; transform:translateY(-50%); }
   .discount-progress-dot{ width:13px; height:13px; border-radius:50%; background:var(--bg-card); border:2px solid var(--ink-faint); transition:.25s ease; }
@@ -788,6 +784,7 @@
   .discount-progress-steps span:nth-child(2){ text-align:center; }
   .discount-progress-steps span:last-child{ text-align:right; }
   .discount-progress-steps span.active{ color:var(--bronze); }
+  .discount-progress-steps b{ font:inherit; color:inherit; }
   .order-summary{ border-top:1px solid var(--line); padding-top:18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; color:var(--ink-dim); }
   .order-summary strong{ color:var(--violet-bright); margin-left:auto; text-align:right; line-height:1.55; }
   .order-error{ color:#ffb4b4; font-size:0.88rem; }
@@ -2453,7 +2450,6 @@
         </div>
         <button type="button" class="btn add-figurine" id="add-figurine-btn">+ Dodaj kolejną figurkę</button>
         <div class="discount-progress" id="discount-progress" data-level="1" aria-live="polite">
-          <strong class="discount-progress-message" id="discount-progress-message">Dodaj jeszcze 1 projekt i odblokuj ceny od 88 zł</strong>
           <div class="discount-progress-track" aria-hidden="true">
             <span class="discount-progress-fill" id="discount-progress-fill"></span>
             <div class="discount-progress-dots">
@@ -2462,10 +2458,10 @@
               <span class="discount-progress-dot" id="discount-step-3"></span>
             </div>
           </div>
-          <div class="discount-progress-steps" aria-hidden="true">
-            <span class="active" id="discount-step-label-1">1 projekt<br>od 98 zł</span>
-            <span id="discount-step-label-2">2 projekty<br>od 88 zł</span>
-            <span id="discount-step-label-3">3+ projekty<br>od 65 zł</span>
+          <div class="discount-progress-steps">
+            <span class="active">1 projekt<br><b id="discount-step-price-1">od 98 zł</b></span>
+            <span>2 projekty<br><b id="discount-step-price-2">od 88 zł</b></span>
+            <span>3+ projekty<br><b id="discount-step-price-3">od 65 zł</b></span>
           </div>
         </div>
         <div class="order-summary" aria-live="polite" aria-atomic="true">
@@ -2552,7 +2548,7 @@
   </div>
 
   <script src="checkout-config.js"></script>
-  <script type="module" src="order-form.mjs?v=20260905-two-project-pricing"></script>
+  <script type="module" src="order-form.mjs?v=20260905-compact-discount-progress"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">

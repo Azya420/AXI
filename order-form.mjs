@@ -220,11 +220,11 @@ export function initOrderForm(win) {
     const progress = Math.min(all.length, BULK_MIN_FIGURINES);
     byId('discount-progress-fill').style.width = ((progress - 1) / (BULK_MIN_FIGURINES - 1) * 100) + '%';
     byId('discount-progress').dataset.level = String(progress);
-    byId('discount-progress-message').textContent = all.length === 1
-      ? 'Dodaj jeszcze 1 projekt i odblokuj ceny od 88 zł'
-      : all.length === 2
-        ? 'Cena za 2 projekty odblokowana — dodaj jeszcze 1 i odblokuj ceny od 65 zł'
-        : 'Najlepsza cena odblokowana — już od 65 zł za projekt';
+    const referenceSize = Number(field(all[0], 'size').value);
+    const referencePrice = getPrice(referenceSize);
+    byId('discount-step-price-1').textContent = referencePrice ? formatPrice(getPrice(referenceSize, 1).amount) : 'od 98 zł';
+    byId('discount-step-price-2').textContent = referencePrice ? formatPrice(getPrice(referenceSize, 2).amount) : 'od 88 zł';
+    byId('discount-step-price-3').textContent = referencePrice ? formatPrice(getPrice(referenceSize, 3).amount) : 'od 65 zł';
     byId('discount-step-1').classList.toggle('active', progress >= 1);
     byId('discount-step-2').classList.toggle('active', progress >= 2);
     byId('discount-step-3').classList.toggle('active', progress >= 3);
