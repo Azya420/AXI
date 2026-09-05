@@ -99,7 +99,7 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.match(s.$('promo-spotlight').textContent, /Im więcej projektów figurek, tym taniej/);
   assert.doesNotMatch(s.$('promo-spotlight').textContent, /−30%|Najniższa cena/);
   assert.equal(s.$('journey-min-price').textContent, '65 zł');
-  assert.match(s.$('journey-min-price').closest('.journey-price-sticker').textContent, /przy 3\+ projektach/);
+  assert.match(s.$('journey-min-price').closest('.journey-price-sticker').textContent, /w zestawie/);
   assert.equal(s.$('promo-spotlight').hidden, false);
   assert.equal(s.$('bulk-spotlight'), null);
   assert.equal(s.$('discount-step-price-1').textContent, 'od 98 zł/szt.');

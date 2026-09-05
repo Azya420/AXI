@@ -39,7 +39,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /class="journey-price-sticker"/);
   assert.match(html, /\.journey-source \.journey-media img\{\s*object-fit:contain;/);
   assert.match(html, /id="journey-min-price">65 zł/);
-  assert.match(html, /przy 3\+ projektach/);
+  assert.match(html, /w zestawie/);
   assert.doesNotMatch(html, /id="promo-countdown"/);
   assert.match(html, /Rabat ilościowy/);
   assert.doesNotMatch(html, /Im więcej figurek, tym taniej/);
