@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, MAX_COPIES_PER_FIGURINE, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260903-copies-v2';
+import { MAX_FIGURINES, MAX_COPIES_PER_FIGURINE, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260905-two-project-pricing';
 
 export const SPECIAL_OFFER_END = '2026-09-08T11:00:07Z';
 
@@ -155,6 +155,7 @@ export function initOrderForm(win) {
     let valid = true;
     const all = cards();
     const bulkPricing = all.length >= BULK_MIN_FIGURINES;
+    const quantityPricing = all.length >= 2;
     all.forEach((card, index) => {
       card.querySelector('legend').textContent = 'Figurka ' + (index + 1);
       const remove = card.querySelector('.remove-figurine');
@@ -182,9 +183,9 @@ export function initOrderForm(win) {
       const regularPrice = field(card, 'regular-price');
       const lowestPriceNote = field(card, 'lowest-price-note');
       regularPrice.hidden = !discounted;
-      const comparisonTotal = price ? (bulkPricing ? price.saleAmount : price.regularAmount) + Math.max(0, copies - 1) * price.additionalCopyAmount : 0;
+      const comparisonTotal = price ? (quantityPricing ? price.saleAmount : price.regularAmount) + Math.max(0, copies - 1) * price.additionalCopyAmount : 0;
       regularPrice.textContent = discounted && itemSubtotal !== null ? formatPrice(comparisonTotal) : '';
-      regularPrice.setAttribute('aria-label', discounted && itemSubtotal !== null ? (bulkPricing ? 'Cena przy 1–2 projektach: ' : 'Cena przed obniżką: ') + formatPrice(comparisonTotal) : 'Cena przed obniżką');
+      regularPrice.setAttribute('aria-label', discounted && itemSubtotal !== null ? (quantityPricing ? 'Cena przy 1 projekcie: ' : 'Cena przed obniżką: ') + formatPrice(comparisonTotal) : 'Cena przed obniżką');
       lowestPriceNote.hidden = !price;
       lowestPriceNote.textContent = price ? 'Najniższa cena pojedynczej figurki z 30 dni przed obniżką: ' + formatPrice(price.regularAmount) + '.' : '';
       field(card, 'price').setAttribute('aria-label', itemSubtotal !== null ? 'Cena za wszystkie identyczne wydruki tej figurki: ' + formatPrice(itemSubtotal) : 'Cena');
@@ -216,6 +217,17 @@ export function initOrderForm(win) {
     submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     addBtn.disabled = all.length >= MAX_FIGURINES;
     addBtn.textContent = all.length >= MAX_FIGURINES ? 'Maksymalnie ' + MAX_FIGURINES + ' figurek w zamówieniu' : '+ Dodaj kolejną figurkę';
+    const progress = Math.min(all.length, BULK_MIN_FIGURINES);
+    byId('discount-progress-fill').style.width = ((progress - 1) / (BULK_MIN_FIGURINES - 1) * 100) + '%';
+    byId('discount-progress').dataset.level = String(progress);
+    byId('discount-progress-message').textContent = all.length === 1
+      ? 'Dodaj jeszcze 1 projekt i odblokuj ceny od 88 zł'
+      : all.length === 2
+        ? 'Cena za 2 projekty odblokowana — dodaj jeszcze 1 i odblokuj ceny od 65 zł'
+        : 'Najlepsza cena odblokowana — już od 65 zł za projekt';
+    byId('discount-step-1').classList.toggle('active', progress >= 1);
+    byId('discount-step-2').classList.toggle('active', progress >= 2);
+    byId('discount-step-3').classList.toggle('active', progress >= 3);
   }
   addBtn.addEventListener('click', () => {
     if (busy || completed || cards().length >= MAX_FIGURINES) return;

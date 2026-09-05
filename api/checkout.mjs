@@ -77,7 +77,8 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     params.set(prefix + '[quantity]', '1');
     params.set(prefix + '[price_data][currency]', 'pln');
     params.set(prefix + '[price_data][unit_amount]', String(getPrice(item.size, order.items.length).amount));
-    params.set(prefix + '[price_data][product_data][name]', 'Figurka ' + (index + 1) + ' — ' + item.size + ' mm' + (order.items.length >= BULK_MIN_FIGURINES ? ' — cena 3+' : ''));
+    const quantityLabel = order.items.length >= BULK_MIN_FIGURINES ? ' — cena 3+' : order.items.length === 2 ? ' — cena za 2 projekty' : '';
+    params.set(prefix + '[price_data][product_data][name]', 'Figurka ' + (index + 1) + ' — ' + item.size + ' mm' + quantityLabel);
     if (item.copies > 1) {
       prefix = 'line_items[' + lineIndex++ + ']';
       params.set(prefix + '[quantity]', String(item.copies - 1));

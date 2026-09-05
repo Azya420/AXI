@@ -47,8 +47,8 @@ test('client prices, quantities and redirect URLs cannot override server values'
 });
 test('multiple figures in the same bracket remain separate paid items', () => {
   const params = stripeParameters(validateOrder({ ...order, items: [{ size: 32 }, { size: 42 }] }), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '9800');
-  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '9800');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '8800');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '8800');
 });
 test('one design with three identical prints charges the first figurine plus two cheap copies', () => {
   const params = stripeParameters(validateOrder({ ...order, items: [{ size: 32, copies: 3 }] }), config.siteOrigin);
