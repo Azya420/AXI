@@ -117,9 +117,16 @@ test('add/remove preserves existing inputs, renumbers cards and sums different s
   assert.equal(s.$('discount-step-price-1').textContent, '98 zł/szt.');
   assert.equal(s.$('discount-step-price-2').textContent, '88 zł/szt.');
   assert.equal(s.$('discount-step-price-3').textContent, '65 zł/szt.');
-  s.$('add-figurine-btn').click(); s.size(1, '80');
+  s.$('add-figurine-btn').click();
+  assert.equal(s.$('discount-step-price-2').textContent, 'od 88 zł/szt.');
+  s.size(1, '42');
+  assert.equal(s.$('discount-step-price-2').textContent, '88 zł/szt.');
+  s.size(1, '80');
   assert.deepEqual(s.cards().map(card => card.querySelector('[data-field="price"]').textContent), ['88 zł', '116 zł']);
   assert.equal(s.$('order-total').textContent, 'Suma: 204 zł');
+  assert.equal(s.$('discount-step-price-1').textContent, 'od 98 zł/szt.');
+  assert.equal(s.$('discount-step-price-2').textContent, 'od 88 zł/szt.');
+  assert.equal(s.$('discount-step-price-3').textContent, 'od 65 zł/szt.');
   assert.equal(s.$('discount-progress-fill').style.width, '50%');
   s.$('add-figurine-btn').click(); s.size(2, '120');
   assert.equal(s.$('desc').value, 'Pierwsza postać');

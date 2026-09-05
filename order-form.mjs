@@ -221,11 +221,16 @@ export function initOrderForm(win) {
     const progress = Math.min(all.length, BULK_MIN_FIGURINES);
     byId('discount-progress-fill').style.width = ((progress - 1) / (BULK_MIN_FIGURINES - 1) * 100) + '%';
     byId('discount-progress').dataset.level = String(progress);
-    const referenceSize = Number(field(all[0], 'size').value);
-    const referencePrice = getPrice(referenceSize);
-    byId('discount-step-price-1').textContent = (referencePrice ? formatPrice(getPrice(referenceSize, 1).amount) : 'od 98 zł') + '/szt.';
-    byId('discount-step-price-2').textContent = (referencePrice ? formatPrice(getPrice(referenceSize, 2).amount) : 'od 88 zł') + '/szt.';
-    byId('discount-step-price-3').textContent = (referencePrice ? formatPrice(getPrice(referenceSize, 3).amount) : 'od 65 zł') + '/szt.';
+    const selectedSizes = all.map(card => Number(field(card, 'size').value));
+    const progressPrice = (figurineCount, fallbackAmount) => {
+      const amounts = selectedSizes.map(size => getPrice(size, figurineCount)?.amount).filter(Number.isInteger);
+      if (!amounts.length) return 'od ' + formatPrice(fallbackAmount) + '/szt.';
+      const varies = amounts.length !== all.length || new Set(amounts).size > 1;
+      return (varies ? 'od ' : '') + formatPrice(Math.min(...amounts)) + '/szt.';
+    };
+    byId('discount-step-price-1').textContent = progressPrice(1, 9800);
+    byId('discount-step-price-2').textContent = progressPrice(2, 8800);
+    byId('discount-step-price-3').textContent = progressPrice(3, 6500);
     byId('discount-step-1').classList.toggle('active', progress >= 1);
     byId('discount-step-2').classList.toggle('active', progress >= 2);
     byId('discount-step-3').classList.toggle('active', progress >= 3);
