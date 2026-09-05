@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, MAX_COPIES_PER_FIGURINE, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260905-two-project-pricing';
+import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260905-unlimited-copies';
 
 export const SPECIAL_OFFER_END = '2026-09-08T11:00:07Z';
 
@@ -196,7 +196,7 @@ export function initOrderForm(win) {
         field(card, 'price').textContent = formatPrice(itemSubtotal);
       } else {
         valid = false;
-        field(card, 'price').textContent = !input.value ? 'Wpisz rozmiar' : !Number.isInteger(copies) || copies < 1 || copies > MAX_COPIES_PER_FIGURINE ? 'Sprawdź liczbę wydruków' : 'Sprawdź rozmiar';
+        field(card, 'price').textContent = !input.value ? 'Wpisz rozmiar' : !Number.isSafeInteger(copies) || copies < 1 ? 'Sprawdź liczbę wydruków' : 'Sprawdź rozmiar';
       }
     });
     const totalCopies = all.reduce((sum, card) => sum + (Number.isInteger(Number(field(card, 'copies').value)) ? Number(field(card, 'copies').value) : 0), 0);
@@ -311,8 +311,8 @@ export function initOrderForm(win) {
         return false;
       }
       const copies = Number(copiesInput.value);
-      if (!Number.isInteger(copies) || copies < 1 || copies > MAX_COPIES_PER_FIGURINE) {
-        copiesInput.setCustomValidity('Figurka ' + (index + 1) + ': wybierz od 1 do ' + MAX_COPIES_PER_FIGURINE + ' identycznych wydruków.');
+      if (!Number.isSafeInteger(copies) || copies < 1) {
+        copiesInput.setCustomValidity('Figurka ' + (index + 1) + ': wpisz pełną liczbę identycznych wydruków, co najmniej 1.');
       }
       if (!copiesInput.checkValidity()) {
         closeModal();

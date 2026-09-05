@@ -65,7 +65,8 @@ test('reject empty, oversized, fractional, string, out-of-range orders', () => {
   for (const items of [[], Array(21).fill({ size: 32 }), [{ size: 19 }], [{ size: 251 }], [{ size: 32.4 }], [{ size: '32' }], [null]]) {
     assert.throws(() => validateOrder({ ...order, items }));
   }
-  for (const copies of [0, 21, 1.5, '2', -1]) assert.throws(() => validateOrder({ ...order, items: [{ size: 32, copies }] }));
+  assert.equal(validateOrder({ ...order, items: [{ size: 32, copies: 1000 }] }).items[0].copies, 1000);
+  for (const copies of [0, 1.5, '2', -1, Number.MAX_SAFE_INTEGER + 1]) assert.throws(() => validateOrder({ ...order, items: [{ size: 32, copies }] }));
   assert.throws(() => validateOrder({ ...order, email: 'invalid' }));
   assert.throws(() => validateOrder({ ...order, orderId: 'invalid' }));
   for (const deliveryMethod of [undefined, '', 'courier', 1]) assert.throws(() => validateOrder({ ...order, deliveryMethod }));

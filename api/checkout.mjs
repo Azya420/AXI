@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { MAX_FIGURINES, MAX_COPIES_PER_FIGURINE, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption } from '../pricing.mjs';
+import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption } from '../pricing.mjs';
 
 const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -15,7 +15,7 @@ export function validateOrder(order) {
   const items = order.items.map(item => {
     if (!item || !getPrice(item.size)) throw new Error('Nieprawidłowy rozmiar figurki.');
     const copies = item.copies === undefined ? 1 : item.copies;
-    if (!Number.isInteger(copies) || copies < 1 || copies > MAX_COPIES_PER_FIGURINE) throw new Error('Nieprawidłowa liczba identycznych wydruków.');
+    if (!Number.isSafeInteger(copies) || copies < 1) throw new Error('Nieprawidłowa liczba identycznych wydruków.');
     return { size: item.size, copies };
   });
   const deliveryMethod = order.deliveryMethod;

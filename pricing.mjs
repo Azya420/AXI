@@ -1,6 +1,5 @@
 export const MAX_FIGURINES = 20;
-export const MAX_COPIES_PER_FIGURINE = 20;
-export const PRICING_VERSION = '2026-09-05-two-project-pricing';
+export const PRICING_VERSION = '2026-09-05-unlimited-copies';
 export const AUTOMATIC_DISCOUNT_PERCENT = 30;
 export const SHIPPING_AMOUNT = 1649;
 export const DELIVERY_OPTIONS = Object.freeze({
@@ -31,7 +30,7 @@ export function getPrice(size, figurineCount = 1) {
 }
 export function getItemSubtotal(size, copies = 1, figurineCount = 1) {
   const price = getPrice(size, figurineCount);
-  if (!price || !Number.isInteger(copies) || copies < 1 || copies > MAX_COPIES_PER_FIGURINE) return null;
+  if (!price || !Number.isSafeInteger(copies) || copies < 1) return null;
   return price.amount + (copies - 1) * price.additionalCopyAmount;
 }
 export function getDeliveryOption(deliveryMethod) {

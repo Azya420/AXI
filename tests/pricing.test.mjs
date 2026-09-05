@@ -49,7 +49,8 @@ test('every additional identical print uses the requested size-bracket price', (
     assert.equal(getPrice(size).additionalCopyAmount, additional);
     assert.equal(getItemSubtotal(size, 3), getPrice(size).amount + 2 * additional);
   }
-  for (const copies of [0, 21, 1.5, '2']) assert.equal(getItemSubtotal(32, copies), null);
+  assert.equal(getItemSubtotal(32, 1000), 1008800);
+  for (const copies of [0, 1.5, '2', Number.MAX_SAFE_INTEGER + 1]) assert.equal(getItemSubtotal(32, copies), null);
 });
 
 test('all five 3+ line items plus shipping total 776,49 zł in Stripe', async () => {
