@@ -102,7 +102,9 @@ test('GA records the first figurine edit and the first valid transition to shipp
 test('add/remove preserves existing inputs, renumbers cards and sums different sizes', () => {
   const s = setup();
   assert.equal(s.$('promo-discount').textContent, '−30%');
-  assert.equal(s.$('promo-min-price').textContent, '98 zł');
+  assert.equal(s.$('promo-pair-price').textContent, '88 zł');
+  assert.equal(s.$('promo-bulk-price').textContent, '65 zł');
+  assert.match(s.$('promo-spotlight').textContent, /Im więcej projektów figurek, tym taniej/);
   assert.match(s.$('promo-spotlight').textContent, /Najniższa cena z 30 dni przed obniżką: od 140 zł/);
   assert.equal(s.$('journey-min-price').textContent, '65 zł');
   assert.match(s.$('journey-min-price').closest('.journey-price-sticker').textContent, /przy 3\+ projektach/);
