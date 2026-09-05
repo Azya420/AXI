@@ -175,9 +175,10 @@ export function initOrderForm(win) {
       const itemSubtotal = getItemSubtotal(Number(input.value), copies, all.length);
       const addCopy = field(card, 'add-copy');
       const copyControls = field(card, 'copy-controls');
-      const hasCopies = Number.isInteger(copies) && copies > 1;
-      addCopy.hidden = hasCopies;
-      copyControls.hidden = !hasCopies;
+      const copiesExpanded = card.dataset.copiesExpanded === 'true' || Number.isInteger(copies) && copies > 1;
+      if (copiesExpanded) card.dataset.copiesExpanded = 'true';
+      addCopy.hidden = copiesExpanded;
+      copyControls.hidden = !copiesExpanded;
       addCopy.textContent = price ? '＋ Dodaj kolejny wydruk za ' + formatPrice(price.additionalCopyAmount) : '＋ Dodaj kolejny identyczny wydruk';
       const discounted = price && price.amount < price.regularAmount;
       const regularPrice = field(card, 'regular-price');
@@ -222,9 +223,9 @@ export function initOrderForm(win) {
     byId('discount-progress').dataset.level = String(progress);
     const referenceSize = Number(field(all[0], 'size').value);
     const referencePrice = getPrice(referenceSize);
-    byId('discount-step-price-1').textContent = referencePrice ? formatPrice(getPrice(referenceSize, 1).amount) : 'od 98 zł';
-    byId('discount-step-price-2').textContent = referencePrice ? formatPrice(getPrice(referenceSize, 2).amount) : 'od 88 zł';
-    byId('discount-step-price-3').textContent = referencePrice ? formatPrice(getPrice(referenceSize, 3).amount) : 'od 65 zł';
+    byId('discount-step-price-1').textContent = (referencePrice ? formatPrice(getPrice(referenceSize, 1).amount) : 'od 98 zł') + '/szt.';
+    byId('discount-step-price-2').textContent = (referencePrice ? formatPrice(getPrice(referenceSize, 2).amount) : 'od 88 zł') + '/szt.';
+    byId('discount-step-price-3').textContent = (referencePrice ? formatPrice(getPrice(referenceSize, 3).amount) : 'od 65 zł') + '/szt.';
     byId('discount-step-1').classList.toggle('active', progress >= 1);
     byId('discount-step-2').classList.toggle('active', progress >= 2);
     byId('discount-step-3').classList.toggle('active', progress >= 3);
@@ -256,6 +257,7 @@ export function initOrderForm(win) {
     const addCopy = event.target.closest('[data-field="add-copy"]');
     if (addCopy && !busy && !completed) {
       const card = addCopy.closest('.figurine-card');
+      card.dataset.copiesExpanded = 'true';
       field(card, 'copies').value = '2';
       clearError();
       refresh();
@@ -265,6 +267,7 @@ export function initOrderForm(win) {
     const removeCopies = event.target.closest('.remove-copies');
     if (removeCopies && !busy && !completed) {
       const card = removeCopies.closest('.figurine-card');
+      delete card.dataset.copiesExpanded;
       field(card, 'copies').value = '1';
       clearError();
       refresh();

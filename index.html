@@ -822,7 +822,6 @@
     margin-top:7px; color:var(--ink-faint); font-size:0.64rem; line-height:1.4;
   }
   .commission-copy .promo-spotlight{ margin-top:32px; }
-  .commission-copy .bulk-spotlight{ margin-top:14px; }
   .bulk-price{ color:var(--violet-bright); font-weight:700; white-space:nowrap; }
   .terms-consent{ display:flex; gap:12px; align-items:flex-start; margin:0; font-family:'Sora',sans-serif; font-size:0.86rem; line-height:1.6; letter-spacing:normal; text-transform:none; color:var(--ink-dim); cursor:pointer; }
   .terms-consent input{ width:18px; height:18px; flex:0 0 18px; margin-top:3px; padding:0; accent-color:var(--violet); }
@@ -2384,14 +2383,6 @@
             <p class="lowest-price-disclosure">Najniższa cena z 30 dni przed obniżką: od 140 zł.</p>
           </div>
         </aside>
-        <aside class="promo-spotlight bulk-spotlight" id="bulk-spotlight" aria-label="Ceny przy zamówieniu co najmniej 3 różnych projektów figurek">
-          <span class="promo-mark" aria-hidden="true">3+</span>
-          <div class="promo-copy">
-            <span class="promo-kicker">Rabat ilościowy</span>
-            <strong>Im więcej figurek, tym taniej</strong>
-            <p>Przy 3+ różnych projektach ceny zaczynają się od <span class="bulk-price">65 zł za figurkę</span>. Dodatkowe identyczne wydruki kosztują jeszcze mniej.</p>
-          </div>
-        </aside>
       </div>
 
       <form id="commission-form" action="https://usebasin.com/f/235f4a9bd75b" method="POST" enctype="multipart/form-data">
@@ -2459,9 +2450,9 @@
             </div>
           </div>
           <div class="discount-progress-steps">
-            <span class="active">1 projekt<br><b id="discount-step-price-1">od 98 zł</b></span>
-            <span>2 projekty<br><b id="discount-step-price-2">od 88 zł</b></span>
-            <span>3+ projekty<br><b id="discount-step-price-3">od 65 zł</b></span>
+            <span class="active">1 projekt<br><b id="discount-step-price-1">od 98 zł/szt.</b></span>
+            <span>2 projekty<br><b id="discount-step-price-2">od 88 zł/szt.</b></span>
+            <span>3+ projekty<br><b id="discount-step-price-3">od 65 zł/szt.</b></span>
           </div>
         </div>
         <div class="order-summary" aria-live="polite" aria-atomic="true">
@@ -2548,7 +2539,7 @@
   </div>
 
   <script src="checkout-config.js"></script>
-  <script type="module" src="order-form.mjs?v=20260905-compact-discount-progress"></script>
+  <script type="module" src="order-form.mjs?v=20260905-copy-field-fix"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">

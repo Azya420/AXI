@@ -39,8 +39,8 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /id="journey-min-price">98 zł/);
   assert.match(html, /id="promo-countdown"/);
   assert.match(html, /Oferta specjalna/);
-  assert.match(html, /Im więcej figurek, tym taniej/);
-  assert.match(html, /65 zł za figurkę/);
+  assert.doesNotMatch(html, /Im więcej figurek, tym taniej/);
+  assert.match(html, /65 zł\/szt\./);
   assert.ok(html.indexOf('id="promo-spotlight"') < html.indexOf('<form id="commission-form"'));
   assert.ok(!html.includes('id="shipping-cost-label"'));
   assert.ok(!html.includes('preview-send-basin'));
@@ -49,7 +49,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('data-field="sale-badge"'));
   assert.match(html, /Paczkomat InPost \(16,49 zł\)/);
   assert.match(html, /Na adres \(19,49 zł\)/);
-  assert.match(html, /src="order-form.mjs\?v=20260905-compact-discount-progress"/);
+  assert.match(html, /src="order-form.mjs\?v=20260905-copy-field-fix"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes('tracking.js'));
