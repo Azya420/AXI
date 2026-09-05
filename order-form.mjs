@@ -1,18 +1,4 @@
-import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260905-unlimited-copies';
-
-export const SPECIAL_OFFER_END = '2026-10-05T13:28:36Z';
-
-export function formatSpecialOfferCountdown(now) {
-  const remaining = Math.max(0, Date.parse(SPECIAL_OFFER_END) - now);
-  if (remaining <= 0) return 'Oferta zakończona';
-  const totalSeconds = Math.floor(remaining / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor(totalSeconds % 86400 / 3600);
-  const minutes = Math.floor(totalSeconds % 3600 / 60);
-  const seconds = totalSeconds % 60;
-  const time = [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':');
-  return days ? days + (days === 1 ? ' dzień ' : ' dni ') + time : time;
-}
+import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260905-base-prices';
 
 export function initOrderForm(win) {
   const doc = win.document;
@@ -32,19 +18,11 @@ export function initOrderForm(win) {
   const preview = win.AXI_PREVIEW_MODE === true;
   const pairMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.pairAmount));
   const bulkMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.bulkAmount));
-  byId('promo-spotlight').hidden = AUTOMATIC_DISCOUNT_PERCENT <= 0;
-  byId('promo-discount').textContent = '−' + AUTOMATIC_DISCOUNT_PERCENT + '%';
+  byId('promo-spotlight').hidden = false;
+  byId('promo-discount').textContent = '2+';
   byId('promo-pair-price').textContent = formatPrice(pairMinimumPrice);
   byId('promo-bulk-price').textContent = formatPrice(bulkMinimumPrice);
   byId('journey-min-price').textContent = formatPrice(bulkMinimumPrice);
-  const promoCountdown = byId('promo-countdown');
-  const refreshPromoCountdown = () => {
-    const text = formatSpecialOfferCountdown(win.Date.now());
-    promoCountdown.textContent = text;
-    promoCountdown.setAttribute('aria-label', text === 'Oferta zakończona' ? text : 'Do końca oferty pozostało: ' + text);
-  };
-  refreshPromoCountdown();
-  win.setInterval(refreshPromoCountdown, 1000);
   byId('shipping-order-summary').setAttribute('role', 'status');
   const cards = () => Array.from(list.children);
   const field = (card, name) => card.querySelector('[data-field="' + name + '"]');
@@ -184,13 +162,10 @@ export function initOrderForm(win) {
       addCopy.textContent = price ? '＋ Dodaj kolejny wydruk za ' + formatPrice(price.additionalCopyAmount) : '＋ Dodaj kolejny identyczny wydruk';
       const discounted = price && price.amount < price.regularAmount;
       const regularPrice = field(card, 'regular-price');
-      const lowestPriceNote = field(card, 'lowest-price-note');
       regularPrice.hidden = !discounted;
       const comparisonTotal = price ? (quantityPricing ? price.saleAmount : price.regularAmount) + Math.max(0, copies - 1) * price.additionalCopyAmount : 0;
       regularPrice.textContent = discounted && itemSubtotal !== null ? formatPrice(comparisonTotal) : '';
       regularPrice.setAttribute('aria-label', discounted && itemSubtotal !== null ? (quantityPricing ? 'Cena przy 1 projekcie: ' : 'Cena przed obniżką: ') + formatPrice(comparisonTotal) : 'Cena przed obniżką');
-      lowestPriceNote.hidden = !price;
-      lowestPriceNote.textContent = price ? 'Najniższa cena pojedynczej figurki z 30 dni przed obniżką: ' + formatPrice(price.regularAmount) + '.' : '';
       field(card, 'price').setAttribute('aria-label', itemSubtotal !== null ? 'Cena za wszystkie identyczne wydruki tej figurki: ' + formatPrice(itemSubtotal) : 'Cena');
       field(card, 'copy-price').textContent = price ? 'Każdy dodatkowy identyczny wydruk: ' + formatPrice(price.additionalCopyAmount) + '.' : 'Każdy dodatkowy wydruk zostanie doliczony według rozmiaru.';
       if (itemSubtotal !== null) {
@@ -481,7 +456,7 @@ export function initOrderForm(win) {
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
     payload.set('kod_promocyjny', promotionCode);
     payload.set('wersja_cennika', PRICING_VERSION);
-    payload.set('uwaga_dotyczaca_ceny', 'Ceny figurek uwzględniają automatyczną obniżkę 30%. Przy co najmniej 3 figurkach obowiązuje dodatkowy cennik ilościowy. Zaakceptowany kod może dodatkowo obniżyć sumę. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
+    payload.set('uwaga_dotyczaca_ceny', 'Obowiązują ceny bazowe oraz cennik ilościowy dla 2 i co najmniej 3 projektów. Zaakceptowany kod może dodatkowo obniżyć sumę. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
     const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const subtotal = items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, items.length), 0);

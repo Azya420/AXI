@@ -12,10 +12,10 @@ const request = body => new Request('https://api.example/checkout-session', {
   method: 'POST', headers: { Origin: config.siteOrigin, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
 });
 
-test('all 231 integer sizes use the regular sale, 2-project and 3+ prices', () => {
+test('all 231 integer sizes use the base, 2-project and 3+ prices', () => {
   for (const [min, max, regularAmount, amount, pairAmount, bulkAmount] of [
-    [20, 60, 14000, 9800, 8800, 6500], [61, 100, 18000, 12600, 11600, 10500], [101, 150, 25000, 17500, 16500, 15000],
-    [151, 200, 32000, 22400, 21400, 19500], [201, 250, 40000, 28000, 27000, 24500]
+    [20, 60, 9800, 9800, 8800, 6500], [61, 100, 12600, 12600, 11600, 10500], [101, 150, 17500, 17500, 16500, 15000],
+    [151, 200, 22400, 22400, 21400, 19500], [201, 250, 28000, 28000, 27000, 24500]
   ]) {
     for (let size = min; size <= max; size++) {
       assert.equal(getPrice(size).amount, amount, 'payable amount at ' + size + ' mm');
@@ -63,8 +63,8 @@ test('all five 3+ line items plus shipping total 776,49 zł in Stripe', async ()
       assert.equal(options.body.get('line_items[' + i + '][price_data][unit_amount]'), amount);
       assert.equal(options.body.get('line_items[' + i + '][quantity]'), '1');
     }
-    assert.equal(options.body.get('metadata[automatic_discount_percent]'), '30');
-    assert.equal(options.body.get('metadata[regular_subtotal]'), '129000');
+    assert.equal(options.body.get('metadata[automatic_discount_percent]'), '0');
+    assert.equal(options.body.get('metadata[regular_subtotal]'), '90300');
     assert.equal(options.body.get('metadata[pricing_version]'), PRICING_VERSION);
     assert.equal(options.body.get('metadata[shipping_amount]'), '1649');
     assert.equal(options.body.get('metadata[bulk_pricing_applied]'), 'true');
@@ -78,9 +78,9 @@ test('all five 3+ line items plus shipping total 776,49 zł in Stripe', async ()
   assert.equal(data.total, 77649);
   assert.equal(data.shippingAmount, SHIPPING_AMOUNT);
   assert.equal(data.deliveryMethod, 'locker');
-  assert.equal(data.regularSubtotal, 129000);
+  assert.equal(data.regularSubtotal, 90300);
   assert.equal(data.saleSubtotal, 90300);
-  assert.equal(data.automaticDiscount, 38700);
+  assert.equal(data.automaticDiscount, 0);
   assert.equal(data.bulkDiscount, 14300);
   assert.equal(data.bulkPricing, true);
   assert.equal(data.discount, 0);

@@ -1,6 +1,6 @@
 export const MAX_FIGURINES = 20;
-export const PRICING_VERSION = '2026-09-05-unlimited-copies';
-export const AUTOMATIC_DISCOUNT_PERCENT = 30;
+export const PRICING_VERSION = '2026-09-05-base-prices';
+export const AUTOMATIC_DISCOUNT_PERCENT = 0;
 export const SHIPPING_AMOUNT = 1649;
 export const DELIVERY_OPTIONS = Object.freeze({
   locker: Object.freeze({ amount: SHIPPING_AMOUNT, displayName: 'Paczkomat InPost' }),
@@ -10,15 +10,15 @@ export const BULK_MIN_FIGURINES = 3;
 // Kwoty w groszach. Cena bazowa nie jest deklaracją historycznej ceny z 30 dni.
 // Rabat jest naliczany także na serwerze; klient nie przekazuje własnych kwot.
 export const PRICE_BRACKETS = [
-  { min: 20, max: 60, label: '20–60 mm', regularAmount: 14000, pairAmount: 8800, bulkAmount: 6500, additionalCopyAmount: 1000 },
-  { min: 61, max: 100, label: '61–100 mm', regularAmount: 18000, pairAmount: 11600, bulkAmount: 10500, additionalCopyAmount: 2000 },
-  { min: 101, max: 150, label: '101–150 mm', regularAmount: 25000, pairAmount: 16500, bulkAmount: 15000, additionalCopyAmount: 4000 },
-  { min: 151, max: 200, label: '151–200 mm', regularAmount: 32000, pairAmount: 21400, bulkAmount: 19500, additionalCopyAmount: 8000 },
-  { min: 201, max: 250, label: '201–250 mm', regularAmount: 40000, pairAmount: 27000, bulkAmount: 24500, additionalCopyAmount: 15000 }
+  { min: 20, max: 60, label: '20–60 mm', regularAmount: 9800, pairAmount: 8800, bulkAmount: 6500, additionalCopyAmount: 1000 },
+  { min: 61, max: 100, label: '61–100 mm', regularAmount: 12600, pairAmount: 11600, bulkAmount: 10500, additionalCopyAmount: 2000 },
+  { min: 101, max: 150, label: '101–150 mm', regularAmount: 17500, pairAmount: 16500, bulkAmount: 15000, additionalCopyAmount: 4000 },
+  { min: 151, max: 200, label: '151–200 mm', regularAmount: 22400, pairAmount: 21400, bulkAmount: 19500, additionalCopyAmount: 8000 },
+  { min: 201, max: 250, label: '201–250 mm', regularAmount: 28000, pairAmount: 27000, bulkAmount: 24500, additionalCopyAmount: 15000 }
 ].map(price => Object.freeze({
   ...price,
-  saleAmount: Math.round(price.regularAmount * (100 - AUTOMATIC_DISCOUNT_PERCENT) / 100),
-  amount: Math.round(price.regularAmount * (100 - AUTOMATIC_DISCOUNT_PERCENT) / 100)
+  saleAmount: price.regularAmount,
+  amount: price.regularAmount
 }));
 export function getPrice(size, figurineCount = 1) {
   if (!Number.isInteger(size)) return null;
