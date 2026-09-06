@@ -17,6 +17,20 @@ services:
         value: "24"
       - key: STRIPE_SECRET_KEY
         sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SMTP_HOST
+        value: smtpout.secureserver.net
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        value: kontakt@axi3d.pl
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        value: kontakt@axi3d.pl
       - key: AXI_SITE_ORIGIN
         value: https://axi3d.pl
       - key: AXI_ALLOWED_ORIGINS
