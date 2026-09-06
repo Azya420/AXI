@@ -5,7 +5,13 @@ const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const LIVE_SESSION = /^cs_live_[A-Za-z0-9]+$/;
 const TEST_SESSION = /^cs_test_[A-Za-z0-9]+$/;
-export const TERMS_VERSION = '2026-08-30';
+export const TERMS_VERSION = '2026-09-05';
+
+function cleanText(value, maxLength) {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') throw new Error('Nieprawidłowe dane tekstowe.');
+  return value.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
 
 export function validateOrder(order) {
   if (!order || typeof order !== 'object' || !UUID.test(order.orderId || '')) throw new Error('Nieprawidłowy numer zamówienia.');
@@ -16,14 +22,17 @@ export function validateOrder(order) {
     if (!item || !getPrice(item.size)) throw new Error('Nieprawidłowy rozmiar figurki.');
     const copies = item.copies === undefined ? 1 : item.copies;
     if (!Number.isSafeInteger(copies) || copies < 1) throw new Error('Nieprawidłowa liczba identycznych wydruków.');
-    return { size: item.size, copies };
+    return { size: item.size, copies, description: cleanText(item.description, 300) };
   });
   const deliveryMethod = order.deliveryMethod;
   if (!getDeliveryOption(deliveryMethod)) throw new Error('Nieprawidłowy sposób dostawy.');
   if (order.promotionCode !== undefined && typeof order.promotionCode !== 'string') throw new Error('Nieprawidłowy kod promocyjny.');
   const promotionCode = (order.promotionCode || '').trim().toUpperCase();
   if (promotionCode && !/^[A-Z0-9-]{1,500}$/.test(promotionCode)) throw new Error('Nieprawidłowy kod promocyjny.');
-  return { orderId: order.orderId, email: order.email, items, deliveryMethod, promotionCode, termsAccepted: true };
+  const customerName = cleanText(order.customerName, 120);
+  const deliveryDestination = cleanText(order.deliveryDestination, 300);
+  if (!customerName || !deliveryDestination) throw new Error('Brak danych odbiorcy.');
+  return { orderId: order.orderId, email: order.email, customerName, deliveryDestination, items, deliveryMethod, promotionCode, termsAccepted: true };
 }
 
 export function stripeParameters(order, siteOrigin, preview = false, promotionId = null) {
@@ -48,6 +57,8 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'metadata[bulk_pricing_applied]': String(order.items.length >= BULK_MIN_FIGURINES),
     'metadata[shipping_method]': order.deliveryMethod,
     'metadata[shipping_amount]': String(delivery.amount),
+    'metadata[customer_name]': order.customerName,
+    'metadata[delivery_destination]': order.deliveryDestination,
     'metadata[regular_subtotal]': String(order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0)),
     'payment_intent_data[metadata][pricing_version]': PRICING_VERSION,
     'payment_intent_data[metadata][automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
@@ -56,6 +67,9 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'payment_intent_data[metadata][shipping_amount]': String(delivery.amount),
     'payment_intent_data[metadata][terms_accepted]': 'true',
     'payment_intent_data[metadata][terms_version]': TERMS_VERSION
+  });
+  order.items.forEach((item, index) => {
+    params.set('metadata[order_item_' + (index + 1) + ']', JSON.stringify({ size: item.size, copies: item.copies, description: item.description }));
   });
   params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
   params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(delivery.amount));
