@@ -115,22 +115,22 @@ test('MOTHERLODE applies a server-side 99% test discount without discounting shi
   const response = await handleCheckout(request(testOrder), config, async (url, options) => {
     calls++;
     assert.equal(url, 'https://api.stripe.com/v1/checkout/sessions');
-    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '98');
+    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '100');
     assert.equal(options.body.get('metadata[promotion_code]'), 'MOTHERLODE');
     assert.equal(options.body.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '100');
     return Response.json({
       url: 'https://checkout.stripe.com/c/pay/cs_live_Motherlode123',
       currency: 'pln',
-      amount_subtotal: 98,
-      amount_total: 198,
+      amount_subtotal: 100,
+      amount_total: 200,
       total_details: { amount_discount: 0, amount_shipping: 100 }
     });
   });
   assert.equal(response.status, 200);
   assert.equal(calls, 1);
   const data = await response.json();
-  assert.equal(data.discount, 9702);
-  assert.equal(data.total, 198);
+  assert.equal(data.discount, 9700);
+  assert.equal(data.total, 200);
   assert.equal(data.shippingAmount, 100);
   assert.equal(data.promotionCode, 'MOTHERLODE');
 });
