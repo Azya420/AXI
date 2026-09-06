@@ -8,7 +8,7 @@ const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', al
 const order = { pricingVersion: PRICING_VERSION, orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com', customerName: 'Jan Kowalski', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }, { size: 80 }], termsAccepted: true, promotionCode: '  SAVE10  ' };
 const request = body => new Request('https://api.example/checkout-session', { method: 'POST', headers: { Origin: config.siteOrigin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const promotion = { id: 'promo_Valid123', active: true, code: 'save10', customer: null, customer_account: null };
-const session = { url: 'https://checkout.stripe.com/c/pay/cs_live_Test123', currency: 'pln', amount_subtotal: 20400, amount_total: 18460, total_details: { amount_discount: 2040, amount_shipping: 100 } };
+const session = { url: 'https://checkout.stripe.com/c/pay/cs_live_Test123', currency: 'pln', amount_subtotal: 20400, amount_total: 20009, total_details: { amount_discount: 2040, amount_shipping: 1649 } };
 
 test('server rejects missing consent and malformed codes before any Stripe request', async () => {
   let calls = 0;
@@ -44,7 +44,7 @@ test('server resolves the typed code, applies only its trusted ID and returns St
   });
   assert.equal(response.status, 200);
   assert.equal(calls.length, 2);
-  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 4, pricingVersion: PRICING_VERSION, regularSubtotal: 22400, saleSubtotal: 22400, automaticDiscount: 0, bulkDiscount: 2000, bulkPricing: false, subtotal: 20400, deliveryMethod: 'locker', shippingAmount: 100, discount: 2040, total: 18460, currency: 'pln', promotionCode: 'SAVE10' });
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 4, pricingVersion: PRICING_VERSION, regularSubtotal: 22400, saleSubtotal: 22400, automaticDiscount: 0, bulkDiscount: 2000, bulkPricing: false, subtotal: 20400, deliveryMethod: 'locker', shippingAmount: 1649, discount: 2040, total: 20009, currency: 'pln', promotionCode: 'SAVE10' });
 });
 
 test('invalid, inactive and customer-restricted codes never create a full-price session', async () => {
@@ -71,7 +71,7 @@ test('missing promotion-code permission fails safely without leaking Stripe deta
 test('Stripe eligibility rejection, no discount and inconsistent totals block checkout', async () => {
   for (const result of [
     () => Response.json({ error: { message: 'secret provider message' } }, { status: 400 }),
-    () => Response.json({ ...session, amount_total: 22049, total_details: { amount_discount: 0, amount_shipping: 100 } }),
+    () => Response.json({ ...session, amount_total: 22049, total_details: { amount_discount: 0, amount_shipping: 1649 } }),
     () => Response.json({ ...session, amount_total: 1 }),
     () => Response.json({ ...session, currency: 'eur' })
   ]) {
@@ -87,9 +87,9 @@ test('percentage, fixed amount and full discount use Stripe amounts without brow
   for (const discount of [2040, 5000, 20400]) {
     const response = await handleCheckout(request(order), config, async (_, options) => options.method === 'GET'
       ? Response.json({ data: [promotion] })
-      : Response.json({ ...session, amount_total: 20400 + 100 - discount, total_details: { amount_discount: discount, amount_shipping: 100 } }));
+      : Response.json({ ...session, amount_total: 20400 + 1649 - discount, total_details: { amount_discount: discount, amount_shipping: 1649 } }));
     assert.equal(response.status, 200);
-    assert.equal((await response.json()).total, 20400 + 100 - discount);
+    assert.equal((await response.json()).total, 20400 + 1649 - discount);
   }
 });
 
@@ -99,38 +99,12 @@ test('a promotion code stacks on the trusted 3+ prices without discounting shipp
     if (options.method === 'GET') return Response.json({ data: [promotion] });
     assert.deepEqual([0, 1, 2].map(index => options.body.get('line_items[' + index + '][price_data][unit_amount]')), ['6500', '10500', '15000']);
     assert.equal(options.body.get('metadata[bulk_pricing_applied]'), 'true');
-    return Response.json({ ...session, amount_subtotal: 32000, amount_total: 28900,
-      total_details: { amount_discount: 3200, amount_shipping: 100 } });
+    return Response.json({ ...session, amount_subtotal: 32000, amount_total: 30449,
+      total_details: { amount_discount: 3200, amount_shipping: 1649 } });
   });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 4, pricingVersion: PRICING_VERSION,
     regularSubtotal: 39900, saleSubtotal: 39900, automaticDiscount: 0,
-    bulkDiscount: 7900, bulkPricing: true, subtotal: 32000, deliveryMethod: 'locker', shippingAmount: 100,
-    discount: 3200, total: 28900, currency: 'pln', promotionCode: 'SAVE10' });
-});
-
-test('MOTHERLODE applies a server-side 99% test discount without discounting shipping', async () => {
-  const testOrder = { ...order, items: [{ size: 32 }], promotionCode: ' motherlode ' };
-  let calls = 0;
-  const response = await handleCheckout(request(testOrder), config, async (url, options) => {
-    calls++;
-    assert.equal(url, 'https://api.stripe.com/v1/checkout/sessions');
-    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '100');
-    assert.equal(options.body.get('metadata[promotion_code]'), 'MOTHERLODE');
-    assert.equal(options.body.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '100');
-    return Response.json({
-      url: 'https://checkout.stripe.com/c/pay/cs_live_Motherlode123',
-      currency: 'pln',
-      amount_subtotal: 100,
-      amount_total: 200,
-      total_details: { amount_discount: 0, amount_shipping: 100 }
-    });
-  });
-  assert.equal(response.status, 200);
-  assert.equal(calls, 1);
-  const data = await response.json();
-  assert.equal(data.discount, 9700);
-  assert.equal(data.total, 200);
-  assert.equal(data.shippingAmount, 100);
-  assert.equal(data.promotionCode, 'MOTHERLODE');
+    bulkDiscount: 7900, bulkPricing: true, subtotal: 32000, deliveryMethod: 'locker', shippingAmount: 1649,
+    discount: 3200, total: 30449, currency: 'pln', promotionCode: 'SAVE10' });
 });
