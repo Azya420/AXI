@@ -35,7 +35,7 @@ export function validateOrder(order) {
   return { orderId: order.orderId, email: order.email, customerName, deliveryDestination, items, deliveryMethod, promotionCode, termsAccepted: true };
 }
 
-export function stripeParameters(order, siteOrigin, preview = false, promotionId = null) {
+export function stripeParameters(order, siteOrigin, preview = false, promotionId = null, testDiscount = false) {
   const delivery = getDeliveryOption(order.deliveryMethod);
   const params = new URLSearchParams({
     mode: 'payment', customer_email: order.email, client_reference_id: order.orderId,
@@ -80,6 +80,7 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     params.set('discounts[0][promotion_code]', promotionId);
     params.set('metadata[promotion_code]', order.promotionCode);
   } else params.set('allow_promotion_codes', 'false');
+  if (testDiscount) params.set('metadata[promotion_code]', order.promotionCode);
   if (preview) params.set('metadata[preview]', 'true');
   // payment_method_collection dotyczy wyłącznie subskrypcji. Dla dodatnich
   // kwot w mode: payment Stripe standardowo wymaga metody płatności.
@@ -90,14 +91,16 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     let prefix = 'line_items[' + lineIndex++ + ']';
     params.set(prefix + '[quantity]', '1');
     params.set(prefix + '[price_data][currency]', 'pln');
-    params.set(prefix + '[price_data][unit_amount]', String(getPrice(item.size, order.items.length).amount));
+    const projectAmount = getPrice(item.size, order.items.length).amount;
+    params.set(prefix + '[price_data][unit_amount]', String(testDiscount ? Math.max(1, Math.round(projectAmount * 0.01)) : projectAmount));
     const quantityLabel = order.items.length >= BULK_MIN_FIGURINES ? ' — cena 3+' : order.items.length === 2 ? ' — cena za 2 projekty' : '';
     params.set(prefix + '[price_data][product_data][name]', 'Figurka ' + (index + 1) + ' — ' + item.size + ' mm' + quantityLabel);
     if (item.copies > 1) {
       prefix = 'line_items[' + lineIndex++ + ']';
       params.set(prefix + '[quantity]', String(item.copies - 1));
       params.set(prefix + '[price_data][currency]', 'pln');
-      params.set(prefix + '[price_data][unit_amount]', String(getPrice(item.size).additionalCopyAmount));
+      const copyAmount = getPrice(item.size).additionalCopyAmount;
+      params.set(prefix + '[price_data][unit_amount]', String(testDiscount ? Math.max(1, Math.round(copyAmount * 0.01)) : copyAmount));
       params.set(prefix + '[price_data][product_data][name]', 'Dodatkowy identyczny wydruk figurki ' + (index + 1) + ' — ' + item.size + ' mm');
     }
   });
@@ -215,7 +218,8 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
   };
   try {
     let promotionId = null;
-    if (order.promotionCode) {
+    const testDiscount = order.promotionCode === 'MOTHERLODE';
+    if (order.promotionCode && !testDiscount) {
       diagnostic.stage = 'promotion_lookup';
       const query = new URLSearchParams({ code: order.promotionCode, active: 'true', limit: '100' });
       const lookup = await stripeFetch('https://api.stripe.com/v1/promotion_codes?' + query, {
@@ -236,7 +240,7 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
       if (!promotion) return json(400, { error: 'Kod jest nieprawidłowy, nieaktywny lub niedostępny dla tego zamówienia.', code: 'invalid_promotion_code' });
       promotionId = promotion.id;
     }
-    const params = stripeParameters(order, config.siteOrigin, config.preview === true, promotionId);
+    const params = stripeParameters(order, config.siteOrigin, config.preview === true, promotionId, testDiscount);
     const digest = createHash('sha256').update(params.toString()).digest('hex');
     diagnostic = { event: 'stripe_transport_error' };
     const response = await stripeFetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -262,13 +266,22 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     const subtotal = order.items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, order.items.length), 0);
     const delivery = getDeliveryOption(order.deliveryMethod);
     const total = session.amount_total;
-    const discount = session.total_details?.amount_discount;
+    const stripeDiscount = session.total_details?.amount_discount;
     const shippingAmount = session.total_details?.amount_shipping;
-    if (session.currency !== 'pln' || session.amount_subtotal !== subtotal ||
-        shippingAmount !== delivery.amount || !Number.isInteger(total) || !Number.isInteger(discount) ||
-        discount < 0 || total < delivery.amount || total + discount !== subtotal + delivery.amount ||
-        (!promotionId && discount !== 0)) throw new Error('Invalid totals');
-    if (promotionId && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
+    const testSubtotal = testDiscount
+      ? order.items.reduce((sum, item) => {
+          const project = Math.max(1, Math.round(getPrice(item.size, order.items.length).amount * 0.01));
+          const copy = Math.max(1, Math.round(getPrice(item.size).additionalCopyAmount * 0.01));
+          return sum + project + (item.copies - 1) * copy;
+        }, 0)
+      : subtotal;
+    const discount = testDiscount ? subtotal - testSubtotal : stripeDiscount;
+    if (session.currency !== 'pln' || session.amount_subtotal !== testSubtotal ||
+        shippingAmount !== delivery.amount || !Number.isInteger(total) || !Number.isInteger(stripeDiscount) ||
+        stripeDiscount < 0 || !Number.isInteger(discount) || discount < 0 || total < delivery.amount ||
+        total + discount !== subtotal + delivery.amount ||
+        (testDiscount ? stripeDiscount !== 0 : (!promotionId && stripeDiscount !== 0))) throw new Error('Invalid totals');
+    if ((promotionId || testDiscount) && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
     const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     return json(200, { url: session.url, checkoutVersion: 4, pricingVersion: PRICING_VERSION,
