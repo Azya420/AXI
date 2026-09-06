@@ -8,7 +8,7 @@ const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: i
 const config = { stripeKey: 'test-only-not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const request = (body = order, headers = {}) => new Request('https://example.com/checkout-session', { method: 'POST', headers: { Origin: 'https://axi3d.pl', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
-test('three figurines use quantity prices plus one 16,49 zł shipping rate', () => {
+test('three figurines use quantity prices plus one temporary 1 zł shipping rate', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
   assert.equal(params.get('line_items[0][price_data][unit_amount]'), '6500');
   assert.equal(params.get('line_items[1][price_data][unit_amount]'), '10500');
@@ -18,12 +18,12 @@ test('three figurines use quantity prices plus one 16,49 zł shipping rate', () 
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
   assert.equal(params.get('client_reference_id'), id);
   assert.equal(params.get('metadata[bulk_pricing_applied]'), 'true');
-  assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '1649');
+  assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '100');
   assert.equal(params.get('shipping_options[0][shipping_rate_data][fixed_amount][currency]'), 'pln');
   assert.equal(params.get('shipping_options[0][shipping_rate_data][display_name]'), 'Paczkomat InPost');
   assert.equal(params.get('metadata[shipping_method]'), 'locker');
   const address = stripeParameters(validateOrder({ ...order, deliveryMethod: 'address' }), config.siteOrigin);
-  assert.equal(address.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '1949');
+  assert.equal(address.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '100');
   assert.equal(address.get('shipping_options[0][shipping_rate_data][display_name]'), 'Dostawa na adres');
 });
 test('checkout keeps code entry on the website while preserving shipping and tax rules', () => {
