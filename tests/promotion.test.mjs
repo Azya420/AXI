@@ -108,3 +108,29 @@ test('a promotion code stacks on the trusted 3+ prices without discounting shipp
     bulkDiscount: 7900, bulkPricing: true, subtotal: 32000, deliveryMethod: 'locker', shippingAmount: 100,
     discount: 3200, total: 28900, currency: 'pln', promotionCode: 'SAVE10' });
 });
+
+test('MOTHERLODE applies a server-side 99% test discount without discounting shipping', async () => {
+  const testOrder = { ...order, items: [{ size: 32 }], promotionCode: ' motherlode ' };
+  let calls = 0;
+  const response = await handleCheckout(request(testOrder), config, async (url, options) => {
+    calls++;
+    assert.equal(url, 'https://api.stripe.com/v1/checkout/sessions');
+    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '98');
+    assert.equal(options.body.get('metadata[promotion_code]'), 'MOTHERLODE');
+    assert.equal(options.body.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), '100');
+    return Response.json({
+      url: 'https://checkout.stripe.com/c/pay/cs_live_Motherlode123',
+      currency: 'pln',
+      amount_subtotal: 98,
+      amount_total: 198,
+      total_details: { amount_discount: 0, amount_shipping: 100 }
+    });
+  });
+  assert.equal(response.status, 200);
+  assert.equal(calls, 1);
+  const data = await response.json();
+  assert.equal(data.discount, 9702);
+  assert.equal(data.total, 198);
+  assert.equal(data.shippingAmount, 100);
+  assert.equal(data.promotionCode, 'MOTHERLODE');
+});
