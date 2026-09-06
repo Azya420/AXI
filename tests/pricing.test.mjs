@@ -6,6 +6,7 @@ import { handleCheckout } from '../api/checkout.mjs';
 const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const order = { pricingVersion: PRICING_VERSION, termsAccepted: true,
   orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com',
+  customerName: 'Jan Kowalski', deliveryDestination: 'GLI01 — Rynek 1, Gliwice',
   deliveryMethod: 'locker',
   items: [20, 61, 101, 151, 201].map(size => ({ size, amount: 1, quantity: 100, discount: 99 })) };
 const request = body => new Request('https://api.example/checkout-session', {
