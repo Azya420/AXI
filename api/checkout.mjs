@@ -92,7 +92,7 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     params.set(prefix + '[quantity]', '1');
     params.set(prefix + '[price_data][currency]', 'pln');
     const projectAmount = getPrice(item.size, order.items.length).amount;
-    params.set(prefix + '[price_data][unit_amount]', String(testDiscount ? Math.max(1, Math.round(projectAmount * 0.01)) : projectAmount));
+    params.set(prefix + '[price_data][unit_amount]', String(testDiscount ? Math.max(100, Math.round(projectAmount * 0.01)) : projectAmount));
     const quantityLabel = order.items.length >= BULK_MIN_FIGURINES ? ' — cena 3+' : order.items.length === 2 ? ' — cena za 2 projekty' : '';
     params.set(prefix + '[price_data][product_data][name]', 'Figurka ' + (index + 1) + ' — ' + item.size + ' mm' + quantityLabel);
     if (item.copies > 1) {
@@ -270,7 +270,7 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     const shippingAmount = session.total_details?.amount_shipping;
     const testSubtotal = testDiscount
       ? order.items.reduce((sum, item) => {
-          const project = Math.max(1, Math.round(getPrice(item.size, order.items.length).amount * 0.01));
+          const project = Math.max(100, Math.round(getPrice(item.size, order.items.length).amount * 0.01));
           const copy = Math.max(1, Math.round(getPrice(item.size).additionalCopyAmount * 0.01));
           return sum + project + (item.copies - 1) * copy;
         }, 0)
