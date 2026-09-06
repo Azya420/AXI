@@ -4,7 +4,7 @@ import { handleCheckout, validateOrder, stripeParameters } from '../api/checkout
 import { getPrice, getItemSubtotal, PRICING_VERSION, SHIPPING_AMOUNT } from '../pricing.mjs';
 
 const id = '081d9e64-638e-4a29-882e-39f5212cf96b';
-const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: id, email: 'test@example.com', deliveryMethod: 'locker', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
+const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: id, email: 'test@example.com', customerName: 'Jan Kowalski', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
 const config = { stripeKey: 'test-only-not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const request = (body = order, headers = {}) => new Request('https://example.com/checkout-session', { method: 'POST', headers: { Origin: 'https://axi3d.pl', 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
