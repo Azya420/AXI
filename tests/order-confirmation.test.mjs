@@ -11,8 +11,8 @@ const session = {
   client_reference_id: orderId,
   customer_details: { email: 'jan@example.com' },
   created: 1788703200,
-  amount_total: 9900,
-  total_details: { amount_shipping: 100 },
+  amount_total: 11449,
+  total_details: { amount_shipping: 1649 },
   metadata: {
     order_id: orderId,
     design_count: '1',
@@ -45,8 +45,8 @@ test('confirmation contains the approved text and paid order totals', () => {
   assert.match(message.text, /Nazwa\/opis: Rycerz z mieczem/);
   assert.match(message.text, /Wysokość figurki: 32 mm/);
   assert.match(message.text, /Cena: 98,00 zł/);
-  assert.match(message.text, /Koszt dostawy: 1,00 zł/);
-  assert.match(message.text, /Łącznie zapłacono: 99,00 zł/);
+  assert.match(message.text, /Koszt dostawy: 16,49 zł/);
+  assert.match(message.text, /Łącznie zapłacono: 114,49 zł/);
   assert.match(message.text, /w ciągu 3 dni roboczych/);
   assert.match(message.text, /w ciągu 5 dni roboczych/);
   assert.match(message.html, /AXI3D/);
