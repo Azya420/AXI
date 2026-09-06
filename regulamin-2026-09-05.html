@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regulamin — AXI</title>
+<link rel="icon" type="image/png" href="logo.png" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" href="ciemnyfavicon.png" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #100916;
+    --bg-elevated: #1b0f28;
+    --bg-card: #1f1330;
+    --violet: #6d28d9;
+    --violet-bright: #a78bfa;
+    --bronze: #c9a24b;
+    --ink: #f4eefb;
+    --ink-dim: #b7a8c9;
+    --ink-faint: #7c6c93;
+    --line: rgba(167,139,250,0.16);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Sora', sans-serif;
+    line-height:1.65;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(109,40,217,0.20), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,162,75,0.07), transparent 60%);
+    pointer-events:none;
+    z-index:0;
+  }
+  h1,h2{ font-family:'Cinzel', serif; font-weight:600; }
+  a{ color:var(--violet-bright); }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 32px; width:100%; }
+  header{
+    position:relative; z-index:1;
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    height:130px;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    text-decoration:none;
+  }
+  .logo-mark{ width:126px; height:126px; display:block; object-fit:contain; }
+  .back-link{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.82rem;
+    text-decoration:none;
+    color:var(--ink-dim);
+  }
+  .back-link:hover{ color:var(--ink); }
+  main{ position:relative; z-index:1; padding:64px 0 96px; }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.74rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--bronze);
+    margin-bottom:14px;
+  }
+  h1{ font-size:clamp(1.8rem, 3.4vw, 2.4rem); margin-bottom:8px; }
+  .updated{ color:var(--ink-faint); font-size:0.86rem; font-family:'JetBrains Mono', monospace; margin-bottom:48px; }
+  section{ margin-bottom:36px; }
+  h2{
+    font-size:1.15rem;
+    color:var(--violet-bright);
+    margin-bottom:14px;
+  }
+  p{ color:var(--ink-dim); margin-bottom:12px; }
+  ol{ color:var(--ink-dim); padding-left:1.3em; display:grid; gap:10px; }
+  ol li::marker{ color:var(--bronze); font-family:'JetBrains Mono', monospace; }
+  ul.plain{ list-style:none; color:var(--ink-dim); display:grid; gap:6px; margin-top:6px; }
+  strong{ color:var(--ink); }
+  footer{
+    position:relative; z-index:1;
+    padding:24px 0;
+    border-top:1px solid var(--line);
+    text-align:center;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem;
+    color:var(--ink-faint);
+  }
+
+  /* ---------- COOKIE CONSENT ---------- */
+  .cookie-banner{
+    position:fixed; left:0; right:0; bottom:0; z-index:200;
+    background:var(--bg-elevated);
+    border-top:1px solid var(--line);
+    padding:18px 24px;
+    display:none;
+    align-items:center; justify-content:center; gap:20px;
+    flex-wrap:wrap;
+  }
+  .cookie-banner.active{ display:flex; }
+  .cookie-banner p{ color:var(--ink-dim); font-size:0.88rem; margin:0; max-width:60ch; }
+  .cookie-banner-actions{ display:flex; gap:12px; flex-shrink:0; }
+  .cookie-btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.82rem;
+    padding:9px 18px;
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:none;
+    color:var(--ink-dim);
+    transition:border-color .2s, color .2s, background .2s;
+  }
+  .cookie-btn:hover{ border-color:var(--violet-bright); color:var(--ink); }
+  .cookie-btn-accept{ background:var(--violet); border-color:var(--violet); color:#fff; }
+  .cookie-btn-accept:hover{ background:var(--violet-bright); border-color:var(--violet-bright); color:#150a22; }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a class="logo" href="/">
+      <img class="logo-mark" src="logo%20white.png" alt="AXI">
+    </a>
+    <a class="back-link" href="/">← Wróć na stronę główną</a>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Regulamin sklepu AXI</h1>
+    <p class="updated">Ostatnia aktualizacja: 05.09.2026</p>
+
+    <section>
+      <h2>§1. Postanowienia ogólne</h2>
+      <ol>
+        <li>Niniejszy regulamin określa zasady korzystania ze strony internetowej axi3d.pl (dalej: „Serwis") oraz zasady składania i realizacji zamówień na spersonalizowane figurki RPG i kolekcjonerskie (dalej: „Produkty").</li>
+        <li>Właścicielem Serwisu i Sprzedawcą jest Wojciech Nowakowski, prowadzący działalność nierejestrowaną (dalej: „Sprzedawca"). Adres Sprzedawcy do korespondencji: Nowy Świat 7/I, 44-100 Gliwice.</li>
+        <li>Kontakt ze Sprzedawcą możliwy jest pod adresem e-mail <a href="mailto:kontakt@axi3d.pl">kontakt@axi3d.pl</a>, pod numerem telefonu <a href="tel:+48517703886">517 703 886</a> oraz za pośrednictwem profili w mediach społecznościowych wskazanych w Serwisie.</li>
+        <li>Klientem może być każda pełnoletnia osoba fizyczna, osoba prawna lub jednostka organizacyjna posiadająca zdolność do czynności prawnych (dalej: „Klient").</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§2. Produkty i ich charakter</h2>
+      <ol>
+        <li>Produkty oferowane w Serwisie są w pełni personalizowane, projektowane i drukowane na indywidualne zamówienie Klienta, na podstawie przesłanego opisu postaci, materiałów referencyjnych (zdjęcia, karta postaci, szkic) lub wskazówek Klienta.</li>
+        <li>Podana przy zamawianiu wysokość figurki (w mm) odnosi się wyłącznie do wysokości samej postaci, mierzonej od stóp do czubka głowy, bez uwzględnienia podstawki. Każda figurka zawiera podstawkę w cenie.</li>
+        <li>Ze względu na ręczny charakter wykończenia oraz specyfikę druku żywicznego, gotowy Produkt może nieznacznie różnić się od podglądowego modelu 3D lub wizualizacji.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§3. Składanie zamówienia i akceptacja modelu</h2>
+      <ol>
+        <li>Zamówienie składane jest za pośrednictwem formularza dostępnego w Serwisie, w którym Klient podaje opis postaci, opcjonalne zdjęcia referencyjne, żądaną wysokość figurki oraz dane niezbędne do wysyłki.</li>
+        <li>Umowę sprzedaży uznaje się za zawartą z chwilą zaksięgowania płatności.</li>
+        <li>Po otrzymaniu zamówienia, materiałów niezbędnych do jego realizacji oraz płatności Sprzedawca przygotowuje poglądowy model 3D (nagranie 360° wokół postaci) i przesyła go Klientowi na podany adres e-mail — zwykle w ciągu 3 dni roboczych.</li>
+        <li>Klient może zgłosić uwagi do modelu poglądowego w terminie 3 dni od dnia przesłania go przez Sprzedawcę. Zamówienie obejmuje jedną bezpłatną rundę poprawek, czyli jednorazowe przekazanie przez Klienta zestawu uwag dotyczących modelu.</li>
+        <li>Jeżeli Klient nie zgłosi uwag w terminie wskazanym w ust. 4, uznaje się, że nie wnosi uwag do przedstawionego modelu. Po upływie tego terminu model zostaje skierowany do druku bez przesyłania kolejnego podglądu.</li>
+        <li>Jeżeli Klient skorzysta z bezpłatnej rundy poprawek, po wykonaniu zgłoszonych i możliwych technicznie poprawek model zostaje skierowany bezpośrednio do druku, bez przesyłania Klientowi kolejnego podglądu.</li>
+        <li>Kolejne rundy poprawek oraz zmiany wykraczające poza pierwotny opis zamówienia mogą zostać wykonane za dodatkową opłatą, po uprzednim uzgodnieniu z Klientem ich zakresu i ceny. Jeżeli część zgłoszonych uwag jest niemożliwa technicznie albo wykracza poza pierwotny zakres zamówienia, Sprzedawca informuje o tym Klienta i wykonuje możliwe poprawki zgodne z pierwotnym opisem zamówienia.</li>
+        <li>Sprzedawca zastrzega sobie prawo odmowy realizacji zamówienia, którego treść (opis, materiały referencyjne) narusza prawo, dobra osobiste osób trzecich lub zasady współżycia społecznego.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§4. Ceny i płatność</h2>
+      <ol>
+        <li>Ceny Produktów podane w Serwisie są cenami brutto, wyrażonymi w złotych polskich (PLN), i zależą od wybranej wysokości figurki zgodnie z cennikiem widocznym w formularzu zamówienia.</li>
+        <li>Płatność realizowana jest elektronicznie za pośrednictwem systemu Stripe po złożeniu zamówienia w Serwisie.</li>
+        <li>Przygotowanie modelu poglądowego rozpoczyna się po zaksięgowaniu pełnej płatności. Skierowanie modelu do druku następuje na zasadach określonych w §3 Regulaminu. Po udanej płatności Stripe wysyła Klientowi potwierdzenie płatności; potwierdzenie to nie stanowi faktury.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§5. Realizacja i dostawa</h2>
+      <ol>
+        <li>Druk, wykończenie i nadanie Produktu do wysyłki następują w terminie do 5 dni roboczych, liczonym — zależnie od przebiegu zamówienia — od zaakceptowania modelu przez Klienta, bezskutecznego upływu 3-dniowego terminu na zgłoszenie uwag albo wykonania jednej bezpłatnej rundy poprawek, jednak nie wcześniej niż po zaksięgowaniu pełnej płatności.</li>
+        <li>Dostawa na terenie Polski realizowana jest — zgodnie z wyborem Klienta w formularzu zamówienia — do paczkomatu InPost lub na wskazany adres, w bezpiecznym, twardym opakowaniu zabezpieczającym Produkt przed uszkodzeniem w transporcie.</li>
+        <li>Koszt i sposób dostawy są prezentowane Klientowi przed finalizacją zamówienia. Czas przewozu zależy od przewoźnika i nie jest wliczany do terminu przygotowania Produktu wskazanego w ust. 1.</li>
+        <li>Dostawa do innego państwa Unii Europejskiej wymaga wcześniejszego kontaktu ze Sprzedawcą. Dostępny sposób dostawy, jej koszt i przewidywany termin zostaną indywidualnie uzgodnione i przedstawione Klientowi przed złożeniem zamówienia i dokonaniem płatności.</li>
+        <li>Klient powinien podać kompletny i prawidłowy adres dostawy lub dane wybranego paczkomatu oraz sprawdzić je przed dokonaniem płatności. Klient ponosi dodatkowe koszty wynikające z podania błędnych lub niepełnych danych, o ile błąd nie został spowodowany przez Sprzedawcę.</li>
+        <li>Jeżeli przesyłka wróci do Sprzedawcy z powodu jej nieodebrania przez Klienta albo podania przez Klienta błędnych lub niepełnych danych, Produkt zostanie wysłany ponownie po ustaleniu prawidłowych danych i opłaceniu przez Klienta rzeczywistego kosztu ponownej wysyłki. Zasada ta nie ma zastosowania, jeżeli zwrot przesyłki nastąpił z przyczyn leżących po stronie Sprzedawcy lub przewoźnika.</li>
+        <li>W przypadku dostawy do Klienta będącego konsumentem ryzyko przypadkowej utraty lub uszkodzenia Produktu przechodzi na Klienta z chwilą jego otrzymania przez Klienta albo wskazaną przez niego osobę trzecią inną niż przewoźnik. Jeżeli Klient samodzielnie wybrał przewoźnika, którego Sprzedawca nie oferował, ryzyko przechodzi na Klienta z chwilą przekazania Produktu temu przewoźnikowi.</li>
+        <li>Jeżeli przesyłka zostanie zagubiona lub uszkodzona przed jej doręczeniem, Sprzedawca podejmie działania wobec przewoźnika i doprowadzi zamówienie do zgodności z umową na zasadach określonych w §7. Klient powinien możliwie szybko poinformować Sprzedawcę o problemie. Przesłanie zdjęć opakowania i Produktu może ułatwić wyjaśnienie sprawy, lecz nie jest warunkiem przyjęcia zgłoszenia ani skorzystania z ustawowych uprawnień.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§6. Prawo odstąpienia od umowy</h2>
+      <ol>
+        <li>Zgodnie z art. 38 pkt 3 ustawy z dnia 30 maja 2014 r. o prawach konsumenta, prawo odstąpienia od umowy zawartej na odległość <strong>nie przysługuje</strong> w odniesieniu do umów, w których przedmiotem świadczenia jest rzecz nieprefabrykowana, wyprodukowana według specyfikacji konsumenta lub służąca zaspokojeniu jego zindywidualizowanych potrzeb.</li>
+        <li>Z uwagi na w pełni personalizowany charakter Produktów (indywidualny projekt na podstawie opisu i materiałów Klienta), prawo odstąpienia od umowy w terminie 14 dni nie ma zastosowania do zamówień złożonych w Serwisie.</li>
+        <li>Zasady zgłaszania uwag do modelu poglądowego, jednej bezpłatnej rundy poprawek oraz skierowania modelu do druku określa §3 Regulaminu. Postanowienia te nie ograniczają ustawowych praw Klienta związanych z niezgodnością Produktu z umową.</li>
+        <li>Po zawarciu umowy Klient nie może dobrowolnie anulować zamówienia ani zrezygnować z jego realizacji wyłącznie z powodu zmiany decyzji, niezależnie od etapu realizacji. Postanowienie to nie wyłącza ani nie ogranicza prawa Klienta do odstąpienia od umowy, obniżenia ceny lub skorzystania z innych uprawnień w przypadkach przewidzianych bezwzględnie obowiązującymi przepisami prawa.</li>
+        <li>Jeżeli przed rozpoczęciem prac Sprzedawca stwierdzi, że nie może wykonać zamówienia, poinformuje o tym Klienta i zwróci mu całą otrzymaną płatność.</li>
+        <li>Jeżeli podczas przygotowywania modelu okaże się, że wykonanie Produktu zgodnego z pierwotnym opisem zamówienia jest niemożliwe z przyczyn leżących po stronie Sprzedawcy, Sprzedawca poinformuje o tym Klienta i zwróci mu całą otrzymaną płatność.</li>
+        <li>Jeżeli Klient zażąda zmian wykraczających poza pierwotny opis zamówienia i nie zaakceptuje uzgodnionej dodatkowej opłaty, Sprzedawca zrealizuje zamówienie zgodnie z jego pierwotnym zakresem, z uwzględnieniem możliwych poprawek wykonanych na zasadach określonych w §3 Regulaminu.</li>
+        <li>Jeżeli po dokonaniu płatności ujawni się, że realizacja zamówienia mogłaby naruszać prawo, prawa osób trzecich lub zasady współżycia społecznego, Sprzedawca może odmówić realizacji i zwróci Klientowi otrzymaną płatność. Jeżeli odmowa wynika z nieprawdziwego oświadczenia Klienta dotyczącego posiadanych praw lub zgód, Sprzedawca może dochodzić od Klienta zwrotu uzasadnionych i udokumentowanych kosztów poniesionych wskutek tego oświadczenia na zasadach ogólnych.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§7. Reklamacje i zgodność Produktu z umową</h2>
+      <ol>
+        <li>Sprzedawca ponosi wobec Klienta będącego konsumentem odpowiedzialność za zgodność Produktu z umową na zasadach określonych w ustawie z dnia 30 maja 2014 r. o prawach konsumenta.</li>
+        <li>Produkt jest zgodny z umową, jeżeli w szczególności odpowiada uzgodnionemu opisowi, rodzajowi, ilości, jakości i rozmiarowi oraz modelowi 3D skierowanemu do druku zgodnie z §3 Regulaminu, z uwzględnieniem właściwości technologii druku żywicznego i ręcznego wykończenia wskazanych w niniejszym Regulaminie.</li>
+        <li>Sprzedawca odpowiada za brak zgodności Produktu z umową istniejący w chwili jego dostarczenia i ujawniony w ciągu dwóch lat od tej chwili.</li>
+        <li>Reklamację można złożyć pocztą elektroniczną na adres <a href="mailto:kontakt@axi3d.pl">kontakt@axi3d.pl</a> albo pisemnie na adres: Nowy Świat 7/I, 44-100 Gliwice.</li>
+        <li>W reklamacji zaleca się podanie imienia i nazwiska, numeru zamówienia, opisu stwierdzonej niezgodności, daty jej zauważenia oraz oczekiwanego sposobu rozwiązania sprawy. Dołączenie zdjęć Produktu może ułatwić i przyspieszyć rozpatrzenie reklamacji, ale nie jest warunkiem jej przyjęcia.</li>
+        <li>Jeżeli Produkt jest niezgodny z umową, Klient może żądać jego naprawy lub wymiany. W przypadku Produktów wykonywanych na indywidualne zamówienie wymiana może polegać na ponownym wykonaniu i wydrukowaniu Produktu lub jego wadliwego elementu.</li>
+        <li>Sprzedawca może dokonać wymiany, gdy Klient żąda naprawy, albo naprawy, gdy Klient żąda wymiany, jeżeli doprowadzenie Produktu do zgodności z umową w sposób wybrany przez Klienta jest niemożliwe albo wymagałoby nadmiernych kosztów. Jeżeli zarówno naprawa, jak i wymiana są niemożliwe albo wymagałyby nadmiernych kosztów, Sprzedawca może odmówić doprowadzenia Produktu do zgodności z umową.</li>
+        <li>Naprawa lub wymiana zostanie dokonana w rozsądnym czasie od chwili poinformowania Sprzedawcy o braku zgodności z umową, bez nadmiernych niedogodności dla Klienta i na koszt Sprzedawcy.</li>
+        <li>Klient może złożyć oświadczenie o obniżeniu ceny albo odstąpieniu od umowy w przypadkach przewidzianych przepisami prawa, w szczególności gdy Sprzedawca odmówił doprowadzenia Produktu do zgodności z umową, nie doprowadził go do zgodności w rozsądnym czasie, brak zgodności występuje nadal albo jest na tyle istotny, że uzasadnia obniżenie ceny lub odstąpienie od umowy bez uprzedniego żądania naprawy lub wymiany. Klient nie może odstąpić od umowy, jeżeli brak zgodności Produktu z umową jest nieistotny.</li>
+        <li>Sprzedawca udzieli odpowiedzi na reklamację w terminie 14 dni kalendarzowych od dnia jej otrzymania.</li>
+        <li>Sprzedawca nie odpowiada za uszkodzenia Produktu powstałe po jego dostarczeniu wskutek działania Klienta lub osoby trzeciej, w szczególności w wyniku upadku, uderzenia, niewłaściwego przechowywania, użytkowania niezgodnego z przeznaczeniem, samodzielnych przeróbek albo narażenia Produktu na działanie wysokiej temperatury. Postanowienie to nie ogranicza ustawowych praw konsumenta dotyczących braku zgodności Produktu z umową istniejącego w chwili jego dostarczenia.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§8. Dane osobowe i pliki cookies</h2>
+      <ol>
+        <li>Administratorem danych osobowych Klienta jest Sprzedawca. Kontakt w sprawach dotyczących danych osobowych możliwy jest pod adresem <a href="mailto:kontakt@axi3d.pl">kontakt@axi3d.pl</a>.</li>
+        <li>Dane osobowe są przetwarzane w szczególności w celu zawarcia i wykonania umowy, obsługi płatności i dostawy, kontaktu, realizacji obowiązków prawnych, obsługi reklamacji i roszczeń oraz — po uzyskaniu zgody — prowadzenia analityki i marketingu.</li>
+        <li>Szczegółowe informacje o celach, podstawach prawnych, odbiorcach danych, okresach przechowywania, prawach osób oraz wykorzystywanych technologiach znajdują się w <a href="polityka-prywatnosci.html">Polityce prywatności i cookies</a>.</li>
+        <li>Zgoda na analityczne i marketingowe technologie jest dobrowolna, nie jest wymagana do złożenia zamówienia i może zostać zmieniona linkiem „Cookies” w stopce Serwisu.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§9. Prawa autorskie i materiały Klienta</h2>
+      <ol>
+        <li>Autorskie prawa majątkowe do modelu 3D wykonanego przez Sprzedawcę przysługują Sprzedawcy w zakresie, w jakim model stanowi utwór w rozumieniu przepisów prawa autorskiego.</li>
+        <li>Zamówienie obejmuje przygotowanie modelu 3D na potrzeby wykonania fizycznego Produktu oraz dostarczenie zamówionej liczby wydruków. Zamówienie nie obejmuje przekazania Klientowi pliku źródłowego modelu 3D ani przeniesienia lub udzielenia praw do jego kopiowania, modyfikowania, rozpowszechniania, dalszego drukowania lub sprzedaży, chyba że strony odrębnie uzgodnią inaczej.</li>
+        <li>Sprzedawca może przechowywać wykonany model 3D oraz przesłane materiały referencyjne jako dokumentację projektu, w celach i na zasadach określonych w §8 Regulaminu.</li>
+        <li>Przesyłając materiały referencyjne, Klient udziela Sprzedawcy niewyłącznej i nieodpłatnej licencji na korzystanie z tych materiałów w zakresie niezbędnym do przygotowania, poprawiania, wykonania, archiwizowania i ponownego wydrukowania zamówionego modelu oraz Produktu.</li>
+        <li>Klient udziela Sprzedawcy niewyłącznej i nieodpłatnej licencji na publikowanie zdjęć gotowego Produktu, wizualizacji wykonanego modelu 3D oraz przesłanych materiałów referencyjnych niezawierających danych osobowych ani wizerunku możliwej do zidentyfikowania osoby — w portfolio AXI, na stronie axi3d.pl, w profilach AXI w mediach społecznościowych oraz w materiałach promocyjnych AXI. Licencja obejmuje utrwalanie, zwielokrotnianie i publiczne udostępnianie tych materiałów w celu prezentacji działalności AXI.</li>
+        <li>Materiały zawierające twarz, wizerunek, imię, nazwisko albo inne informacje pozwalające zidentyfikować rzeczywistą osobę nie będą publikowane bez odrębnego uzgodnienia i odpowiedniej podstawy prawnej.</li>
+        <li>Klient oświadcza, że posiada prawa, licencje lub wymagane zgody pozwalające na przekazanie materiałów Sprzedawcy oraz korzystanie z nich w zakresie określonym w Regulaminie, a ich wykorzystanie nie narusza praw osób trzecich, w szczególności praw autorskich, praw do znaków towarowych, prawa do wizerunku ani dóbr osobistych.</li>
+        <li>Sprzedawca może odmówić wykonania lub publikacji projektu, jeżeli poweźmie uzasadnioną wątpliwość, czy jego realizacja lub publikacja narusza prawa osób trzecich albo obowiązujące przepisy.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>§10. Postanowienia końcowe</h2>
+      <ol>
+        <li>W sprawach nieuregulowanych niniejszym regulaminem zastosowanie mają przepisy prawa polskiego, w tym Kodeksu cywilnego oraz ustawy o prawach konsumenta.</li>
+        <li>Sprzedawca zastrzega sobie prawo do zmiany regulaminu. Zmiany nie mają wpływu na zamówienia złożone przed ich wejściem w życie.</li>
+        <li>Aktualna wersja regulaminu dostępna jest zawsze pod adresem axi3d.pl/regulamin.html.</li>
+      </ol>
+    </section>
+  </div>
+</main>
+
+<footer>
+  © 2026 AXI. Wszystkie prawa zastrzeżone.<br><small style="font-family:'Sora',sans-serif;font-size:.66rem;line-height:1.5">Producent: Wojciech Nowakowski (AXI) · Nowy Świat 7/I, 44-100 Gliwice · <a href="mailto:kontakt@axi3d.pl">kontakt@axi3d.pl</a></small><br><a href="polityka-prywatnosci.html">Polityka prywatności</a> <a href="#cookie-settings" data-cookie-settings>Cookies</a>
+</footer>
+
+<div class="cookie-banner" id="cookie-banner">
+  <p>Za Twoją zgodą używamy Google Analytics i Meta Pixel do analizy ruchu, skuteczności reklam oraz zakupów. Możesz zaakceptować analityczne i marketingowe pliki cookie albo pozostać przy niezbędnych — więcej informacji znajdziesz w <a href="polityka-prywatnosci.html">polityce prywatności i cookies</a>.</p>
+  <div class="cookie-banner-actions">
+    <button type="button" class="cookie-btn" id="cookie-decline">Tylko niezbędne</button>
+    <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję analityczne i marketingowe</button>
+  </div>
+</div>
+<script src="tracking.js?v=20260901-cookie-footer-v4" data-analytics></script>
+
+</body>
+</html>
