@@ -1,10 +1,10 @@
 export const MAX_FIGURINES = 20;
-export const PRICING_VERSION = '2026-09-06-shipping-test-1zl';
+export const PRICING_VERSION = '2026-09-05-base-prices';
 export const AUTOMATIC_DISCOUNT_PERCENT = 0;
-export const SHIPPING_AMOUNT = 100;
+export const SHIPPING_AMOUNT = 1649;
 export const DELIVERY_OPTIONS = Object.freeze({
   locker: Object.freeze({ amount: SHIPPING_AMOUNT, displayName: 'Paczkomat InPost' }),
-  address: Object.freeze({ amount: SHIPPING_AMOUNT, displayName: 'Dostawa na adres' })
+  address: Object.freeze({ amount: 1949, displayName: 'Dostawa na adres' })
 });
 export const BULK_MIN_FIGURINES = 3;
 // Kwoty w groszach. Cena bazowa nie jest deklaracją historycznej ceny z 30 dni.
