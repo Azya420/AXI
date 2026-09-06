@@ -49,9 +49,9 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
   assert.ok(!html.includes('data-field="sale-badge"'));
-  assert.match(html, /Paczkomat InPost \(16,49 zł\)/);
-  assert.match(html, /Na adres \(19,49 zł\)/);
-  assert.match(html, /src="order-form.mjs\?v=20260906-order-confirmation"/);
+  assert.match(html, /Paczkomat InPost \(1,00 zł\)/);
+  assert.match(html, /Na adres \(1,00 zł\)/);
+  assert.match(html, /src="order-form.mjs\?v=20260906-shipping-test-1zl"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes('tracking.js'));
@@ -78,7 +78,7 @@ test('preview checkout returns to preview and rejects any non-test Stripe sessio
   const request = () => new Request(origin + '/preview/checkout-session', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(order) });
   const previewConfig = { ...config, preview: true, siteOrigin: origin, allowedOrigins: [origin] };
   for (const livemode of [true, undefined, false]) {
-    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview', amount_subtotal: 9800, amount_total: 11449, currency: 'pln', total_details: { amount_discount: 0, amount_shipping: 1649 } }));
+    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview', amount_subtotal: 9800, amount_total: 9900, currency: 'pln', total_details: { amount_discount: 0, amount_shipping: 100 } }));
     assert.equal(response.status, livemode === false ? 200 : 502);
   }
 });
