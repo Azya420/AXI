@@ -168,7 +168,7 @@ test('identical print count updates the visible total and checkout payload', asy
   assert.match(s.$('order-count-label').textContent, /3 figurki · 1 projekt/);
   s.fillShipping();
   await s.submit();
-  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 3 }]);
+  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 3, description: '' }]);
   s.dom.window.close();
 });
 test('selecting photos again appends files and every photo can be removed', () => {
@@ -208,7 +208,7 @@ test('one multipart submission carries independent files, sizes, prices and shar
   s.fillShipping(); await s.submit();
   assert.equal(s.calls.length, 2);
   const checkout = JSON.parse(s.calls[0].body);
-  assert.deepEqual(checkout.items, [{ size: 32, copies: 1 }, { size: 120, copies: 1 }]);
+  assert.deepEqual(checkout.items, [{ size: 32, copies: 1, description: 'Druid' }, { size: 120, copies: 1, description: 'Smok' }]);
   assert.equal(checkout.deliveryMethod, 'address');
   const payload = s.calls[1].body;
   assert.equal(payload.get('cena'), '272,49 zł');
@@ -313,7 +313,7 @@ test('preview skips Basin and uploads while retaining the real order flow', asyn
   await s.submit();
   assert.equal(s.calls.length, 1);
   assert.ok(s.calls[0].url.includes('/checkout-session'));
-  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 1 }]);
+  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 1, description: '' }]);
   assert.deepEqual(s.redirects, ['https://checkout.stripe.com/c/pay/cs_test_preview']);
   s.dom.window.close();
 });
@@ -363,7 +363,7 @@ test('terms start unchecked and must be accepted before preparing payment or sen
   s.$('terms-accepted').checked = true; await s.submit();
   assert.equal(JSON.parse(s.calls[0].body).termsAccepted, true);
   assert.equal(s.calls[1].body.get('akceptacja_regulaminu'), 'Tak');
-  assert.equal(s.calls[1].body.get('wersja_regulaminu'), '2026-08-30');
+  assert.equal(s.calls[1].body.get('wersja_regulaminu'), '2026-09-05');
   s.dom.window.close();
 });
 
