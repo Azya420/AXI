@@ -36,7 +36,7 @@ test('two different projects use the dedicated prices in Stripe', async () => {
     assert.equal(options.body.get('line_items[1][price_data][unit_amount]'), '16500');
     assert.match(options.body.get('line_items[0][price_data][product_data][name]'), /cena za 2 projekty/);
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_Pair123', currency: 'pln',
-      amount_subtotal: 25300, amount_total: 25400, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
+      amount_subtotal: 25300, amount_total: 26949, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
   });
   assert.equal(response.status, 200);
   const data = await response.json();
@@ -54,7 +54,7 @@ test('every additional identical print uses the requested size-bracket price', (
   for (const copies of [0, 1.5, '2', Number.MAX_SAFE_INTEGER + 1]) assert.equal(getItemSubtotal(32, copies), null);
 });
 
-test('all five 3+ line items plus temporary 1 zł shipping in Stripe', async () => {
+test('all five 3+ line items plus shipping total 776,49 zł in Stripe', async () => {
   let calls = 0;
   const response = await handleCheckout(request(order), config, async (url, options) => {
     calls++;
@@ -67,16 +67,16 @@ test('all five 3+ line items plus temporary 1 zł shipping in Stripe', async () 
     assert.equal(options.body.get('metadata[automatic_discount_percent]'), '0');
     assert.equal(options.body.get('metadata[regular_subtotal]'), '90300');
     assert.equal(options.body.get('metadata[pricing_version]'), PRICING_VERSION);
-    assert.equal(options.body.get('metadata[shipping_amount]'), '100');
+    assert.equal(options.body.get('metadata[shipping_amount]'), '1649');
     assert.equal(options.body.get('metadata[bulk_pricing_applied]'), 'true');
     assert.ok(![...options.body.keys()].some(key => key.startsWith('discounts[')));
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_Fixture123', currency: 'pln',
-      amount_subtotal: 76000, amount_total: 76100, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
+      amount_subtotal: 76000, amount_total: 77649, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
   });
   assert.equal(response.status, 200);
   assert.equal(calls, 1);
   const data = await response.json();
-  assert.equal(data.total, 76100);
+  assert.equal(data.total, 77649);
   assert.equal(data.shippingAmount, SHIPPING_AMOUNT);
   assert.equal(data.deliveryMethod, 'locker');
   assert.equal(data.regularSubtotal, 90300);
