@@ -468,7 +468,7 @@ export function initOrderForm(win) {
     payload.set('cennik_3_plus', items.length >= BULK_MIN_FIGURINES ? 'Tak' : 'Nie');
     payload.set('cena_przed_kodem', formatPrice(subtotal + shippingAmount));
     payload.set('rabat', formatPrice(regularSubtotal - subtotal));
-    payload.set('wersja_regulaminu', '2026-08-30');
+    payload.set('wersja_regulaminu', '2026-09-05');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
       const copies = Number(field(card, 'copies').value);
@@ -497,7 +497,25 @@ export function initOrderForm(win) {
     try {
       let paymentUrl;
       if (endpoint) {
-        const data = await preparePayment(endpoint, { items, email: byId('email').value.trim(), orderId, deliveryMethod: selectedDeliveryMethod, promotionCode, termsAccepted: byId('terms-accepted').checked, pricingVersion: PRICING_VERSION });
+        const deliveryDestination = isLocker()
+          ? byId('paczkomat-hidden').value.trim()
+          : [byId('ulica').value.trim(), byId('kod').value.trim(), byId('miasto').value.trim()].filter(Boolean).join(', ');
+        const checkoutItems = cards().map(card => ({
+          size: Number(field(card, 'size').value),
+          copies: Number(field(card, 'copies').value),
+          description: field(card, 'description').value.replace(/\s+/g, ' ').trim().slice(0, 300)
+        }));
+        const data = await preparePayment(endpoint, {
+          items: checkoutItems,
+          email: byId('email').value.trim(),
+          customerName: byId('name').value.trim(),
+          deliveryDestination,
+          orderId,
+          deliveryMethod: selectedDeliveryMethod,
+          promotionCode,
+          termsAccepted: byId('terms-accepted').checked,
+          pricingVersion: PRICING_VERSION
+        });
         const url = new URL(data.url);
         if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Nieprawidłowy adres płatności.');
         if (preview && !url.pathname.includes('/cs_test_')) throw new Error('Podgląd obsługuje wyłącznie płatności testowe.');
