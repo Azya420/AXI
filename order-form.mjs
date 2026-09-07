@@ -398,8 +398,30 @@ export function initOrderForm(win) {
     const text = await response.text();
     let data;
     try { data = JSON.parse(text); } catch { data = {}; }
-    if (!response.ok) throw new Error(data.error || data.message || 'Usługa jest chwilowo niedostępna. Spróbuj ponownie.');
+    if (!response.ok) {
+      const error = new Error(data.error || data.message || 'Usługa jest chwilowo niedostępna. Spróbuj ponownie.');
+      error.retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+      throw error;
+    }
     return data;
+  }
+  function verifiedCheckoutUrl(value) {
+    let url;
+    try { url = new URL(value); } catch {
+      const error = new Error('Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
+      error.retryable = true;
+      throw error;
+    }
+    const expectedSession = preview ? '/c/pay/cs_test_' : '/c/pay/cs_live_';
+    if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || !url.pathname.startsWith(expectedSession)) {
+      const error = new Error(preview
+        ? 'Podgląd obsługuje wyłącznie płatności testowe.'
+        : 'Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
+      // Zła domena lub tryb sesji to błąd bezpieczeństwa, a nie przejściowa awaria.
+      error.retryable = false;
+      throw error;
+    }
+    return url;
   }
   async function preparePayment(endpoint, order) {
     const controller = new win.AbortController();
@@ -410,10 +432,18 @@ export function initOrderForm(win) {
     // Mieści wybudzenie darmowej instancji, ale nie blokuje formularza bez końca.
     const timeout = win.setTimeout(() => controller.abort(), 120000);
     try {
-      return await responseJson(await win.fetch(endpoint, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(order), signal: controller.signal
-      }));
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const data = await responseJson(await win.fetch(endpoint, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(order), signal: controller.signal
+          }));
+          return { data, url: verifiedCheckoutUrl(data.url) };
+        } catch (error) {
+          if (attempt === 0 && error.retryable === true && !controller.signal.aborted) continue;
+          throw error;
+        }
+      }
     } catch (error) {
       if (controller.signal.aborted) throw new Error('Usługa płatności nie odpowiedziała na czas. Spróbuj ponownie.');
       throw error;
@@ -505,7 +535,7 @@ export function initOrderForm(win) {
           copies: Number(field(card, 'copies').value),
           description: field(card, 'description').value.replace(/\s+/g, ' ').trim().slice(0, 300)
         }));
-        const data = await preparePayment(endpoint, {
+        const prepared = await preparePayment(endpoint, {
           items: checkoutItems,
           email: byId('email').value.trim(),
           customerName: byId('name').value.trim(),
@@ -516,10 +546,7 @@ export function initOrderForm(win) {
           termsAccepted: byId('terms-accepted').checked,
           pricingVersion: PRICING_VERSION
         });
-        const url = new URL(data.url);
-        if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Nieprawidłowy adres płatności.');
-        if (preview && !url.pathname.includes('/cs_test_')) throw new Error('Podgląd obsługuje wyłącznie płatności testowe.');
-        if (!preview && !/^\/c\/pay\/cs_live_[A-Za-z0-9]+$/.test(url.pathname)) throw new Error('Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
+        const { data, url } = prepared;
         paymentUrl = url.href;
         // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
         if (data.checkoutVersion !== 4 || data.pricingVersion !== PRICING_VERSION ||
