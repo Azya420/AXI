@@ -432,7 +432,7 @@ export function initOrderForm(win) {
     // Mieści wybudzenie darmowej instancji, ale nie blokuje formularza bez końca.
     const timeout = win.setTimeout(() => controller.abort(), 120000);
     try {
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 4; attempt++) {
         try {
           const data = await responseJson(await win.fetch(endpoint, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -440,7 +440,11 @@ export function initOrderForm(win) {
           }));
           return { data, url: verifiedCheckoutUrl(data.url) };
         } catch (error) {
-          if (attempt === 0 && error.retryable === true && !controller.signal.aborted) continue;
+          const transient = error.retryable === true || error?.name === 'TypeError';
+          if (attempt < 3 && transient && !controller.signal.aborted) {
+            await new Promise(resolve => win.setTimeout(resolve, 500 * (attempt + 1)));
+            continue;
+          }
           throw error;
         }
       }
@@ -452,6 +456,21 @@ export function initOrderForm(win) {
       win.clearTimeout(timeout);
       submitBtn.textContent = 'Wysyłanie…';
     }
+  }
+  const checkoutEndpoint = (win.AXI_CHECKOUT_ENDPOINT || '').trim();
+  if (checkoutEndpoint) {
+    // Uruchamia połączenie z backendem podczas wypełniania formularza, zanim
+    // klient przejdzie do płatności. Odpowiedź nie zawiera danych klienta.
+    win.setTimeout(() => {
+      let healthUrl;
+      try { healthUrl = new URL('/health', checkoutEndpoint).href; } catch { return; }
+      const warmup = doc.createElement('img');
+      warmup.hidden = true;
+      warmup.alt = '';
+      warmup.onload = warmup.onerror = () => warmup.remove();
+      warmup.src = healthUrl;
+      doc.body.append(warmup);
+    }, 0);
   }
   form.addEventListener('submit', async event => {
     event.preventDefault();
