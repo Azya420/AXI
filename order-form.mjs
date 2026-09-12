@@ -495,6 +495,21 @@ export function initOrderForm(win) {
       return;
     }
     const payload = new win.FormData(form);
+    // Basin zachowuje pojedynczy załącznik dla jednej nazwy pola. Nadajemy
+    // więc każdemu zdjęciu osobną nazwę, aby wszystkie pliki danej figurki
+    // dotarły w tym samym zgłoszeniu.
+    cards().forEach((card, figurineIndex) => {
+      const photoInput = field(card, 'photos');
+      const photos = selectedPhotos.get(photoInput) || Array.from(photoInput.files);
+      payload.delete(photoInput.name);
+      photos.forEach((photo, photoIndex) => {
+        payload.append(
+          'figurka_' + (figurineIndex + 1) + '_zdjecie_' + (photoIndex + 1),
+          photo,
+          photo.name
+        );
+      });
+    });
     // Nie zmieniamy pola telefonu — ponowienie nie doklei kolejnego +48.
     const digits = byId('phone').value.replace(/\D/g, '');
     payload.set('telefon', '+' + (digits.length === 11 && digits.startsWith('48') ? digits : '48' + digits));
