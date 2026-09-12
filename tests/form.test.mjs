@@ -215,8 +215,11 @@ test('one multipart submission carries independent files, sizes, prices and shar
   assert.equal(payload.get('koszt_wysylki'), '19,49 zł');
   assert.equal(payload.get('liczba_figurek'), '2');
   assert.equal(payload.get('opis'), 'Druid'); assert.equal(payload.get('figurka_2_opis'), 'Smok');
-  assert.equal(payload.get('zdjecia').name, 'druid.png');
-  assert.deepEqual(payload.getAll('figurka_2_zdjecia').map(f => f.name), ['dragon.png', 'dragon-back.png']);
+  assert.equal(payload.get('figurka_1_zdjecie_1').name, 'druid.png');
+  assert.equal(payload.get('figurka_2_zdjecie_1').name, 'dragon.png');
+  assert.equal(payload.get('figurka_2_zdjecie_2').name, 'dragon-back.png');
+  assert.equal(payload.get('zdjecia'), null);
+  assert.equal(payload.get('figurka_2_zdjecia'), null);
   assert.equal(payload.get('telefon'), '+48600123456');
   assert.equal(payload.get('email'), 'test@example.com');
   assert.equal(payload.get('miasto'), 'Warszawa');
