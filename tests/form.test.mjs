@@ -366,7 +366,7 @@ test('terms start unchecked and must be accepted before preparing payment or sen
   s.$('terms-accepted').checked = true; await s.submit();
   assert.equal(JSON.parse(s.calls[0].body).termsAccepted, true);
   assert.equal(s.calls[1].body.get('akceptacja_regulaminu'), 'Tak');
-  assert.equal(s.calls[1].body.get('wersja_regulaminu'), '2026-09-05');
+  assert.equal(s.calls[1].body.get('wersja_regulaminu'), '2026-10-13');
   s.dom.window.close();
 });
 
