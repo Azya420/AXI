@@ -38,7 +38,7 @@ test('server resolves the typed code, applies only its trusted ID and returns St
     assert.equal(options.body.get('discounts[0][promotion_code]'), promotion.id);
     assert.equal(options.body.get('allow_promotion_codes'), null);
     assert.equal(options.body.get('metadata[terms_accepted]'), 'true');
-    assert.equal(options.body.get('metadata[terms_version]'), '2026-09-05');
+    assert.equal(options.body.get('metadata[terms_version]'), '2026-10-13');
     assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '8800');
     return Response.json(session);
   });
