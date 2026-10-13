@@ -773,12 +773,36 @@
     margin-top:15px; padding:16px; display:grid; gap:16px;
     border-left:3px solid var(--violet-bright); background:rgba(8,3,18,0.35);
   }
-  .advanced-settings-note{ color:var(--ink-faint); font-size:0.76rem; line-height:1.55; margin:0; }
-  .base-none-option{
-    display:flex; align-items:center; gap:10px; margin:0; color:var(--ink-dim);
-    font:500 0.82rem 'Sora',sans-serif; letter-spacing:normal; text-transform:none; cursor:pointer;
+  .advanced-settings-section{ display:grid; gap:14px; }
+  .advanced-settings-section + .advanced-settings-section{
+    padding-top:16px; border-top:1px solid rgba(167,139,250,0.16);
   }
-  .base-none-option input{ width:18px; height:18px; padding:0; flex:0 0 18px; accent-color:var(--violet); }
+  .advanced-settings-title{
+    margin:0; color:var(--bronze); font:500 0.69rem 'JetBrains Mono',monospace;
+    letter-spacing:.16em; text-transform:uppercase;
+  }
+  .base-none-option{
+    position:relative; display:flex; align-items:center; gap:11px; width:max-content; max-width:100%;
+    margin:0; padding:9px 13px 9px 10px; color:var(--ink-dim);
+    border:1px solid rgba(167,139,250,.28); background:rgba(31,19,48,.58);
+    font:500 0.79rem 'Sora',sans-serif; letter-spacing:normal; text-transform:none; cursor:pointer;
+    transition:border-color .2s,background .2s,color .2s,box-shadow .2s;
+  }
+  .base-none-option:hover{ border-color:var(--violet-bright); color:var(--ink); }
+  .base-none-option:has(input:checked){
+    color:var(--ink); border-color:var(--bronze); background:rgba(201,162,75,.08);
+    box-shadow:inset 3px 0 0 var(--bronze),0 0 18px rgba(201,162,75,.07);
+  }
+  .base-none-option input{
+    appearance:none; width:17px; height:17px; padding:0; flex:0 0 17px; margin:0;
+    border:1px solid var(--ink-faint); background:var(--bg); display:grid; place-items:center;
+  }
+  .base-none-option input::after{
+    content:'✓'; color:#150a22; font:700 .72rem 'Sora',sans-serif; transform:scale(0); transition:transform .15s ease;
+  }
+  .base-none-option input:checked{ border-color:var(--bronze); background:var(--bronze); }
+  .base-none-option input:checked::after{ transform:scale(1); }
+  .base-none-option input:focus-visible{ outline:2px solid var(--violet-bright); outline-offset:3px; }
   .base-dimensions{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .base-dimensions input:disabled{ opacity:.45; cursor:not-allowed; }
   .advanced-settings select{ width:100%; }
@@ -2458,29 +2482,34 @@
             <details class="advanced-settings" data-field="advanced-settings">
               <summary>Ustawienia zaawansowane</summary>
               <div class="advanced-settings-body">
-                <p class="advanced-settings-note">Jeśli nie zmienisz ustawień podstawki, dobierzemy standardową podstawkę odpowiednią do figurki.</p>
-                <label class="base-none-option">
-                  <input id="no-base" data-field="no-base" type="checkbox" value="Tak">
-                  Bez podstawki
-                </label>
-                <div class="base-dimensions">
-                  <div>
-                    <label for="base-diameter">Średnica podstawki (mm)</label>
-                    <input id="base-diameter" data-field="base-diameter" type="number" min="1" max="500" step="0.1" inputmode="decimal" placeholder="np. 32">
+                <section class="advanced-settings-section" aria-label="Ustawienia podstawki">
+                  <h4 class="advanced-settings-title">Podstawka</h4>
+                  <label class="base-none-option">
+                    <input id="no-base" data-field="no-base" type="checkbox" value="Tak">
+                    <span>Bez podstawki</span>
+                  </label>
+                  <div class="base-dimensions">
+                    <div>
+                      <label for="base-diameter">Średnica podstawki (mm)</label>
+                      <input id="base-diameter" data-field="base-diameter" type="number" min="1" max="500" step="0.1" inputmode="decimal" placeholder="np. 32">
+                    </div>
+                    <div>
+                      <label for="base-height">Wysokość podstawki (mm)</label>
+                      <input id="base-height" data-field="base-height" type="number" min="1" max="100" step="0.1" inputmode="decimal" placeholder="np. 3">
+                    </div>
                   </div>
+                </section>
+                <section class="advanced-settings-section" aria-label="Ustawienia postaci">
+                  <h4 class="advanced-settings-title">Postać</h4>
                   <div>
-                    <label for="base-height">Wysokość podstawki (mm)</label>
-                    <input id="base-height" data-field="base-height" type="number" min="1" max="100" step="0.1" inputmode="decimal" placeholder="np. 3">
+                    <label for="measurement-point">Wysokość postaci mierzona do</label>
+                    <select id="measurement-point" data-field="measurement-point">
+                      <option value="eyes">Linii oczu</option>
+                      <option value="head" selected>Czubka głowy</option>
+                      <option value="highest">Najwyższego punktu</option>
+                    </select>
                   </div>
-                </div>
-                <div>
-                  <label for="measurement-point">Wysokość postaci mierzona do</label>
-                  <select id="measurement-point" data-field="measurement-point">
-                    <option value="eyes">Linii oczu</option>
-                    <option value="head" selected>Czubka głowy</option>
-                    <option value="highest">Najwyższego punktu</option>
-                  </select>
-                </div>
+                </section>
               </div>
             </details>
             <div class="figurine-actions">
