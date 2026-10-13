@@ -20,8 +20,8 @@ function priceResponse(order, preview = false) {
 }
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-function setup(preview = false) {
-  const dom = new JSDOM(preview ? renderPreviewHtml(html, 'https://axi3d.pl') : html, { url: 'https://axi3d.pl/', pretendToBeVisual: true });
+function setup(preview = false, pageUrl = 'https://axi3d.pl/') {
+  const dom = new JSDOM(preview ? renderPreviewHtml(html, 'https://axi3d.pl') : html, { url: pageUrl, pretendToBeVisual: true });
   const doc = dom.window.document;
   const calls = [], redirects = [], alerts = [];
   let failure = '';
@@ -540,6 +540,22 @@ test('form shows figurines only while address shipping is added in Stripe, Basin
   assert.equal(metaEvents.find(event => event[0] === 'Lead')[1].value, 779.49);
   assert.match(metaEvents.find(event => event[0] === 'Lead')[2].eventID, /-lead$/);
   assert.equal(s.redirects.length, 1);
+  s.dom.window.close();
+});
+
+test('successful form submission sends campaign attribution to GA4', async () => {
+  const s = setup(false, 'https://axi3d.pl/?utm_source=instagram&utm_medium=paid_social&utm_campaign=jesien_2026&utm_content=rolka_smok&utm_term=figurki_rpg&fbclid=test');
+  const events = [];
+  s.win.gtag = (...args) => events.push(args);
+  s.size(0, '32'); s.fillShipping();
+  await s.submit();
+  const lead = events.find(event => event[1] === 'generate_lead');
+  assert.deepEqual(lead[2], {
+    currency: 'PLN', value: 117.49, lead_source: 'order_form',
+    lead_traffic_source: 'instagram', lead_traffic_medium: 'paid_social',
+    lead_traffic_campaign: 'jesien_2026', lead_traffic_content: 'rolka_smok',
+    lead_traffic_term: 'figurki_rpg', lead_landing_page: '/', lead_referrer_host: '(direct)'
+  });
   s.dom.window.close();
 });
 
