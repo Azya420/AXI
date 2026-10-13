@@ -63,7 +63,7 @@ test('paid live checkout sends one confirmation with the versioned terms attachm
   const dependencies = {
     now: () => timestamp * 1000,
     stripeFetch: async () => Response.json(session),
-    termsFetch: async url => { assert.equal(url, 'https://axi3d.pl/regulamin-2026-09-05.html'); return new Response('<html>Regulamin</html>'); },
+    termsFetch: async url => { assert.equal(url, 'https://axi3d.pl/regulamin-2026-10-13.html'); return new Response('<html>Regulamin</html>'); },
     sendMail: async (message, attachment) => sent.push({ message, attachment })
   };
   const raw = Buffer.from(event);
