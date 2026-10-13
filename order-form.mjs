@@ -83,7 +83,29 @@ export function initOrderForm(win) {
   }
   const currentPromotion = () => byId('promotion-code').value.trim().toUpperCase();
   const deliveryMethod = () => isLocker() ? 'locker' : 'address';
-  const cardItems = () => cards().map(card => ({ size: Number(field(card, 'size').value), copies: Number(field(card, 'copies').value) }));
+  const measurementLabels = { eyes: 'linii oczu', head: 'czubka głowy', highest: 'najwyższego punktu' };
+  function readCustomization(card) {
+    const noBase = field(card, 'no-base').checked;
+    const diameterText = field(card, 'base-diameter').value.trim();
+    const heightText = field(card, 'base-height').value.trim();
+    const customBase = !noBase && (diameterText !== '' || heightText !== '');
+    return {
+      baseMode: noBase ? 'none' : customBase ? 'custom' : 'standard',
+      baseDiameter: customBase && diameterText !== '' ? Number(diameterText) : null,
+      baseHeight: customBase && heightText !== '' ? Number(heightText) : null,
+      measurementPoint: field(card, 'measurement-point').value
+    };
+  }
+  const cardItems = () => cards().map(card => ({
+    size: Number(field(card, 'size').value),
+    copies: Number(field(card, 'copies').value),
+    ...readCustomization(card)
+  }));
+  const baseLabel = item => item.baseMode === 'none'
+    ? 'bez podstawki'
+    : item.baseMode === 'custom'
+      ? item.baseDiameter + ' mm średnicy × ' + item.baseHeight + ' mm wysokości'
+      : 'standardowa (dobrana do figurki)';
   const pricingKey = () => JSON.stringify({ items: cardItems(), email: byId('email').value.trim(), code: currentPromotion(), deliveryMethod: deliveryMethod() });
   function analyticsSnapshot(items) {
     const analyticsItems = items.flatMap((item, index) => {
@@ -146,8 +168,15 @@ export function initOrderForm(win) {
       field(card, 'photos').name = prefix + 'zdjecia';
       field(card, 'size').name = prefix + 'rozmiar';
       field(card, 'copies').name = prefix + 'liczba_identycznych_wydrukow';
+      field(card, 'no-base').name = prefix + 'bez_podstawki';
+      field(card, 'base-diameter').name = prefix + 'srednica_podstawki_mm';
+      field(card, 'base-height').name = prefix + 'wysokosc_podstawki_mm';
+      field(card, 'measurement-point').name = prefix + 'punkt_pomiaru_wysokosci';
       const input = field(card, 'size');
       const copiesInput = field(card, 'copies');
+      const noBaseInput = field(card, 'no-base');
+      field(card, 'base-diameter').disabled = noBaseInput.checked;
+      field(card, 'base-height').disabled = noBaseInput.checked;
       input.setCustomValidity('');
       copiesInput.setCustomValidity('');
       const price = getPrice(Number(input.value), all.length);
@@ -218,7 +247,12 @@ export function initOrderForm(win) {
     const suffix = '-figurine-' + (++nextId);
     card.querySelectorAll('[id]').forEach(el => { el.id += suffix; });
     card.querySelectorAll('label[for]').forEach(el => { el.htmlFor += suffix; });
-    card.querySelectorAll('input, textarea').forEach(el => { el.value = el.dataset.field === 'copies' ? '1' : ''; });
+    card.querySelectorAll('input, textarea, select').forEach(el => {
+      if (el.type === 'checkbox') el.checked = false;
+      else if (el.dataset.field === 'copies') el.value = '1';
+      else if (el.dataset.field === 'measurement-point') el.value = 'head';
+      else el.value = '';
+    });
     list.appendChild(card);
     clearError();
     refresh();
@@ -265,7 +299,11 @@ export function initOrderForm(win) {
   });
   list.addEventListener('change', event => {
     const input = event.target.closest('[data-field="photos"]');
-    if (!input || busy || completed) return;
+    if (!input) {
+      if (!busy && !completed) { clearError(); refresh(); }
+      return;
+    }
+    if (busy || completed) return;
     const previous = selectedPhotos.get(input) || [];
     const unique = new Map(previous.map(file => [photoKey(file), file]));
     Array.from(input.files).forEach(file => unique.set(photoKey(file), file));
@@ -281,8 +319,14 @@ export function initOrderForm(win) {
     for (const [index, card] of cards().entries()) {
       const input = field(card, 'size');
       const copiesInput = field(card, 'copies');
+      const diameterInput = field(card, 'base-diameter');
+      const heightInput = field(card, 'base-height');
+      const measurementInput = field(card, 'measurement-point');
       input.setCustomValidity('');
       copiesInput.setCustomValidity('');
+      diameterInput.setCustomValidity('');
+      heightInput.setCustomValidity('');
+      measurementInput.setCustomValidity('');
       if (!getPrice(Number(input.value))) {
         input.setCustomValidity('Figurka ' + (index + 1) + ': podaj rozmiar od 20 do 250 mm w pełnych milimetrach.');
       }
@@ -300,6 +344,32 @@ export function initOrderForm(win) {
         closeModal();
         copiesInput.reportValidity();
         copiesInput.focus();
+        return false;
+      }
+      const customization = readCustomization(card);
+      if (customization.baseMode === 'custom') {
+        if (!Number.isFinite(customization.baseDiameter) || customization.baseDiameter < 1 || customization.baseDiameter > 500) {
+          diameterInput.setCustomValidity('Figurka ' + (index + 1) + ': podaj średnicę podstawki od 1 do 500 mm.');
+        }
+        if (!Number.isFinite(customization.baseHeight) || customization.baseHeight < 1 || customization.baseHeight > 100) {
+          heightInput.setCustomValidity('Figurka ' + (index + 1) + ': podaj wysokość podstawki od 1 do 100 mm.');
+        }
+        for (const advancedInput of [diameterInput, heightInput]) {
+          if (!advancedInput.checkValidity()) {
+            closeModal();
+            field(card, 'advanced-settings').open = true;
+            advancedInput.reportValidity();
+            advancedInput.focus();
+            return false;
+          }
+        }
+      }
+      if (!measurementLabels[customization.measurementPoint]) {
+        measurementInput.setCustomValidity('Figurka ' + (index + 1) + ': wybierz sposób pomiaru wysokości.');
+        closeModal();
+        field(card, 'advanced-settings').open = true;
+        measurementInput.reportValidity();
+        measurementInput.focus();
         return false;
       }
     }
@@ -534,10 +604,12 @@ export function initOrderForm(win) {
     payload.set('rabat', formatPrice(regularSubtotal - subtotal));
     payload.set('wersja_regulaminu', '2026-10-13');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
-      const size = Number(field(card, 'size').value);
-      const copies = Number(field(card, 'copies').value);
+      const { size, copies, ...customization } = items[index];
       const copiesLabel = copies === 1 ? '1 identyczny wydruk' : copies >= 2 && copies <= 4 ? copies + ' identyczne wydruki' : copies + ' identycznych wydruków';
-      return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + copiesLabel + ', razem ' + formatPrice(getItemSubtotal(size, copies, items.length)) + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
+      const prefix = index === 0 ? '' : 'figurka_' + (index + 1) + '_';
+      payload.set(prefix + 'podstawka', baseLabel(customization));
+      payload.set(prefix + 'pomiar_wysokosci', measurementLabels[customization.measurementPoint]);
+      return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + copiesLabel + ', razem ' + formatPrice(getItemSubtotal(size, copies, items.length)) + '\nPodstawka: ' + baseLabel(customization) + '\nPomiar wysokości: do ' + measurementLabels[customization.measurementPoint] + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
     }).join('\n\n'));
     // Ten sam koszyk zachowuje identyfikator przy ponowieniu po błędzie sieci.
     const fingerprint = JSON.stringify(Array.from(payload.entries()).filter(([key]) => !['numer_zamowienia', 'status_platnosci'].includes(key)).map(([key, val]) => [key, typeof val === 'string' ? val : [val.name, val.size, val.lastModified]]));
@@ -564,9 +636,8 @@ export function initOrderForm(win) {
         const deliveryDestination = isLocker()
           ? byId('paczkomat-hidden').value.trim()
           : [byId('ulica').value.trim(), byId('kod').value.trim(), byId('miasto').value.trim()].filter(Boolean).join(', ');
-        const checkoutItems = cards().map(card => ({
-          size: Number(field(card, 'size').value),
-          copies: Number(field(card, 'copies').value),
+        const checkoutItems = cards().map((card, index) => ({
+          ...items[index],
           description: field(card, 'description').value.replace(/\s+/g, ' ').trim().slice(0, 300)
         }));
         const prepared = await preparePayment(endpoint, {
@@ -583,7 +654,7 @@ export function initOrderForm(win) {
         const { data, url } = prepared;
         paymentUrl = url.href;
         // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
-        if (data.checkoutVersion !== 4 || data.pricingVersion !== PRICING_VERSION ||
+        if (data.checkoutVersion !== 5 || data.pricingVersion !== PRICING_VERSION ||
             data.promotionCode !== promotionCode || data.currency !== 'pln' ||
             data.subtotal !== subtotal || data.saleSubtotal !== saleSubtotal || data.regularSubtotal !== regularSubtotal ||
             data.deliveryMethod !== selectedDeliveryMethod || data.shippingAmount !== shippingAmount ||
