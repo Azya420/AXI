@@ -2504,7 +2504,13 @@
                 <section class="advanced-settings-section" aria-label="Ustawienia postaci">
                   <h4 class="advanced-settings-title">Postać</h4>
                   <div>
-                    <label for="measurement-point">Wysokość postaci mierzona do</label>
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                      <label for="measurement-point" style="margin-bottom:0;">Wysokość postaci mierzona do</label>
+                      <span class="info-tip" tabindex="0" role="button" aria-label="Informacja o sposobie pomiaru wysokości postaci">
+                        i
+                        <span class="info-tip-text">Wysokość postaci mierzymy od butów lub stóp. Możesz wybrać, do którego punktu ma być mierzona: linii oczu, czubka głowy albo najwyższego punktu figurki.</span>
+                      </span>
+                    </div>
                     <select id="measurement-point" data-field="measurement-point">
                       <option value="eyes">Linii oczu</option>
                       <option value="head" selected>Czubka głowy</option>
