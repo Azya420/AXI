@@ -773,7 +773,9 @@
     margin-top:15px; padding:16px; display:grid; gap:16px;
     border-left:3px solid var(--violet-bright); background:rgba(8,3,18,0.35);
   }
-  .advanced-settings-section{ display:grid; gap:14px; }
+  .advanced-settings-section{
+    display:grid; gap:14px; padding:0; scroll-margin-top:0;
+  }
   .advanced-settings-section + .advanced-settings-section{
     padding-top:16px; border-top:1px solid rgba(167,139,250,0.16);
   }
@@ -2484,10 +2486,6 @@
               <div class="advanced-settings-body">
                 <section class="advanced-settings-section" aria-label="Ustawienia podstawki">
                   <h4 class="advanced-settings-title">Podstawka</h4>
-                  <label class="base-none-option">
-                    <input id="no-base" data-field="no-base" type="checkbox" value="Tak">
-                    <span>Bez podstawki</span>
-                  </label>
                   <div class="base-dimensions">
                     <div>
                       <label for="base-diameter">Średnica podstawki (mm)</label>
@@ -2498,6 +2496,10 @@
                       <input id="base-height" data-field="base-height" type="number" min="1" max="100" step="0.1" inputmode="decimal" placeholder="np. 3">
                     </div>
                   </div>
+                  <label class="base-none-option">
+                    <input id="no-base" data-field="no-base" type="checkbox" value="Tak">
+                    <span>Bez podstawki</span>
+                  </label>
                 </section>
                 <section class="advanced-settings-section" aria-label="Ustawienia postaci">
                   <h4 class="advanced-settings-title">Postać</h4>
