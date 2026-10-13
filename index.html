@@ -759,6 +759,29 @@
   .copy-controls-row{ display:flex; align-items:center; gap:10px; }
   .copy-controls-row input{ width:110px; }
   .remove-copies{ border:0; background:none; color:var(--ink-dim); text-decoration:underline; cursor:pointer; font:inherit; font-size:0.74rem; }
+  .advanced-settings{
+    border-top:1px solid var(--line); padding-top:15px;
+  }
+  .advanced-settings summary{
+    width:max-content; max-width:100%; color:var(--violet-bright); cursor:pointer;
+    font:600 0.78rem 'Sora',sans-serif; list-style:none;
+  }
+  .advanced-settings summary::-webkit-details-marker{ display:none; }
+  .advanced-settings summary::before{ content:'＋'; display:inline-block; margin-right:8px; color:var(--bronze); }
+  .advanced-settings[open] summary::before{ content:'−'; }
+  .advanced-settings-body{
+    margin-top:15px; padding:16px; display:grid; gap:16px;
+    border-left:3px solid var(--violet-bright); background:rgba(8,3,18,0.35);
+  }
+  .advanced-settings-note{ color:var(--ink-faint); font-size:0.76rem; line-height:1.55; margin:0; }
+  .base-none-option{
+    display:flex; align-items:center; gap:10px; margin:0; color:var(--ink-dim);
+    font:500 0.82rem 'Sora',sans-serif; letter-spacing:normal; text-transform:none; cursor:pointer;
+  }
+  .base-none-option input{ width:18px; height:18px; padding:0; flex:0 0 18px; accent-color:var(--violet); }
+  .base-dimensions{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .base-dimensions input:disabled{ opacity:.45; cursor:not-allowed; }
+  .advanced-settings select{ width:100%; }
   .figurine-actions{ display:flex; justify-content:flex-end; }
   .remove-figurine{ background:none; border:0; color:var(--ink-dim); cursor:pointer; text-decoration:underline; padding:8px; font:inherit; font-size:0.8rem; }
   .add-figurine{
@@ -831,6 +854,7 @@
   @media (max-width: 700px){
     .figurine-card{ padding:16px; }
     .figurine-card .form-row{ grid-template-columns:1fr; }
+    .base-dimensions{ grid-template-columns:1fr; }
     .promo-spotlight{ gap:13px; padding:15px 14px; }
     .promo-mark{ flex-basis:54px; height:54px; font-size:0.9rem; }
   }
@@ -2409,7 +2433,7 @@
               <label for="scale" style="margin-bottom:0;">Rozmiar figurki (mm)</label>
               <span class="info-tip" tabindex="0" role="button" aria-label="Informacja o rozmiarze figurki">
                 i
-                <span class="info-tip-text">Każda figurka będzie zawierać podstawkę - wysokość oznacza wysokość samej postaci, od stóp do czubka głowy, bez podstawki.</span>
+                <span class="info-tip-text">Domyślnie figurka zawiera standardową podstawkę, a wysokość postaci mierzymy od stóp do czubka głowy, bez podstawki. Możesz to zmienić w ustawieniach zaawansowanych.</span>
               </span>
             </div>
             <input id="scale" data-field="size" name="rozmiar" type="number" min="20" max="250" step="1" placeholder="np. 32" required>
@@ -2431,6 +2455,34 @@
             </div>
           </div>
         </div>
+            <details class="advanced-settings" data-field="advanced-settings">
+              <summary>Ustawienia zaawansowane</summary>
+              <div class="advanced-settings-body">
+                <p class="advanced-settings-note">Jeśli nie zmienisz ustawień podstawki, dobierzemy standardową podstawkę odpowiednią do figurki.</p>
+                <label class="base-none-option">
+                  <input id="no-base" data-field="no-base" type="checkbox" value="Tak">
+                  Bez podstawki
+                </label>
+                <div class="base-dimensions">
+                  <div>
+                    <label for="base-diameter">Średnica podstawki (mm)</label>
+                    <input id="base-diameter" data-field="base-diameter" type="number" min="1" max="500" step="0.1" inputmode="decimal" placeholder="np. 32">
+                  </div>
+                  <div>
+                    <label for="base-height">Wysokość podstawki (mm)</label>
+                    <input id="base-height" data-field="base-height" type="number" min="1" max="100" step="0.1" inputmode="decimal" placeholder="np. 3">
+                  </div>
+                </div>
+                <div>
+                  <label for="measurement-point">Wysokość postaci mierzona do</label>
+                  <select id="measurement-point" data-field="measurement-point">
+                    <option value="eyes">Linii oczu</option>
+                    <option value="head" selected>Czubka głowy</option>
+                    <option value="highest">Najwyższego punktu</option>
+                  </select>
+                </div>
+              </div>
+            </details>
             <div class="figurine-actions">
               <button type="button" class="remove-figurine" hidden>Usuń figurkę</button>
             </div>
@@ -2536,7 +2588,7 @@
   </div>
 
   <script src="checkout-config.js"></script>
-<script type="module" src="order-form.mjs?v=20260912-multiple-photos"></script>
+<script type="module" src="order-form.mjs?v=20261013-advanced-settings"></script>
 
   <!-- CONTACT / SOCIAL -->
   <section id="kontakt">
