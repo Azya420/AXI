@@ -6,6 +6,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{1
 const LIVE_SESSION = /^cs_live_[A-Za-z0-9]+$/;
 const TEST_SESSION = /^cs_test_[A-Za-z0-9]+$/;
 export const TERMS_VERSION = '2026-10-13';
+const BASE_MODES = new Set(['standard', 'custom', 'none']);
+const MEASUREMENT_POINTS = new Set(['eyes', 'head', 'highest']);
 
 function cleanText(value, maxLength) {
   if (value === undefined || value === null) return '';
@@ -22,7 +24,18 @@ export function validateOrder(order) {
     if (!item || !getPrice(item.size)) throw new Error('Nieprawidłowy rozmiar figurki.');
     const copies = item.copies === undefined ? 1 : item.copies;
     if (!Number.isSafeInteger(copies) || copies < 1) throw new Error('Nieprawidłowa liczba identycznych wydruków.');
-    return { size: item.size, copies, description: cleanText(item.description, 300) };
+    const baseMode = item.baseMode === undefined ? 'standard' : item.baseMode;
+    const measurementPoint = item.measurementPoint === undefined ? 'head' : item.measurementPoint;
+    if (!BASE_MODES.has(baseMode) || !MEASUREMENT_POINTS.has(measurementPoint)) throw new Error('Nieprawidłowe ustawienia figurki.');
+    let baseDiameter = null;
+    let baseHeight = null;
+    if (baseMode === 'custom') {
+      baseDiameter = item.baseDiameter;
+      baseHeight = item.baseHeight;
+      if (!Number.isFinite(baseDiameter) || baseDiameter < 1 || baseDiameter > 500 ||
+          !Number.isFinite(baseHeight) || baseHeight < 1 || baseHeight > 100) throw new Error('Nieprawidłowe wymiary podstawki.');
+    }
+    return { size: item.size, copies, description: cleanText(item.description, 300), baseMode, baseDiameter, baseHeight, measurementPoint };
   });
   const deliveryMethod = order.deliveryMethod;
   if (!getDeliveryOption(deliveryMethod)) throw new Error('Nieprawidłowy sposób dostawy.');
@@ -69,7 +82,11 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'payment_intent_data[metadata][terms_version]': TERMS_VERSION
   });
   order.items.forEach((item, index) => {
-    params.set('metadata[order_item_' + (index + 1) + ']', JSON.stringify({ size: item.size, copies: item.copies, description: item.description }));
+    params.set('metadata[order_item_' + (index + 1) + ']', JSON.stringify({
+      size: item.size, copies: item.copies, description: item.description,
+      baseMode: item.baseMode, baseDiameter: item.baseDiameter, baseHeight: item.baseHeight,
+      measurementPoint: item.measurementPoint
+    }));
   });
   params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
   params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(delivery.amount));
@@ -271,7 +288,7 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     if (promotionId && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
     const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
-    return json(200, { url: session.url, checkoutVersion: 4, pricingVersion: PRICING_VERSION,
+    return json(200, { url: session.url, checkoutVersion: 5, pricingVersion: PRICING_VERSION,
       regularSubtotal, saleSubtotal, automaticDiscount: regularSubtotal - saleSubtotal,
       bulkDiscount: saleSubtotal - subtotal, bulkPricing: order.items.length >= BULK_MIN_FIGURINES,
       subtotal, deliveryMethod: order.deliveryMethod, shippingAmount, discount, total, currency: 'pln', promotionCode: order.promotionCode });
@@ -282,3 +299,4 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     return json(502, { error: 'Nie udało się przygotować płatności. Spróbuj ponownie za chwilę.' });
   }
 }
+
