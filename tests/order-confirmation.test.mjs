@@ -19,7 +19,7 @@ const session = {
     customer_name: 'Jan Kowalski',
     delivery_destination: 'GLI01 — Rynek 1, Gliwice',
     shipping_method: 'locker',
-    order_item_1: JSON.stringify({ size: 32, copies: 1, description: 'Rycerz z mieczem' })
+    order_item_1: JSON.stringify({ size: 32, copies: 1, description: 'Rycerz z mieczem', baseMode: 'custom', baseDiameter: 35, baseHeight: 4, measurementPoint: 'eyes' })
   },
   line_items: { data: [{ amount_total: 9800, quantity: 1 }] }
 };
@@ -44,6 +44,8 @@ test('confirmation contains the approved text and paid order totals', () => {
   assert.match(message.text, /Cześć Jan,/);
   assert.match(message.text, /Nazwa\/opis: Rycerz z mieczem/);
   assert.match(message.text, /Wysokość figurki: 32 mm/);
+  assert.match(message.text, /Podstawka: 35 mm średnicy × 4 mm wysokości/);
+  assert.match(message.text, /Pomiar wysokości: Do linii oczu/);
   assert.match(message.text, /Cena: 98,00 zł/);
   assert.match(message.text, /Koszt dostawy: 16,49 zł/);
   assert.match(message.text, /Łącznie zapłacono: 114,49 zł/);
@@ -75,3 +77,4 @@ test('paid live checkout sends one confirmation with the versioned terms attachm
   assert.deepEqual(duplicate, { status: 200, body: 'Already processed' });
   assert.equal(sent.length, 1);
 });
+
