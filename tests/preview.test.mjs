@@ -51,7 +51,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('data-field="sale-badge"'));
   assert.match(html, /Paczkomat InPost \(16,49 zł\)/);
   assert.match(html, /Na adres \(19,49 zł\)/);
-  assert.match(html, /src="order-form.mjs\?v=20260912-multiple-photos"/);
+  assert.match(html, /src="order-form.mjs\?v=20261013-advanced-settings"/);
   assert.ok(!html.includes('var GA_ID'));
   assert.ok(!html.includes('googletagmanager.com'));
   assert.ok(!html.includes('tracking.js'));
@@ -82,3 +82,4 @@ test('preview checkout returns to preview and rejects any non-test Stripe sessio
     assert.equal(response.status, livemode === false ? 200 : 502);
   }
 });
+
