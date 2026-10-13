@@ -73,6 +73,29 @@ test('reject empty, oversized, fractional, string, out-of-range orders', () => {
   for (let size = 20; size <= 250; size++) assert.ok(getPrice(size), `missing price: ${size}`);
   for (const size of [20, 60, 70, 100, 110, 150, 160, 200, 210, 250]) assert.ok(getPrice(size));
 });
+test('advanced settings are validated and stored in Stripe metadata', () => {
+  const customized = validateOrder({ ...order, items: [
+    { size: 32, baseMode: 'custom', baseDiameter: 36.5, baseHeight: 4, measurementPoint: 'eyes' },
+    { size: 80, baseMode: 'none', measurementPoint: 'highest' }
+  ] });
+  const params = stripeParameters(customized, config.siteOrigin);
+  assert.deepEqual(JSON.parse(params.get('metadata[order_item_1]')), {
+    size: 32, copies: 1, description: '', baseMode: 'custom', baseDiameter: 36.5, baseHeight: 4, measurementPoint: 'eyes'
+  });
+  assert.deepEqual(JSON.parse(params.get('metadata[order_item_2]')), {
+    size: 80, copies: 1, description: '', baseMode: 'none', baseDiameter: null, baseHeight: null, measurementPoint: 'highest'
+  });
+  assert.deepEqual(validateOrder({ ...order, items: [{ size: 32 }] }).items[0], {
+    size: 32, copies: 1, description: '', baseMode: 'standard', baseDiameter: null, baseHeight: null, measurementPoint: 'head'
+  });
+  for (const item of [
+    { size: 32, baseMode: 'custom', baseDiameter: 30, measurementPoint: 'head' },
+    { size: 32, baseMode: 'custom', baseDiameter: 0, baseHeight: 3, measurementPoint: 'head' },
+    { size: 32, baseMode: 'custom', baseDiameter: 30, baseHeight: 101, measurementPoint: 'head' },
+    { size: 32, baseMode: 'invalid', measurementPoint: 'head' },
+    { size: 32, baseMode: 'standard', measurementPoint: 'feet' }
+  ]) assert.throws(() => validateOrder({ ...order, items: [item] }));
+});
 test('retries use stable idempotency and changed orders use a different key', async () => {
   const keys = [];
   const stripe = async (url, options) => {
@@ -89,7 +112,7 @@ test('retries use stable idempotency and changed orders use a different key', as
     assert.equal(response.headers.get('Access-Control-Allow-Origin'), config.siteOrigin);
     const result = await response.json();
     assert.equal(result.url, 'https://checkout.stripe.com/c/pay/test-session');
-    assert.equal(result.checkoutVersion, 4);
+    assert.equal(result.checkoutVersion, 5);
     assert.equal(result.deliveryMethod, body.deliveryMethod);
     assert.equal(result.discount, 0);
     assert.equal(result.shippingAmount, SHIPPING_AMOUNT);
@@ -174,3 +197,4 @@ test('server diagnostics identify Stripe failures without storing response bodie
   assert.ok(!JSON.stringify(logs).includes(config.stripeKey));
   assert.ok(!JSON.stringify(logs).includes(order.email));
 });
+
