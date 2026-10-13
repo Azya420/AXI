@@ -55,8 +55,28 @@ function readItems(metadata) {
   return Array.from({ length: count }, (_, index) => {
     const item = JSON.parse(metadata['order_item_' + (index + 1)] || 'null');
     if (!item || !Number.isInteger(item.size) || !Number.isSafeInteger(item.copies) || item.copies < 1) throw new Error('Invalid item metadata');
-    return { size: item.size, copies: item.copies, description: typeof item.description === 'string' && item.description ? item.description : 'Brak opisu' };
+    const baseMode = item.baseMode === undefined ? 'standard' : item.baseMode;
+    const measurementPoint = item.measurementPoint === undefined ? 'head' : item.measurementPoint;
+    if (!['standard', 'custom', 'none'].includes(baseMode) || !['eyes', 'head', 'highest'].includes(measurementPoint)) throw new Error('Invalid customization metadata');
+    const baseDiameter = baseMode === 'custom' ? Number(item.baseDiameter) : null;
+    const baseHeight = baseMode === 'custom' ? Number(item.baseHeight) : null;
+    if (baseMode === 'custom' && (!Number.isFinite(baseDiameter) || baseDiameter < 1 || baseDiameter > 500 || !Number.isFinite(baseHeight) || baseHeight < 1 || baseHeight > 100)) throw new Error('Invalid base metadata');
+    return {
+      size: item.size, copies: item.copies,
+      description: typeof item.description === 'string' && item.description ? item.description : 'Brak opisu',
+      baseMode, baseDiameter, baseHeight, measurementPoint
+    };
   });
+}
+
+function baseDescription(item) {
+  if (item.baseMode === 'none') return 'Bez podstawki';
+  if (item.baseMode === 'custom') return item.baseDiameter + ' mm średnicy × ' + item.baseHeight + ' mm wysokości';
+  return 'Standardowa (dobrana do figurki)';
+}
+
+function measurementDescription(value) {
+  return { eyes: 'Do linii oczu', head: 'Do czubka głowy', highest: 'Do najwyższego punktu' }[value];
 }
 
 function projectAmounts(session, items, figurinesTotal) {
@@ -95,6 +115,8 @@ export function buildOrderEmail(session) {
     'Projekt ' + (index + 1),
     'Nazwa/opis: ' + item.description,
     'Wysokość figurki: ' + item.size + ' mm',
+    'Podstawka: ' + baseDescription(item),
+    'Pomiar wysokości: ' + measurementDescription(item.measurementPoint),
     'Liczba identycznych wydruków: ' + item.copies,
     'Cena: ' + money(amounts[index])
   ].join('\n')).join('\n\n');
@@ -140,6 +162,8 @@ AXI3D`;
     <h3 style="margin:0 0 10px;color:#542077">Projekt ${index + 1}</h3>
     <p style="margin:4px 0"><strong>Nazwa/opis:</strong> ${escapeHtml(item.description)}</p>
     <p style="margin:4px 0"><strong>Wysokość figurki:</strong> ${item.size} mm</p>
+    <p style="margin:4px 0"><strong>Podstawka:</strong> ${escapeHtml(baseDescription(item))}</p>
+    <p style="margin:4px 0"><strong>Pomiar wysokości:</strong> ${escapeHtml(measurementDescription(item.measurementPoint))}</p>
     <p style="margin:4px 0"><strong>Liczba identycznych wydruków:</strong> ${item.copies}</p>
     <p style="margin:4px 0"><strong>Cena:</strong> ${escapeHtml(money(amounts[index]))}</p>
   </div>`).join('');
@@ -295,3 +319,4 @@ export async function handleStripeWebhook(rawBody, signatureHeader, config, depe
   if (processedEvents.size > 1000) processedEvents.delete(processedEvents.values().next().value);
   return { status: 200, body: 'Confirmation sent' };
 }
+
