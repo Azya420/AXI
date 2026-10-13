@@ -532,7 +532,7 @@ export function initOrderForm(win) {
     payload.set('cennik_3_plus', items.length >= BULK_MIN_FIGURINES ? 'Tak' : 'Nie');
     payload.set('cena_przed_kodem', formatPrice(subtotal + shippingAmount));
     payload.set('rabat', formatPrice(regularSubtotal - subtotal));
-    payload.set('wersja_regulaminu', '2026-09-05');
+    payload.set('wersja_regulaminu', '2026-10-13');
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const size = Number(field(card, 'size').value);
       const copies = Number(field(card, 'copies').value);
