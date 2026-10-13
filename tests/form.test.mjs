@@ -13,7 +13,7 @@ function priceResponse(order, preview = false) {
   const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + ((item.copies ?? 1) - 1) * getPrice(item.size).additionalCopyAmount, 0);
   const shippingAmount = getDeliveryOption(order.deliveryMethod || 'address').amount;
   return { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://checkout.stripe.com/c/pay/cs_live_fixture',
-    checkoutVersion: 4, pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
+    checkoutVersion: 5, pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
     automaticDiscount: regularSubtotal - saleSubtotal, bulkDiscount: saleSubtotal - subtotal,
     bulkPricing: order.items.length >= BULK_MIN_FIGURINES, deliveryMethod: order.deliveryMethod || 'address', shippingAmount,
     total: subtotal + shippingAmount, discount: 0, currency: 'pln', promotionCode: '' };
@@ -168,7 +168,51 @@ test('identical print count updates the visible total and checkout payload', asy
   assert.match(s.$('order-count-label').textContent, /3 figurki · 1 projekt/);
   s.fillShipping();
   await s.submit();
-  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 3, description: '' }]);
+  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 3, baseMode: 'standard', baseDiameter: null, baseHeight: null, measurementPoint: 'head', description: '' }]);
+  s.dom.window.close();
+});
+test('advanced settings are independent for every figurine and reach checkout and Basin', async () => {
+  const s = setup();
+  s.size(0, '32');
+  const first = s.cards()[0];
+  assert.equal(first.querySelector('[data-field="advanced-settings"]').open, false);
+  assert.equal(first.querySelector('[data-field="measurement-point"]').value, 'head');
+  s.input(first.querySelector('[data-field="base-diameter"]'), '36.5');
+  s.input(first.querySelector('[data-field="base-height"]'), '4');
+  const point = first.querySelector('[data-field="measurement-point"]');
+  point.value = 'eyes'; point.dispatchEvent(new s.dom.window.Event('change', { bubbles: true }));
+
+  s.$('add-figurine-btn').click(); s.size(1, '80');
+  const second = s.cards()[1];
+  const noBase = second.querySelector('[data-field="no-base"]');
+  noBase.checked = true; noBase.dispatchEvent(new s.dom.window.Event('change', { bubbles: true }));
+  const secondPoint = second.querySelector('[data-field="measurement-point"]');
+  secondPoint.value = 'highest'; secondPoint.dispatchEvent(new s.dom.window.Event('change', { bubbles: true }));
+  assert.equal(second.querySelector('[data-field="base-diameter"]').disabled, true);
+  assert.equal(second.querySelector('[data-field="base-height"]').disabled, true);
+
+  s.fillShipping(); await s.submit();
+  const checkout = JSON.parse(s.calls[0].body);
+  assert.deepEqual(checkout.items.map(({ description, ...item }) => item), [
+    { size: 32, copies: 1, baseMode: 'custom', baseDiameter: 36.5, baseHeight: 4, measurementPoint: 'eyes' },
+    { size: 80, copies: 1, baseMode: 'none', baseDiameter: null, baseHeight: null, measurementPoint: 'highest' }
+  ]);
+  const payload = s.calls[1].body;
+  assert.equal(payload.get('podstawka'), '36.5 mm średnicy × 4 mm wysokości');
+  assert.equal(payload.get('pomiar_wysokosci'), 'linii oczu');
+  assert.equal(payload.get('figurka_2_podstawka'), 'bez podstawki');
+  assert.equal(payload.get('figurka_2_pomiar_wysokosci'), 'najwyższego punktu');
+  s.dom.window.close();
+});
+test('an incomplete custom base keeps checkout closed and opens its advanced settings', async () => {
+  const s = setup();
+  s.size(0, '32');
+  const advanced = s.cards()[0].querySelector('[data-field="advanced-settings"]');
+  s.input(s.cards()[0].querySelector('[data-field="base-diameter"]'), '30');
+  s.fillShipping(); await s.submit();
+  assert.equal(s.calls.length, 0);
+  assert.equal(advanced.open, true);
+  assert.match(s.cards()[0].querySelector('[data-field="base-height"]').validationMessage, /wysokość podstawki/i);
   s.dom.window.close();
 });
 test('selecting photos again appends files and every photo can be removed', () => {
@@ -208,7 +252,10 @@ test('one multipart submission carries independent files, sizes, prices and shar
   s.fillShipping(); await s.submit();
   assert.equal(s.calls.length, 2);
   const checkout = JSON.parse(s.calls[0].body);
-  assert.deepEqual(checkout.items, [{ size: 32, copies: 1, description: 'Druid' }, { size: 120, copies: 1, description: 'Smok' }]);
+  assert.deepEqual(checkout.items, [
+    { size: 32, copies: 1, baseMode: 'standard', baseDiameter: null, baseHeight: null, measurementPoint: 'head', description: 'Druid' },
+    { size: 120, copies: 1, baseMode: 'standard', baseDiameter: null, baseHeight: null, measurementPoint: 'head', description: 'Smok' }
+  ]);
   assert.equal(checkout.deliveryMethod, 'address');
   const payload = s.calls[1].body;
   assert.equal(payload.get('cena'), '272,49 zł');
@@ -316,7 +363,7 @@ test('preview skips Basin and uploads while retaining the real order flow', asyn
   await s.submit();
   assert.equal(s.calls.length, 1);
   assert.ok(s.calls[0].url.includes('/checkout-session'));
-  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 1, description: '' }]);
+  assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 1, baseMode: 'standard', baseDiameter: null, baseHeight: null, measurementPoint: 'head', description: '' }]);
   assert.deepEqual(s.redirects, ['https://checkout.stripe.com/c/pay/cs_test_preview']);
   s.dom.window.close();
 });
@@ -371,7 +418,7 @@ test('terms start unchecked and must be accepted before preparing payment or sen
 });
 
 function discountResponse(total = 10769, discount = 980) {
-  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 4, pricingVersion: PRICING_VERSION, regularSubtotal: 9800, saleSubtotal: 9800, automaticDiscount: 0, bulkDiscount: 0, bulkPricing: false, subtotal: 9800, deliveryMethod: 'address', shippingAmount: 1949, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
+  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 5, pricingVersion: PRICING_VERSION, regularSubtotal: 9800, saleSubtotal: 9800, automaticDiscount: 0, bulkDiscount: 0, bulkPricing: false, subtotal: 9800, deliveryMethod: 'address', shippingAmount: 1949, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
 }
 test('onsite code shows discounted total for confirmation before submitting final Basin price', async () => {
   const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
@@ -525,3 +572,4 @@ test('even one figurine cannot fall back to an old Payment Link when the endpoin
   assert.equal(s.$('order-error').hidden, false);
   s.dom.window.close();
 });
+
