@@ -5,7 +5,7 @@ const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const LIVE_SESSION = /^cs_live_[A-Za-z0-9]+$/;
 const TEST_SESSION = /^cs_test_[A-Za-z0-9]+$/;
-export const TERMS_VERSION = '2026-09-05';
+export const TERMS_VERSION = '2026-10-13';
 
 function cleanText(value, maxLength) {
   if (value === undefined || value === null) return '';
