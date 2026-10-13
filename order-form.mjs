@@ -39,6 +39,35 @@ export function initOrderForm(win) {
   let shippingDetailsStarted = false;
   const selectedPhotos = new WeakMap();
 
+  function trafficAttribution() {
+    const landing = new URL(doc.location.href);
+    const parameters = landing.searchParams;
+    let source = parameters.get('utm_source')?.trim().slice(0, 100) || '';
+    let medium = parameters.get('utm_medium')?.trim().slice(0, 100) || '';
+    let referrerHost = '';
+    try { referrerHost = doc.referrer ? new URL(doc.referrer).hostname.replace(/^www\./, '') : ''; } catch { /* Nieprawidłowy referrer traktujemy jak wejście bezpośrednie. */ }
+    if (!source && parameters.get('gclid')) { source = 'google'; medium ||= 'cpc'; }
+    if (!source && parameters.get('fbclid')) { source = 'meta'; medium ||= 'paid_social'; }
+    if (!source && referrerHost) {
+      if (/(^|\.)google\./.test(referrerHost)) { source = 'google'; medium = 'organic'; }
+      else if (/(^|\.)bing\.com$/.test(referrerHost)) { source = 'bing'; medium = 'organic'; }
+      else if (/(^|\.)(facebook\.com|instagram\.com|tiktok\.com|youtube\.com|youtu\.be)$/.test(referrerHost)) {
+        source = referrerHost.split('.').slice(-2, -1)[0] || referrerHost;
+        medium = 'organic_social';
+      } else { source = referrerHost; medium = 'referral'; }
+    }
+    return {
+      lead_traffic_source: source || '(direct)',
+      lead_traffic_medium: medium || '(none)',
+      lead_traffic_campaign: parameters.get('utm_campaign')?.trim().slice(0, 100) || '(not set)',
+      lead_traffic_content: parameters.get('utm_content')?.trim().slice(0, 100) || '(not set)',
+      lead_traffic_term: parameters.get('utm_term')?.trim().slice(0, 100) || '(not set)',
+      lead_landing_page: landing.pathname.slice(0, 300) || '/',
+      lead_referrer_host: referrerHost || '(direct)'
+    };
+  }
+  const leadAttribution = trafficAttribution();
+
   function photoKey(file) {
     return [file.name, file.size, file.lastModified, file.type].join(':');
   }
@@ -687,7 +716,12 @@ export function initOrderForm(win) {
       if (!preview) {
         await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
         if (!attempt.leadTracked) {
-          trackGaEvent('generate_lead', { currency: analytics.currency, value: analytics.value, lead_source: 'order_form' });
+          trackGaEvent('generate_lead', {
+            currency: analytics.currency,
+            value: analytics.value,
+            lead_source: 'order_form',
+            ...leadAttribution
+          });
           trackMetaEvent('Lead', { currency: analytics.currency, value: analytics.value }, { eventID: orderId + '-lead' });
           attempt.leadTracked = true;
         }
