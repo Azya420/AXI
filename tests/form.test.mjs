@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 import { JSDOM } from 'jsdom';
-import { getPrice, getItemSubtotal, getDeliveryOption, PRICING_VERSION, BULK_MIN_FIGURINES } from '../pricing.mjs';
+import { getPrice, getItemSubtotal, getDeliveryOption, PRICING_VERSION, TERMS_VERSION, BULK_MIN_FIGURINES } from '../pricing.mjs';
 import { initOrderForm } from '../order-form.mjs';
 import { renderPreviewHtml } from '../api/preview.mjs';
 
@@ -380,6 +380,18 @@ test('preview cannot use a live Stripe URL or fall back to a legacy live Payment
 });
 
 
+test('production accepts current Stripe c/pay and f/pay checkout URL formats', async () => {
+  for (const path of ['/c/pay/cs_live_Current123', '/f/pay/cs_live_Current123']) {
+    const s = setup(); s.size(0, '32'); s.fillShipping();
+    const fetch = s.win.fetch;
+    s.win.fetch = async (url, options) => url.includes('/checkout-session')
+      ? Response.json({ ...priceResponse(JSON.parse(options.body), false), url: 'https://checkout.stripe.com' + path })
+      : fetch(url, options);
+    await s.submit();
+    assert.deepEqual(s.redirects, ['https://checkout.stripe.com' + path]);
+    s.dom.window.close();
+  }
+});
 test('production rejects sandbox sessions before Basin and preserves files for retry', async () => {
   const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
   const fetch = s.win.fetch;
@@ -413,7 +425,7 @@ test('terms start unchecked and must be accepted before preparing payment or sen
   s.$('terms-accepted').checked = true; await s.submit();
   assert.equal(JSON.parse(s.calls[0].body).termsAccepted, true);
   assert.equal(s.calls[1].body.get('akceptacja_regulaminu'), 'Tak');
-  assert.equal(s.calls[1].body.get('wersja_regulaminu'), '2026-10-13');
+  assert.equal(s.calls[1].body.get('wersja_regulaminu'), TERMS_VERSION);
   s.dom.window.close();
 });
 
