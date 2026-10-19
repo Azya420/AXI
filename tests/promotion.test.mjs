@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleCheckout, validateOrder } from '../api/checkout.mjs';
 
-import { PRICING_VERSION } from '../pricing.mjs';
+import { PRICING_VERSION, TERMS_VERSION } from '../pricing.mjs';
 
 const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', allowedOrigins: ['https://axi3d.pl'] };
 const order = { pricingVersion: PRICING_VERSION, orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com', customerName: 'Jan Kowalski', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }, { size: 80 }], termsAccepted: true, promotionCode: '  SAVE10  ' };
@@ -38,7 +38,7 @@ test('server resolves the typed code, applies only its trusted ID and returns St
     assert.equal(options.body.get('discounts[0][promotion_code]'), promotion.id);
     assert.equal(options.body.get('allow_promotion_codes'), null);
     assert.equal(options.body.get('metadata[terms_accepted]'), 'true');
-    assert.equal(options.body.get('metadata[terms_version]'), '2026-10-15');
+    assert.equal(options.body.get('metadata[terms_version]'), TERMS_VERSION);
     assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '8800');
     return Response.json(session);
   });
