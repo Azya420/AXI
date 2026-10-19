@@ -1,5 +1,6 @@
 export const MAX_FIGURINES = 20;
 export const PRICING_VERSION = '2026-09-05-base-prices';
+export const TERMS_VERSION = '2026-10-15';
 export const AUTOMATIC_DISCOUNT_PERCENT = 0;
 export const SHIPPING_AMOUNT = 1649;
 export const DELIVERY_OPTIONS = Object.freeze({
