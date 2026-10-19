@@ -1181,6 +1181,19 @@
   }
 
   /* ---------- CONTACT / SOCIAL ---------- */
+  .contact-company-details{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:8px 18px;
+    flex-wrap:wrap;
+    color:var(--ink-dim);
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.8rem;
+  }
+  .contact-company-details strong{ color:var(--ink); font-weight:500; }
+  .contact-company-details a{ color:var(--violet-bright); text-decoration:none; }
+  .contact-company-details a:hover{ color:var(--ink); }
   .social-grid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -2745,6 +2758,11 @@
       <div class="section-head" style="flex-direction:column; align-items:center; text-align:center; gap:12px;">
         <h2>Napisz do nas</h2>
         <p>Masz pytanie zanim złożysz zamówienie albo chciałbyś zamówić coś nietypowego? Napisz do nas - najszybciej odpowiadamy w social mediach.</p>
+        <div class="contact-company-details" aria-label="Dane firmy">
+          <strong>AXI3D Wojciech Nowakowski</strong>
+          <span>NIP: 6312745428</span>
+          <a href="tel:+48517703886">tel. 517 703 886</a>
+        </div>
       </div>
       <div class="social-grid">
         <a class="social-card" href="https://www.facebook.com/Axi3D" target="_blank" rel="noopener">
