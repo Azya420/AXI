@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { MAX_FIGURINES, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption } from '../pricing.mjs';
+import { MAX_FIGURINES, PRICING_VERSION, TERMS_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption } from '../pricing.mjs';
 
 const MAX_BODY_BYTES = 8192;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const LIVE_SESSION = /^cs_live_[A-Za-z0-9]+$/;
 const TEST_SESSION = /^cs_test_[A-Za-z0-9]+$/;
-export const TERMS_VERSION = '2026-10-15';
+export { TERMS_VERSION };
 const BASE_MODES = new Set(['standard', 'custom', 'none']);
 const MEASUREMENT_POINTS = new Set(['eyes', 'head', 'highest']);
 
