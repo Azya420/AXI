@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20260905-base-prices';
+import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, TERMS_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20261019-terms';
 
 export function initOrderForm(win) {
   const doc = win.document;
@@ -511,8 +511,9 @@ export function initOrderForm(win) {
       error.retryable = true;
       throw error;
     }
-    const expectedSession = preview ? '/c/pay/cs_test_' : '/c/pay/cs_live_';
-    if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || !url.pathname.startsWith(expectedSession)) {
+    const expectedSession = preview ? 'cs_test_' : 'cs_live_';
+    const checkoutPath = new RegExp('^/(?:c|f)/pay/' + expectedSession + '[A-Za-z0-9]+/?$');
+    if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || !checkoutPath.test(url.pathname)) {
       const error = new Error(preview
         ? 'Podgląd obsługuje wyłącznie płatności testowe.'
         : 'Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
@@ -631,7 +632,7 @@ export function initOrderForm(win) {
     payload.set('cennik_3_plus', items.length >= BULK_MIN_FIGURINES ? 'Tak' : 'Nie');
     payload.set('cena_przed_kodem', formatPrice(subtotal + shippingAmount));
     payload.set('rabat', formatPrice(regularSubtotal - subtotal));
-    payload.set('wersja_regulaminu', '2026-10-13');
+    payload.set('wersja_regulaminu', TERMS_VERSION);
     payload.set('podsumowanie_figurek', cards().map((card, index) => {
       const { size, copies, ...customization } = items[index];
       const copiesLabel = copies === 1 ? '1 identyczny wydruk' : copies >= 2 && copies <= 4 ? copies + ' identyczne wydruki' : copies + ' identycznych wydruków';
