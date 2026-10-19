@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { buildOrderEmail, handleStripeWebhook, verifyStripeSignature } from '../api/order-confirmation.mjs';
+import { TERMS_VERSION } from '../pricing.mjs';
 
 const orderId = '081d9e64-638e-4a29-882e-39f5212cf96b';
 const session = {
@@ -65,7 +66,7 @@ test('paid live checkout sends one confirmation with the versioned terms attachm
   const dependencies = {
     now: () => timestamp * 1000,
     stripeFetch: async () => Response.json(session),
-    termsFetch: async url => { assert.equal(url, 'https://axi3d.pl/regulamin-2026-10-15.html'); return new Response('<html>Regulamin</html>'); },
+    termsFetch: async url => { assert.equal(url, 'https://axi3d.pl/regulamin-' + TERMS_VERSION + '.html'); return new Response('<html>Regulamin</html>'); },
     sendMail: async (message, attachment) => sent.push({ message, attachment })
   };
   const raw = Buffer.from(event);
