@@ -380,8 +380,8 @@ test('preview cannot use a live Stripe URL or fall back to a legacy live Payment
 });
 
 
-test('production accepts current Stripe c/pay and f/pay checkout URL formats', async () => {
-  for (const path of ['/c/pay/cs_live_Current123', '/f/pay/cs_live_Current123']) {
+test('production accepts changing Stripe checkout route prefixes while preserving strict host and session validation', async () => {
+  for (const path of ['/c/pay/cs_live_Current123', '/f/pay/cs_live_Current123', '/g/pay/cs_live_Current123', '/future_route/pay/cs_live_Current123']) {
     const s = setup(); s.size(0, '32'); s.fillShipping();
     const fetch = s.win.fetch;
     s.win.fetch = async (url, options) => url.includes('/checkout-session')
