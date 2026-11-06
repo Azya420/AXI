@@ -512,7 +512,7 @@ export function initOrderForm(win) {
       throw error;
     }
     const expectedSession = preview ? 'cs_test_' : 'cs_live_';
-    const checkoutPath = new RegExp('^/(?:c|f)/pay/' + expectedSession + '[A-Za-z0-9]+/?$');
+    const checkoutPath = new RegExp('^/[A-Za-z0-9_-]+/pay/' + expectedSession + '[A-Za-z0-9]+/?$');
     if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || !checkoutPath.test(url.pathname)) {
       const error = new Error(preview
         ? 'Podgląd obsługuje wyłącznie płatności testowe.'
