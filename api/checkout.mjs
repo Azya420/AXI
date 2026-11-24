@@ -48,8 +48,14 @@ export function validateOrder(order) {
   return { orderId: order.orderId, email: order.email, customerName, deliveryDestination, items, deliveryMethod, promotionCode, termsAccepted: true };
 }
 
-export function stripeParameters(order, siteOrigin, preview = false, promotionId = null) {
+function discountedShippingAmount(amount, percent) {
+  if (!Number.isInteger(percent) || percent < 0 || percent > 100) return amount;
+  return Math.round(amount * (100 - percent) / 100);
+}
+
+export function stripeParameters(order, siteOrigin, preview = false, promotionId = null, shippingDiscountPercent = 0) {
   const delivery = getDeliveryOption(order.deliveryMethod);
+  const shippingAmount = discountedShippingAmount(delivery.amount, shippingDiscountPercent);
   const params = new URLSearchParams({
     mode: 'payment', customer_email: order.email, client_reference_id: order.orderId,
     // Pozostałe ustawienia zachowują zasady pięciu linków AXI3D (30.08.2026).
@@ -69,7 +75,8 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'metadata[automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
     'metadata[bulk_pricing_applied]': String(order.items.length >= BULK_MIN_FIGURINES),
     'metadata[shipping_method]': order.deliveryMethod,
-    'metadata[shipping_amount]': String(delivery.amount),
+    'metadata[shipping_amount]': String(shippingAmount),
+    'metadata[shipping_discount_percent]': String(shippingDiscountPercent),
     'metadata[customer_name]': order.customerName,
     'metadata[delivery_destination]': order.deliveryDestination,
     'metadata[regular_subtotal]': String(order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0)),
@@ -77,7 +84,8 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'payment_intent_data[metadata][automatic_discount_percent]': String(AUTOMATIC_DISCOUNT_PERCENT),
     'payment_intent_data[metadata][bulk_pricing_applied]': String(order.items.length >= BULK_MIN_FIGURINES),
     'payment_intent_data[metadata][shipping_method]': order.deliveryMethod,
-    'payment_intent_data[metadata][shipping_amount]': String(delivery.amount),
+    'payment_intent_data[metadata][shipping_amount]': String(shippingAmount),
+    'payment_intent_data[metadata][shipping_discount_percent]': String(shippingDiscountPercent),
     'payment_intent_data[metadata][terms_accepted]': 'true',
     'payment_intent_data[metadata][terms_version]': TERMS_VERSION
   });
@@ -89,7 +97,7 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     }));
   });
   params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
-  params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(delivery.amount));
+  params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(shippingAmount));
   params.set('shipping_options[0][shipping_rate_data][fixed_amount][currency]', 'pln');
   params.set('shipping_options[0][shipping_rate_data][display_name]', delivery.displayName);
   // Nie łączymy discounts z allow_promotion_codes. Kod nie jest edytowany w Stripe.
@@ -232,9 +240,11 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
   };
   try {
     let promotionId = null;
+    let shippingDiscountPercent = 0;
     if (order.promotionCode) {
       diagnostic.stage = 'promotion_lookup';
       const query = new URLSearchParams({ code: order.promotionCode, active: 'true', limit: '100' });
+      query.append('expand[0]', 'data.promotion.coupon');
       const lookup = await stripeFetch('https://api.stripe.com/v1/promotion_codes?' + query, {
         method: 'GET', headers: { Authorization: 'Bearer ' + config.stripeKey }, signal: AbortSignal.timeout(15000)
       });
@@ -252,8 +262,14 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
         !item.customer && !item.customer_account && /^promo_[A-Za-z0-9]+$/.test(item.id || ''));
       if (!promotion) return json(400, { error: 'Kod jest nieprawidłowy, nieaktywny lub niedostępny dla tego zamówienia.', code: 'invalid_promotion_code' });
       promotionId = promotion.id;
+      const coupon = promotion.promotion?.coupon;
+      const configuredShippingDiscount = Number(coupon && typeof coupon === 'object' ? coupon.metadata?.shipping_discount_percent : NaN);
+      if (Number.isInteger(configuredShippingDiscount) && configuredShippingDiscount > 0 &&
+          configuredShippingDiscount <= 100 && coupon.percent_off === configuredShippingDiscount) {
+        shippingDiscountPercent = configuredShippingDiscount;
+      }
     }
-    const params = stripeParameters(order, config.siteOrigin, config.preview === true, promotionId);
+    const params = stripeParameters(order, config.siteOrigin, config.preview === true, promotionId, shippingDiscountPercent);
     const digest = createHash('sha256').update(params.toString()).digest('hex');
     diagnostic = { event: 'stripe_transport_error' };
     const response = await stripeFetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -278,12 +294,13 @@ export async function handleCheckout(request, config, stripeFetch = fetch) {
     if (!session.url || new URL(session.url).hostname !== 'checkout.stripe.com' || !session.url.startsWith('https://')) throw new Error('Stripe unavailable');
     const subtotal = order.items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, order.items.length), 0);
     const delivery = getDeliveryOption(order.deliveryMethod);
+    const expectedShippingAmount = discountedShippingAmount(delivery.amount, shippingDiscountPercent);
     const total = session.amount_total;
     const discount = session.total_details?.amount_discount;
     const shippingAmount = session.total_details?.amount_shipping;
     if (session.currency !== 'pln' || session.amount_subtotal !== subtotal ||
-        shippingAmount !== delivery.amount || !Number.isInteger(total) || !Number.isInteger(discount) ||
-        discount < 0 || total < delivery.amount || total + discount !== subtotal + delivery.amount ||
+        shippingAmount !== expectedShippingAmount || !Number.isInteger(total) || !Number.isInteger(discount) ||
+        discount < 0 || total < expectedShippingAmount || total + discount !== subtotal + expectedShippingAmount ||
         (!promotionId && discount !== 0)) throw new Error('Invalid totals');
     if (promotionId && discount === 0) return json(400, { error: 'Ten kod nie obniża ceny wybranych figurek.', code: 'invalid_promotion_code' });
     const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
