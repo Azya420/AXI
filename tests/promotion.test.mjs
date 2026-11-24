@@ -93,6 +93,36 @@ test('percentage, fixed amount and full discount use Stripe amounts without brow
   }
 });
 
+test('trusted coupon metadata applies the same percentage discount to shipping', async () => {
+  const shippingPromotion = {
+    ...promotion,
+    promotion: {
+      type: 'coupon',
+      coupon: { id: 'coupon_Ship10', percent_off: 10, metadata: { shipping_discount_percent: '10' } }
+    }
+  };
+  const discountedShipping = 1484;
+  const response = await handleCheckout(request(order), config, async (url, options) => {
+    if (options.method === 'GET') {
+      assert.equal(new URL(url).searchParams.get('expand[0]'), 'data.promotion.coupon');
+      return Response.json({ data: [shippingPromotion] });
+    }
+    assert.equal(options.body.get('shipping_options[0][shipping_rate_data][fixed_amount][amount]'), String(discountedShipping));
+    assert.equal(options.body.get('metadata[shipping_amount]'), String(discountedShipping));
+    assert.equal(options.body.get('metadata[shipping_discount_percent]'), '10');
+    return Response.json({
+      ...session,
+      amount_total: 19844,
+      total_details: { amount_discount: 2040, amount_shipping: discountedShipping }
+    });
+  });
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.shippingAmount, discountedShipping);
+  assert.equal(result.discount, 2040);
+  assert.equal(result.total, 19844);
+});
+
 test('a promotion code stacks on the trusted 3+ prices without discounting shipping', async () => {
   const bulkOrder = { ...order, items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
   const response = await handleCheckout(request(bulkOrder), config, async (_, options) => {
