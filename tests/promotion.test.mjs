@@ -8,7 +8,7 @@ const config = { stripeKey: 'not-a-real-key', siteOrigin: 'https://axi3d.pl', al
 const order = { pricingVersion: PRICING_VERSION, orderId: '081d9e64-638e-4a29-882e-39f5212cf96b', email: 'test@example.com', customerName: 'Jan Kowalski', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }, { size: 80 }], termsAccepted: true, promotionCode: '  SAVE10  ' };
 const request = body => new Request('https://api.example/checkout-session', { method: 'POST', headers: { Origin: config.siteOrigin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const promotion = { id: 'promo_Valid123', active: true, code: 'save10', customer: null, customer_account: null };
-const session = { url: 'https://checkout.stripe.com/c/pay/cs_live_Test123', currency: 'pln', amount_subtotal: 20400, amount_total: 20009, total_details: { amount_discount: 2040, amount_shipping: 1649 } };
+const session = { url: 'https://checkout.stripe.com/c/pay/cs_live_Test123', currency: 'pln', amount_subtotal: 24500, amount_total: 23699, total_details: { amount_discount: 2450, amount_shipping: 1649 } };
 
 test('server rejects missing consent and malformed codes before any Stripe request', async () => {
   let calls = 0;
@@ -39,12 +39,12 @@ test('server resolves the typed code, applies only its trusted ID and returns St
     assert.equal(options.body.get('allow_promotion_codes'), null);
     assert.equal(options.body.get('metadata[terms_accepted]'), 'true');
     assert.equal(options.body.get('metadata[terms_version]'), TERMS_VERSION);
-    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '8800');
+    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '10600');
     return Response.json(session);
   });
   assert.equal(response.status, 200);
   assert.equal(calls.length, 2);
-  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 5, pricingVersion: PRICING_VERSION, regularSubtotal: 22400, saleSubtotal: 22400, automaticDiscount: 0, bulkDiscount: 2000, bulkPricing: false, subtotal: 20400, deliveryMethod: 'locker', shippingAmount: 1649, discount: 2040, total: 20009, currency: 'pln', promotionCode: 'SAVE10' });
+  assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 5, pricingVersion: PRICING_VERSION, regularSubtotal: 26900, saleSubtotal: 26900, automaticDiscount: 0, bulkDiscount: 2400, bulkPricing: false, subtotal: 24500, deliveryMethod: 'locker', shippingAmount: 1649, discount: 2450, total: 23699, currency: 'pln', promotionCode: 'SAVE10' });
 });
 
 test('invalid, inactive and customer-restricted codes never create a full-price session', async () => {
@@ -71,7 +71,7 @@ test('missing promotion-code permission fails safely without leaking Stripe deta
 test('Stripe eligibility rejection, no discount and inconsistent totals block checkout', async () => {
   for (const result of [
     () => Response.json({ error: { message: 'secret provider message' } }, { status: 400 }),
-    () => Response.json({ ...session, amount_total: 22049, total_details: { amount_discount: 0, amount_shipping: 1649 } }),
+    () => Response.json({ ...session, amount_total: 26149, total_details: { amount_discount: 0, amount_shipping: 1649 } }),
     () => Response.json({ ...session, amount_total: 1 }),
     () => Response.json({ ...session, currency: 'eur' })
   ]) {
@@ -84,12 +84,12 @@ test('Stripe eligibility rejection, no discount and inconsistent totals block ch
 });
 
 test('percentage, fixed amount and full discount use Stripe amounts without browser calculations', async () => {
-  for (const discount of [2040, 5000, 20400]) {
+  for (const discount of [2450, 5000, 24500]) {
     const response = await handleCheckout(request(order), config, async (_, options) => options.method === 'GET'
       ? Response.json({ data: [promotion] })
-      : Response.json({ ...session, amount_total: 20400 + 1649 - discount, total_details: { amount_discount: discount, amount_shipping: 1649 } }));
+      : Response.json({ ...session, amount_total: 24500 + 1649 - discount, total_details: { amount_discount: discount, amount_shipping: 1649 } }));
     assert.equal(response.status, 200);
-    assert.equal((await response.json()).total, 20400 + 1649 - discount);
+    assert.equal((await response.json()).total, 24500 + 1649 - discount);
   }
 });
 
@@ -112,30 +112,30 @@ test('trusted coupon metadata applies the same percentage discount to shipping',
     assert.equal(options.body.get('metadata[shipping_discount_percent]'), '10');
     return Response.json({
       ...session,
-      amount_total: 19844,
-      total_details: { amount_discount: 2040, amount_shipping: discountedShipping }
+      amount_total: 23534,
+      total_details: { amount_discount: 2450, amount_shipping: discountedShipping }
     });
   });
   assert.equal(response.status, 200);
   const result = await response.json();
   assert.equal(result.shippingAmount, discountedShipping);
-  assert.equal(result.discount, 2040);
-  assert.equal(result.total, 19844);
+  assert.equal(result.discount, 2450);
+  assert.equal(result.total, 23534);
 });
 
 test('a promotion code stacks on the trusted 3+ prices without discounting shipping', async () => {
   const bulkOrder = { ...order, items: [{ size: 32 }, { size: 80 }, { size: 120 }] };
   const response = await handleCheckout(request(bulkOrder), config, async (_, options) => {
     if (options.method === 'GET') return Response.json({ data: [promotion] });
-    assert.deepEqual([0, 1, 2].map(index => options.body.get('line_items[' + index + '][price_data][unit_amount]')), ['6500', '10500', '15000']);
+    assert.deepEqual([0, 1, 2].map(index => options.body.get('line_items[' + index + '][price_data][unit_amount]')), ['7800', '12600', '18000']);
     assert.equal(options.body.get('metadata[bulk_pricing_applied]'), 'true');
-    return Response.json({ ...session, amount_subtotal: 32000, amount_total: 30449,
-      total_details: { amount_discount: 3200, amount_shipping: 1649 } });
+    return Response.json({ ...session, amount_subtotal: 38400, amount_total: 36209,
+      total_details: { amount_discount: 3840, amount_shipping: 1649 } });
   });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { url: session.url, checkoutVersion: 5, pricingVersion: PRICING_VERSION,
-    regularSubtotal: 39900, saleSubtotal: 39900, automaticDiscount: 0,
-    bulkDiscount: 7900, bulkPricing: true, subtotal: 32000, deliveryMethod: 'locker', shippingAmount: 1649,
-    discount: 3200, total: 30449, currency: 'pln', promotionCode: 'SAVE10' });
+    regularSubtotal: 47900, saleSubtotal: 47900, automaticDiscount: 0,
+    bulkDiscount: 9500, bulkPricing: true, subtotal: 38400, deliveryMethod: 'locker', shippingAmount: 1649,
+    discount: 3840, total: 36209, currency: 'pln', promotionCode: 'SAVE10' });
 });
 

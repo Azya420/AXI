@@ -10,9 +10,9 @@ const request = (body = order, headers = {}) => new Request('https://example.com
 
 test('three figurines use quantity prices plus one 16,49 zł shipping rate', () => {
   const params = stripeParameters(validateOrder(order), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '6500');
-  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '10500');
-  assert.equal(params.get('line_items[2][price_data][unit_amount]'), '15000');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '7800');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '12600');
+  assert.equal(params.get('line_items[2][price_data][unit_amount]'), '18000');
   assert.equal(params.get('line_items[2][quantity]'), '1');
   assert.equal(params.get('line_items[2][price_data][currency]'), 'pln');
   assert.equal(params.get('payment_intent_data[metadata][order_id]'), id);
@@ -41,18 +41,18 @@ test('checkout keeps code entry on the website while preserving shipping and tax
 test('client prices, quantities and redirect URLs cannot override server values', () => {
   const validated = validateOrder({ ...order, success_url: 'https://attacker.example', items: [{ size: 250, amount: 1, quantity: -8 }] });
   const params = stripeParameters(validated, config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '28000');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '33600');
   assert.equal(params.get('line_items[0][quantity]'), '1');
   assert.equal(params.get('success_url'), 'https://axi3d.pl/dziekujemy.html?session_id={CHECKOUT_SESSION_ID}');
 });
 test('multiple figures in the same bracket remain separate paid items', () => {
   const params = stripeParameters(validateOrder({ ...order, items: [{ size: 32 }, { size: 42 }] }), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '8800');
-  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '8800');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '10600');
+  assert.equal(params.get('line_items[1][price_data][unit_amount]'), '10600');
 });
 test('one design with three identical prints charges the first figurine plus two cheap copies', () => {
   const params = stripeParameters(validateOrder({ ...order, items: [{ size: 32, copies: 3 }] }), config.siteOrigin);
-  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '9800');
+  assert.equal(params.get('line_items[0][price_data][unit_amount]'), '11800');
   assert.equal(params.get('line_items[0][quantity]'), '1');
   assert.equal(params.get('line_items[1][price_data][unit_amount]'), '1000');
   assert.equal(params.get('line_items[1][quantity]'), '2');

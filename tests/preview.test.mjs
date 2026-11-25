@@ -38,11 +38,11 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /id="promo-bulk-price"/);
   assert.match(html, /class="journey-price-sticker"/);
   assert.match(html, /\.journey-source \.journey-media img\{\s*object-fit:contain;/);
-  assert.match(html, /id="journey-min-price">65 zł/);
+  assert.match(html, /id="journey-min-price">78 zł/);
   assert.match(html, /w zestawie/);
   assert.doesNotMatch(html, /id="promo-countdown"/);
   assert.match(html, /Rabat ilościowy/);
-  assert.match(html, /65 zł\/szt\./);
+  assert.match(html, /78 zł\/szt\./);
   assert.ok(html.indexOf('id="promo-spotlight"') < html.indexOf('<form id="commission-form"'));
   assert.ok(!html.includes('id="shipping-cost-label"'));
   assert.ok(!html.includes('preview-send-basin'));
@@ -78,7 +78,7 @@ test('preview checkout returns to preview and rejects any non-test Stripe sessio
   const request = () => new Request(origin + '/preview/checkout-session', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(order) });
   const previewConfig = { ...config, preview: true, siteOrigin: origin, allowedOrigins: [origin] };
   for (const livemode of [true, undefined, false]) {
-    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview', amount_subtotal: 9800, amount_total: 11449, currency: 'pln', total_details: { amount_discount: 0, amount_shipping: 1649 } }));
+    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview', amount_subtotal: 11800, amount_total: 13449, currency: 'pln', total_details: { amount_discount: 0, amount_shipping: 1649 } }));
     assert.equal(response.status, livemode === false ? 200 : 502);
   }
 });

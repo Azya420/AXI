@@ -15,8 +15,8 @@ const request = body => new Request('https://api.example/checkout-session', {
 
 test('all 231 integer sizes use the base, 2-project and 3+ prices', () => {
   for (const [min, max, regularAmount, amount, pairAmount, bulkAmount] of [
-    [20, 60, 9800, 9800, 8800, 6500], [61, 100, 12600, 12600, 11600, 10500], [101, 150, 17500, 17500, 16500, 15000],
-    [151, 200, 22400, 22400, 21400, 19500], [201, 250, 28000, 28000, 27000, 24500]
+    [20, 60, 11800, 11800, 10600, 7800], [61, 100, 15100, 15100, 13900, 12600], [101, 150, 21000, 21000, 19800, 18000],
+    [151, 200, 26900, 26900, 25700, 23400], [201, 250, 33600, 33600, 32400, 29400]
   ]) {
     for (let size = min; size <= max; size++) {
       assert.equal(getPrice(size).amount, amount, 'payable amount at ' + size + ' mm');
@@ -32,16 +32,16 @@ test('all 231 integer sizes use the base, 2-project and 3+ prices', () => {
 test('two different projects use the dedicated prices in Stripe', async () => {
   const pairOrder = { ...order, items: [{ size: 32 }, { size: 120 }] };
   const response = await handleCheckout(request(pairOrder), config, async (url, options) => {
-    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '8800');
-    assert.equal(options.body.get('line_items[1][price_data][unit_amount]'), '16500');
+    assert.equal(options.body.get('line_items[0][price_data][unit_amount]'), '10600');
+    assert.equal(options.body.get('line_items[1][price_data][unit_amount]'), '19800');
     assert.match(options.body.get('line_items[0][price_data][product_data][name]'), /cena za 2 projekty/);
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_Pair123', currency: 'pln',
-      amount_subtotal: 25300, amount_total: 26949, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
+      amount_subtotal: 30400, amount_total: 32049, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
   });
   assert.equal(response.status, 200);
   const data = await response.json();
-  assert.equal(data.subtotal, 25300);
-  assert.equal(data.bulkDiscount, 2000);
+  assert.equal(data.subtotal, 30400);
+  assert.equal(data.bulkDiscount, 2400);
   assert.equal(data.bulkPricing, false);
 });
 
@@ -50,39 +50,39 @@ test('every additional identical print uses the requested size-bracket price', (
     assert.equal(getPrice(size).additionalCopyAmount, additional);
     assert.equal(getItemSubtotal(size, 3), getPrice(size).amount + 2 * additional);
   }
-  assert.equal(getItemSubtotal(32, 1000), 1008800);
+  assert.equal(getItemSubtotal(32, 1000), 1010800);
   for (const copies of [0, 1.5, '2', Number.MAX_SAFE_INTEGER + 1]) assert.equal(getItemSubtotal(32, copies), null);
 });
 
-test('all five 3+ line items plus shipping total 776,49 zł in Stripe', async () => {
+test('all five 3+ line items plus shipping total 928,49 zł in Stripe', async () => {
   let calls = 0;
   const response = await handleCheckout(request(order), config, async (url, options) => {
     calls++;
     assert.equal(url, 'https://api.stripe.com/v1/checkout/sessions');
     assert.equal(options.method, 'POST');
-    for (const [i, amount] of ['6500', '10500', '15000', '19500', '24500'].entries()) {
+    for (const [i, amount] of ['7800', '12600', '18000', '23400', '29400'].entries()) {
       assert.equal(options.body.get('line_items[' + i + '][price_data][unit_amount]'), amount);
       assert.equal(options.body.get('line_items[' + i + '][quantity]'), '1');
     }
     assert.equal(options.body.get('metadata[automatic_discount_percent]'), '0');
-    assert.equal(options.body.get('metadata[regular_subtotal]'), '90300');
+    assert.equal(options.body.get('metadata[regular_subtotal]'), '108400');
     assert.equal(options.body.get('metadata[pricing_version]'), PRICING_VERSION);
     assert.equal(options.body.get('metadata[shipping_amount]'), '1649');
     assert.equal(options.body.get('metadata[bulk_pricing_applied]'), 'true');
     assert.ok(![...options.body.keys()].some(key => key.startsWith('discounts[')));
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_Fixture123', currency: 'pln',
-      amount_subtotal: 76000, amount_total: 77649, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
+      amount_subtotal: 91200, amount_total: 92849, total_details: { amount_discount: 0, amount_shipping: SHIPPING_AMOUNT } });
   });
   assert.equal(response.status, 200);
   assert.equal(calls, 1);
   const data = await response.json();
-  assert.equal(data.total, 77649);
+  assert.equal(data.total, 92849);
   assert.equal(data.shippingAmount, SHIPPING_AMOUNT);
   assert.equal(data.deliveryMethod, 'locker');
-  assert.equal(data.regularSubtotal, 90300);
-  assert.equal(data.saleSubtotal, 90300);
+  assert.equal(data.regularSubtotal, 108400);
+  assert.equal(data.saleSubtotal, 108400);
   assert.equal(data.automaticDiscount, 0);
-  assert.equal(data.bulkDiscount, 14300);
+  assert.equal(data.bulkDiscount, 17200);
   assert.equal(data.bulkPricing, true);
   assert.equal(data.discount, 0);
 });

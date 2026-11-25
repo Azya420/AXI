@@ -1,4 +1,4 @@
-import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, TERMS_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20261115-terms';
+import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, TERMS_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20261125-prices';
 
 export function initOrderForm(win) {
   const doc = win.document;
@@ -263,9 +263,9 @@ export function initOrderForm(win) {
       const varies = amounts.length !== all.length || new Set(amounts).size > 1;
       return (varies ? 'od ' : '') + formatPrice(Math.min(...amounts)) + '/szt.';
     };
-    byId('discount-step-price-1').textContent = progressPrice(1, 9800);
-    byId('discount-step-price-2').textContent = progressPrice(2, 8800);
-    byId('discount-step-price-3').textContent = progressPrice(3, 6500);
+    byId('discount-step-price-1').textContent = progressPrice(1, 11800);
+    byId('discount-step-price-2').textContent = progressPrice(2, 10600);
+    byId('discount-step-price-3').textContent = progressPrice(3, 7800);
     byId('discount-step-1').classList.toggle('active', progress >= 1);
     byId('discount-step-2').classList.toggle('active', progress >= 2);
     byId('discount-step-3').classList.toggle('active', progress >= 3);
