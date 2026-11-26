@@ -12,8 +12,8 @@ function priceResponse(order, preview = false) {
   const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + ((item.copies ?? 1) - 1) * getPrice(item.size).additionalCopyAmount, 0);
   const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + ((item.copies ?? 1) - 1) * getPrice(item.size).additionalCopyAmount, 0);
   const shippingAmount = getDeliveryOption(order.deliveryMethod || 'address').amount;
-  return { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://checkout.stripe.com/c/pay/cs_live_fixture',
-    checkoutVersion: 5, pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
+  return { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://secure.przelewy24.pl/trnRequest/ProductionFixture123',
+    checkoutVersion: preview ? 5 : 'p24-production-v1', pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
     automaticDiscount: regularSubtotal - saleSubtotal, bulkDiscount: saleSubtotal - subtotal,
     bulkPricing: order.items.length >= BULK_MIN_FIGURINES, deliveryMethod: order.deliveryMethod || 'address', shippingAmount,
     total: subtotal + shippingAmount, discount: 0, currency: 'pln', promotionCode: '' };
@@ -271,7 +271,7 @@ test('one multipart submission carries independent files, sizes, prices and shar
   assert.equal(payload.get('email'), 'test@example.com');
   assert.equal(payload.get('miasto'), 'Warszawa');
   assert.equal(payload.get('numer_zamowienia'), checkout.orderId);
-  assert.equal(payload.get('link_do_platnosci'), 'https://checkout.stripe.com/c/pay/cs_live_fixture');
+  assert.equal(payload.get('link_do_platnosci'), 'https://secure.przelewy24.pl/trnRequest/ProductionFixture123');
   assert.match(payload.get('podsumowanie_figurek'), /Figurka 2: 120 mm, 1 identyczny wydruk, razem 198 zł/);
   assert.equal(s.redirects.length, 1);
   await s.submit(); assert.equal(s.calls.length, 2, 'no duplicate submit after success');
@@ -291,7 +291,7 @@ test('errors preserve files; retry retains order ID and does not duplicate phone
   assert.equal(s.redirects.length, 1);
   s.dom.window.close();
 });
-test('Stripe failure sends no Basin order; unconfigured multi-cart cannot use a single-item payment link', async () => {
+test('payment provider failure sends no Basin order and an unconfigured form cannot continue', async () => {
   const s = setup(); s.size(0, '32'); s.$('add-figurine-btn').click(); s.size(1, '80'); s.fillShipping();
   s.fail('all'); await s.submit(); assert.equal(s.calls.length, 1); assert.equal(s.redirects.length, 0);
   s.win.AXI_CHECKOUT_ENDPOINT = ''; s.$('open-shipping-btn').click(); await s.submit();
@@ -308,7 +308,7 @@ test('single figure uses current checkout pricing and retains locker shipping', 
   assert.equal(JSON.parse(s.calls[0].body).deliveryMethod, 'locker');
   assert.equal(s.calls[1].body.get('koszt_wysylki'), '16,49 zł');
   assert.equal(s.calls[1].body.get('paczkomat'), 'WAW123'); assert.equal(s.calls[1].body.get('ulica'), null);
-  assert.equal(s.redirects[0], 'https://checkout.stripe.com/c/pay/cs_live_fixture');
+  assert.equal(s.redirects[0], 'https://secure.przelewy24.pl/trnRequest/ProductionFixture123');
   s.dom.window.close();
 });
 test('slow checkout shows progress, prevents duplicates and clears timers on success', async () => {
@@ -380,25 +380,19 @@ test('preview cannot use a live Stripe URL or fall back to a legacy live Payment
 });
 
 
-test('production accepts changing Stripe checkout route prefixes while preserving strict host and session validation', async () => {
-  for (const path of ['/c/pay/cs_live_Current123', '/f/pay/cs_live_Current123', '/g/pay/cs_live_Current123', '/future_route/pay/cs_live_Current123']) {
-    const s = setup(); s.size(0, '32'); s.fillShipping();
-    const fetch = s.win.fetch;
-    s.win.fetch = async (url, options) => url.includes('/checkout-session')
-      ? Response.json({ ...priceResponse(JSON.parse(options.body), false), url: 'https://checkout.stripe.com' + path })
-      : fetch(url, options);
-    await s.submit();
-    assert.deepEqual(s.redirects, ['https://checkout.stripe.com' + path]);
-    s.dom.window.close();
-  }
+test('production accepts only the secure Przelewy24 transaction route', async () => {
+  const s = setup(); s.size(0, '32'); s.fillShipping();
+  await s.submit();
+  assert.deepEqual(s.redirects, ['https://secure.przelewy24.pl/trnRequest/ProductionFixture123']);
+  s.dom.window.close();
 });
-test('production rejects sandbox sessions before Basin and preserves files for retry', async () => {
+test('production rejects non-production payment URLs before Basin and preserves files for retry', async () => {
   const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
   const fetch = s.win.fetch;
   const calls = [];
   s.win.fetch = async (url, options) => {
     calls.push(url);
-    return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_test_wrong' });
+    return Response.json({ ...priceResponse(JSON.parse(options.body), false), url: 'https://sandbox.przelewy24.pl/trnRequest/SandboxFixture123' });
   };
   await s.submit();
   assert.equal(calls.length, 1);
@@ -430,7 +424,7 @@ test('terms start unchecked and must be accepted before preparing payment or sen
 });
 
 function discountResponse(total = 12569, discount = 1180) {
-  return { url: 'https://checkout.stripe.com/c/pay/cs_live_Promo123', checkoutVersion: 5, pricingVersion: PRICING_VERSION, regularSubtotal: 11800, saleSubtotal: 11800, automaticDiscount: 0, bulkDiscount: 0, bulkPricing: false, subtotal: 11800, deliveryMethod: 'address', shippingAmount: 1949, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
+  return { url: 'https://secure.przelewy24.pl/trnRequest/PromotionFixture123', checkoutVersion: 'p24-production-v1', pricingVersion: PRICING_VERSION, regularSubtotal: 11800, saleSubtotal: 11800, automaticDiscount: 0, bulkDiscount: 0, bulkPricing: false, subtotal: 11800, deliveryMethod: 'address', shippingAmount: 1949, total, discount, currency: 'pln', promotionCode: 'SAVE10' };
 }
 test('onsite code shows discounted total for confirmation before submitting final Basin price', async () => {
   const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping();
@@ -448,7 +442,7 @@ test('onsite code shows discounted total for confirmation before submitting fina
   assert.equal(requests[0].promotionCode, 'SAVE10');
   assert.equal(s.$('order-total').textContent, 'Suma: 106,2 zł');
   assert.match(s.$('promotion-result').textContent, /Rabat: 11,8 zł/);
-  assert.match(s.$('promotion-result').textContent, /Koszt dostawy zostanie doliczony w Stripe/);
+  assert.match(s.$('promotion-result').textContent, /Koszt dostawy zostanie doliczony w Przelewy24/);
   assert.equal(s.$('commission-submit').textContent, 'Przejdź do płatności');
   assert.equal(s.$('photos').files[0].name, 'first.png');
   s.$('terms-accepted').checked = false; await s.submit();
@@ -469,7 +463,7 @@ test('onsite code shows discounted total for confirmation before submitting fina
 test('invalid codes and older backends cannot silently charge the undiscounted price', async () => {
   for (const result of [
     () => Response.json({ error: 'Kod jest nieprawidłowy.' }, { status: 400 }),
-    () => Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_Old123' }),
+    () => Response.json({ url: 'https://secure.przelewy24.pl/trnRequest/OldFixture123' }),
     () => Response.json({ ...discountResponse(), total: 1 })
   ]) {
     const s = setup(); s.size(0, '32'); s.attach(0, 'first.png'); s.fillShipping(); s.input(s.$('promotion-code'), 'SAVE10');
@@ -513,7 +507,7 @@ test('a changed discounted price requires confirmation again before any redirect
   s.dom.window.close();
 });
 
-test('form shows figurines only while address shipping is added in Stripe, Basin and analytics', async () => {
+test('form shows figurines only while address shipping is added in Przelewy24, Basin and analytics', async () => {
   const s = setup();
   assert.equal(s.$('order-total').textContent, 'Suma:');
   const events = [];

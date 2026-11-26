@@ -13,7 +13,7 @@ const config = {
   stripeKey: process.env.STRIPE_SECRET_KEY,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
   reportStripeError: diagnostic => console.error('[axi-checkout]', JSON.stringify(diagnostic)),
-  reportP24Error: diagnostic => console.error('[axi-p24-sandbox]', JSON.stringify(diagnostic)),
+  reportP24Error: diagnostic => console.error('[axi-p24]', JSON.stringify(diagnostic)),
   siteOrigin,
   allowedOrigins: (process.env.AXI_ALLOWED_ORIGINS || 'https://axi3d.pl,https://www.axi3d.pl').split(',').map(value => value.trim()),
   p24: {
@@ -65,6 +65,22 @@ const p24LiveConfig = {
   p24NotificationPath: '/p24-live-test/notification',
   p24ResultPath: '/p24-live-test-result.html'
 };
+const p24ProductionConfig = {
+  ...config,
+  p24: config.p24Live,
+  p24ApiBase: P24_PRODUCTION_API,
+  p24GatewayBase: P24_PRODUCTION_GATEWAY,
+  p24Environment: 'production',
+  p24FixedAmount: null,
+  p24EnablePromotions: true,
+  p24IncludeOrderData: true,
+  p24SessionPrefix: 'axip24',
+  p24CheckoutVersion: 'p24-production-v1',
+  p24Description: 'Zamowienie AXI3D',
+  p24ReturnPath: '/p24/return',
+  p24NotificationPath: '/p24/notification',
+  p24ResultPath: '/dziekujemy.html'
+};
 // Ograniczenie globalne na proces; nie ufamy nagłówkom IP od klienta.
 // Przy skalowaniu do wielu procesów dodaj limit również w hostingu/proxy.
 let windowStarted = Date.now();
@@ -76,7 +92,7 @@ const server = createServer(async (req, res) => {
     const confirmationConfigured = Boolean(config.stripeKey && config.webhookSecret && config.smtp.host && config.smtp.user && config.smtp.pass && config.smtp.from && config.smtp.secure);
     const p24SandboxConfigured = Number.isSafeInteger(config.p24.merchantId) && config.p24.merchantId > 0 && Number.isSafeInteger(config.p24.posId) && config.p24.posId > 0 && Boolean(config.p24.apiKey && config.p24.crc);
     const p24LiveConfigured = Number.isSafeInteger(config.p24Live.merchantId) && config.p24Live.merchantId > 0 && Number.isSafeInteger(config.p24Live.posId) && config.p24Live.posId > 0 && Boolean(config.p24Live.apiKey && config.p24Live.crc);
-    res.end(JSON.stringify({ ok: true, checkoutConfigured: Boolean(config.stripeKey), confirmationConfigured, p24SandboxConfigured, p24LiveConfigured, pricingVersion: PRICING_VERSION, revision: process.env.RENDER_GIT_COMMIT || null }));
+    res.end(JSON.stringify({ ok: true, paymentProvider: 'przelewy24', checkoutConfigured: p24LiveConfigured, confirmationConfigured, p24SandboxConfigured, p24LiveConfigured, pricingVersion: PRICING_VERSION, revision: process.env.RENDER_GIT_COMMIT || null }));
     return;
   }
   if (pathname === '/p24-test/return' && req.method === 'GET') {
@@ -86,6 +102,11 @@ const server = createServer(async (req, res) => {
   }
   if (pathname === '/p24-live-test/return' && req.method === 'GET') {
     res.writeHead(302, { Location: p24ReturnLocation(new Request('https://axi-api.invalid' + req.url), p24LiveConfig), 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+  if (pathname === '/p24/return' && req.method === 'GET') {
+    res.writeHead(302, { Location: p24ReturnLocation(new Request('https://axi-api.invalid' + req.url), p24ProductionConfig), 'Cache-Control': 'no-store' });
     res.end();
     return;
   }
@@ -134,6 +155,30 @@ const server = createServer(async (req, res) => {
     } catch {
       res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(JSON.stringify({ error: 'Produkcyjny test Przelewy24 jest chwilowo niedostępny.' }));
+    }
+    return;
+  }
+  if (pathname === '/p24/access' || pathname === '/p24/register' || pathname === '/p24/notification' || pathname === '/p24/status') {
+    if (Date.now() - windowStarted >= 60000) { windowStarted = Date.now(); requestsInWindow = 0; }
+    if (pathname === '/p24/register' && req.method === 'POST' && ++requestsInWindow > 120) {
+      res.writeHead(429, { 'Retry-After': '60', 'Cache-Control': 'no-store' }); res.end(); return;
+    }
+    try {
+      const options = { method: req.method, headers: req.headers };
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) { options.body = Readable.toWeb(req); options.duplex = 'half'; }
+      const request = new Request('https://axi-api.invalid' + req.url, options);
+      const response = pathname === '/p24/access'
+        ? await handleP24TestAccess(request, p24ProductionConfig)
+        : pathname === '/p24/register'
+          ? await handleP24Register(request, p24ProductionConfig)
+          : pathname === '/p24/notification'
+            ? await handleP24Notification(request, p24ProductionConfig)
+            : await handleP24Status(request, p24ProductionConfig);
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      res.end(await response.text());
+    } catch {
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'Usługa Przelewy24 jest chwilowo niedostępna.' }));
     }
     return;
   }

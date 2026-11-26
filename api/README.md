@@ -1,5 +1,15 @@
 # Wspólna płatność za figurki AXI
 
+## Aktualizacja 26.11.2026 — Przelewy24 jako produkcyjna bramka płatnicza
+
+Główny formularz korzysta z produkcyjnego endpointu `/p24/register` i przekierowuje wyłącznie do `https://secure.przelewy24.pl/trnRequest/{TOKEN}`. Serwer niezależnie oblicza ceny figurek, cennik ilościowy oraz koszt wybranej dostawy, podpisuje transakcję SHA-384 i po notyfikacji P24 wykonuje obowiązkowe `transaction/verify`. Powrót prowadzi przez `/p24/return` do `dziekujemy.html`; strona podziękowania pokazuje powodzenie i wysyła zdarzenie zakupu dopiero po odczycie statusu `paid` oraz poprawnej weryfikacji.
+
+Produkcyjny przepływ używa zmiennych `P24_LIVE_MERCHANT_ID`, `P24_LIVE_POS_ID`, `P24_LIVE_API_KEY` i `P24_LIVE_CRC`. Techniczny test 1,50 zł oraz sandbox pozostały odseparowane. Stripe nie tworzy już płatności z głównego formularza; istniejący klucz jest używany wyłącznie do odczytu dotychczasowych kodów promocyjnych. Backend sam wylicza zaufany rabat procentowy albo kwotowy, a następnie przekazuje końcową kwotę do P24. Nie są obsługiwane kody ograniczone do klientów, pierwszej transakcji ani konkretnych produktów. Usunięcie klucza Stripe wyłącza tylko sprawdzanie wpisanych kodów — zamówienia bez kodu nadal korzystają z P24.
+
+Obowiązują `PRICING_VERSION = 2026-11-25-prices` i `TERMS_VERSION = 2026-11-26`. Regulamin oraz polityka prywatności wskazują PayPro S.A. / Przelewy24. Po publikacji tego samego commita na GitHub Pages i Renderze sprawdź `/health`: `paymentProvider` ma mieć wartość `przelewy24`, a `checkoutConfigured` oraz `p24LiveConfigured` — `true`.
+
+Poniższe sekcje zachowują historię wcześniejszej integracji Stripe i mogą opisywać nieaktualny już przepływ produkcyjny.
+
 ## Aktualizacja 01.09.2026 — Meta Pixel i zdarzenia kampanii
 
 Strona korzysta z Meta Pixel `1665983241581980`. Wspólny plik `tracking.js` ładuje Google Analytics i Meta Pixel dopiero po świadomej zgodzie zapisanej jako `cookie-consent-v2=accepted`; nie ma obrazka `noscript`, który omijałby zgodę. Treść banera wskazuje analityczne i marketingowe zastosowanie, a odmowa pozostawia wyłącznie niezbędne mechanizmy strony. Poprzednia zgoda dotycząca tylko Google Analytics nie jest automatycznie rozszerzana na Meta — użytkownik zobaczy nowy komunikat.

@@ -50,6 +50,19 @@ const liveConfig = {
   p24NotificationPath: '/p24-live-test/notification',
   p24ResultPath: '/p24-live-test-result.html'
 };
+const productionConfig = {
+  ...liveConfig,
+  stripeKey: 'rk_live_promotion_fixture',
+  p24FixedAmount: null,
+  p24EnablePromotions: true,
+  p24IncludeOrderData: true,
+  p24SessionPrefix: 'axip24',
+  p24CheckoutVersion: 'p24-production-v1',
+  p24Description: 'Zamowienie AXI3D',
+  p24ReturnPath: '/p24/return',
+  p24NotificationPath: '/p24/notification',
+  p24ResultPath: '/dziekujemy.html'
+};
 const request = (body = order, origin = 'https://axi3d.pl') => new Request('https://api.example/p24-test/register', {
   method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
 });
@@ -148,6 +161,83 @@ test('production testAccess uses secure P24 and reports the production environme
   const response = await handleP24TestAccess(new Request('https://api.example/p24-live-test/access', { headers: { Origin: config.siteOrigin } }), liveConfig, p24);
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true, environment: 'production' });
+});
+
+test('production checkout charges the full trusted amount through secure Przelewy24', async () => {
+  let sent;
+  const provider = async (url, options) => {
+    assert.equal(url, P24_PRODUCTION_API + '/transaction/register');
+    sent = JSON.parse(options.body);
+    return Response.json({ data: { token: 'production-12345678-abcd-4321-abcd-123456789012' }, responseCode: 0 });
+  };
+  const response = await handleP24Register(request(), productionConfig, provider);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.checkoutVersion, 'p24-production-v1');
+  assert.equal(result.url, P24_PRODUCTION_GATEWAY + 'production-12345678-abcd-4321-abcd-123456789012');
+  assert.equal(result.total, 13449);
+  assert.equal(result.shippingAmount, 1649);
+  assert.equal(result.discount, 0);
+  assert.equal(sent.amount, 13449);
+  assert.equal(sent.shipping, 1649);
+  assert.equal(sent.client, order.customerName);
+  assert.equal(sent.address, order.deliveryDestination);
+  assert.equal(sent.urlStatus, productionConfig.backendOrigin + '/p24/notification');
+  assert.match(sent.urlReturn, /^https:\/\/axi-checkout\.onrender\.com\/p24\/return\?sessionId=axip24\./);
+});
+
+test('production P24 validates the existing promotion code and charges the discounted amount', async () => {
+  const calls = [];
+  const withCode = { ...order, promotionCode: 'SAVE10' };
+  const provider = async (url, options) => {
+    calls.push(url);
+    if (url.startsWith('https://api.stripe.com/v1/promotion_codes?')) {
+      assert.equal(new URL(url).searchParams.get('code'), 'SAVE10');
+      return Response.json({ data: [{
+        id: 'promo_fixture', active: true, code: 'SAVE10', customer: null, customer_account: null,
+        promotion: { type: 'coupon', coupon: { id: 'coupon_fixture', valid: true, percent_off: 10, metadata: {} } },
+        restrictions: {}
+      }] });
+    }
+    assert.equal(url, P24_PRODUCTION_API + '/transaction/register');
+    const sent = JSON.parse(options.body);
+    assert.equal(sent.amount, 12269);
+    assert.equal(sent.shipping, 1649);
+    return Response.json({ data: { token: 'promotion-12345678-abcd-4321-abcd-123456789012' }, responseCode: 0 });
+  };
+  const response = await handleP24Register(request(withCode), productionConfig, provider);
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls.map(url => new URL(url).hostname), ['api.stripe.com', 'secure.przelewy24.pl']);
+  const result = await response.json();
+  assert.equal(result.promotionCode, 'SAVE10');
+  assert.equal(result.discount, 1180);
+  assert.equal(result.total, 12269);
+});
+
+test('paid P24 status can recover verification after a server restart', async () => {
+  const recoveryOrderId = 'b47644cd-a199-42bd-846c-d87a266e58bd';
+  const amount = 13449;
+  const sessionId = createP24SessionId(recoveryOrderId, amount, productionConfig.p24.crc, 'axip24');
+  const p24OrderId = 876543210;
+  const calls = [];
+  const provider = async (url, options) => {
+    calls.push({ url, options });
+    if (url.includes('/transaction/by/sessionId/')) return Response.json({
+      data: { sessionId, status: 2, amount, currency: 'PLN', orderId: p24OrderId }, responseCode: 0
+    });
+    assert.equal(url, P24_PRODUCTION_API + '/transaction/verify');
+    const sent = JSON.parse(options.body);
+    assert.equal(sent.sign, p24Sign({ sessionId, orderId: p24OrderId, amount, currency: 'PLN', crc: productionConfig.p24.crc }));
+    return Response.json({ data: { status: 'success' }, responseCode: 0 });
+  };
+  const statusRequest = new Request('https://api.example/p24/status?sessionId=' + encodeURIComponent(sessionId), { headers: { Origin: config.siteOrigin } });
+  const response = await handleP24Status(statusRequest, productionConfig, provider);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.status, 'paid');
+  assert.equal(result.verified, true);
+  assert.equal(result.transactionId, 'p24-' + p24OrderId);
+  assert.equal(calls.length, 2);
 });
 
 test('valid notification is signed, verified through P24 and visible on the result page status endpoint', async () => {

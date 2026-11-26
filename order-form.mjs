@@ -248,7 +248,7 @@ export function initOrderForm(win) {
     byId('price-hidden').value = valid ? formatPrice(total + shippingAmount) : '';
     byId('shipping-order-summary').textContent = label + (valid ? ' · Suma figurek: ' + formatPrice(figurinesTotal) : '');
     byId('promotion-result').hidden = !applied;
-    byId('promotion-result').textContent = applied ? 'Kod zastosowany. Rabat: ' + formatPrice(applied.discount) + ' · Suma figurek po rabacie: ' + formatPrice(figurinesTotal) + '. Koszt dostawy zostanie doliczony w Stripe.' : '';
+    byId('promotion-result').textContent = applied ? 'Kod zastosowany. Rabat: ' + formatPrice(applied.discount) + ' · Suma figurek po rabacie: ' + formatPrice(figurinesTotal) + '. Koszt dostawy zostanie doliczony w Przelewy24.' : '';
     openBtn.textContent = totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     addBtn.disabled = all.length >= MAX_FIGURINES;
@@ -511,9 +511,11 @@ export function initOrderForm(win) {
       error.retryable = true;
       throw error;
     }
-    const expectedSession = preview ? 'cs_test_' : 'cs_live_';
-    const checkoutPath = new RegExp('^/[A-Za-z0-9_-]+/pay/' + expectedSession + '[A-Za-z0-9]+/?$');
-    if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || !checkoutPath.test(url.pathname)) {
+    const validPreview = preview && url.protocol === 'https:' && url.hostname === 'checkout.stripe.com' &&
+      /^\/[A-Za-z0-9_-]+\/pay\/cs_test_[A-Za-z0-9]+\/?$/.test(url.pathname);
+    const validProduction = !preview && url.protocol === 'https:' && url.hostname === 'secure.przelewy24.pl' &&
+      /^\/trnRequest\/[A-Za-z0-9-]{10,100}\/?$/.test(url.pathname);
+    if (!validPreview && !validProduction) {
       const error = new Error(preview
         ? 'Podgląd obsługuje wyłącznie płatności testowe.'
         : 'Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
@@ -620,7 +622,7 @@ export function initOrderForm(win) {
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
     payload.set('kod_promocyjny', promotionCode);
     payload.set('wersja_cennika', PRICING_VERSION);
-    payload.set('uwaga_dotyczaca_ceny', 'Obowiązują ceny bazowe oraz cennik ilościowy dla 2 i co najmniej 3 projektów. Zaakceptowany kod może dodatkowo obniżyć sumę. Przed realizacją sprawdź płatność w Stripe po numerze zamówienia.');
+    payload.set('uwaga_dotyczaca_ceny', 'Obowiązują ceny bazowe oraz cennik ilościowy dla 2 i co najmniej 3 projektów. Zaakceptowany kod może dodatkowo obniżyć sumę. Przed realizacją sprawdź płatność w Przelewy24 po numerze zamówienia.');
     const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const subtotal = items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, items.length), 0);
@@ -647,7 +649,7 @@ export function initOrderForm(win) {
     const orderId = attempt.id;
     byId('order-reference').value = orderId;
     payload.set('numer_zamowienia', orderId);
-    payload.set('status_platnosci', preview ? 'TEST — płatność w piaskownicy, bez prawdziwych pieniędzy' : 'Oczekuje na płatność — sprawdź opłacenie zamówienia w Stripe');
+    payload.set('status_platnosci', preview ? 'TEST — płatność w piaskownicy, bez prawdziwych pieniędzy' : 'Oczekuje na płatność — sprawdź opłacenie zamówienia w Przelewy24');
     if (!attempt.beginCheckoutTracked) {
       trackGaEvent('begin_checkout', analytics);
       trackMetaEvent('InitiateCheckout', {
@@ -684,14 +686,17 @@ export function initOrderForm(win) {
         const { data, url } = prepared;
         paymentUrl = url.href;
         // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
-        if (data.checkoutVersion !== 5 || data.pricingVersion !== PRICING_VERSION ||
+        const expectedCheckoutVersion = preview ? 5 : 'p24-production-v1';
+        const invalidShipping = !Number.isInteger(data.shippingAmount) || data.shippingAmount < 0 ||
+          data.shippingAmount > shippingAmount || (!promotionCode && data.shippingAmount !== shippingAmount);
+        if (data.checkoutVersion !== expectedCheckoutVersion || data.pricingVersion !== PRICING_VERSION ||
             data.promotionCode !== promotionCode || data.currency !== 'pln' ||
             data.subtotal !== subtotal || data.saleSubtotal !== saleSubtotal || data.regularSubtotal !== regularSubtotal ||
-            data.deliveryMethod !== selectedDeliveryMethod || data.shippingAmount !== shippingAmount ||
+            data.deliveryMethod !== selectedDeliveryMethod || invalidShipping ||
             data.automaticDiscount !== regularSubtotal - saleSubtotal ||
             data.bulkDiscount !== saleSubtotal - subtotal || data.bulkPricing !== (items.length >= BULK_MIN_FIGURINES) ||
             !Number.isInteger(data.total) || !Number.isInteger(data.discount) ||
-            data.total < shippingAmount || data.discount < 0 || data.total + data.discount !== subtotal + shippingAmount ||
+            data.total < data.shippingAmount || data.discount < 0 || data.total + data.discount !== subtotal + data.shippingAmount ||
             (!promotionCode && data.discount !== 0)) {
           throw new Error('Nie udało się potwierdzić aktualnej ceny. Odśwież stronę i spróbuj ponownie. Zamówienie nie zostało wysłane.');
         }

@@ -99,6 +99,9 @@
     max-width:48ch;
     font-size:1.02rem;
   }
+  .payment-status{padding:12px 16px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--ink-dim);font-size:.9rem}
+  .payment-status.ok{color:#86efac;border-color:rgba(134,239,172,.35)}
+  .payment-status.error{color:#fca5a5;border-color:rgba(252,165,165,.35)}
   .next-steps{
     list-style:none;
     display:grid;
@@ -182,11 +185,12 @@
 
 <main>
   <div class="wrap confirm">
-    <div class="checkmark">✓</div>
-    <div class="eyebrow">Płatność przyjęta</div>
-    <h1>Dziękujemy za zamówienie!</h1>
-    <p>Twoja płatność została przyjęta. W ciągu 3 dni roboczych otrzymasz na maila nagranie poglądowe swojej figurki — na tym etapie będzie można zgłosić ewentualne zmiany, zanim model trafi do druku.</p>
-    <ul class="next-steps">
+    <div class="checkmark" id="confirmation-mark">…</div>
+    <div class="eyebrow" id="confirmation-eyebrow">Weryfikacja płatności</div>
+    <h1 id="confirmation-title">Sprawdzamy płatność…</h1>
+    <p id="confirmation-message">Poczekaj chwilę. Potwierdzamy płatność w Przelewy24.</p>
+    <div class="payment-status" id="payment-status" role="status" aria-live="polite">Łączenie z Przelewy24…</div>
+    <ul class="next-steps" id="next-steps" hidden>
       <li><span>Nagranie poglądowe figurki na e-mail w ciągu 5 dni roboczych</span></li>
       <li><span>Możliwość zgłoszenia poprawek przed drukiem</span></li>
       <li><span>Pytania w międzyczasie? Pisz na <a href="mailto:kontakt@axi3d.pl" style="color:var(--violet-bright); text-decoration:underline;">kontakt@axi3d.pl</a></span></li>
@@ -206,7 +210,7 @@
     <button type="button" class="cookie-btn cookie-btn-accept" id="cookie-accept">Akceptuję analityczne i marketingowe</button>
   </div>
 </div>
-<script src="checkout-config.js"></script>
+<script src="checkout-config.js?v=20261126-p24-production-v1"></script>
 <script src="tracking.js?v=20260901-cookie-footer-v4" data-analytics></script>
 <script>
 (function(){
@@ -245,24 +249,67 @@
   }
 
   async function verifyPurchase(){
-    var sessionId = new URLSearchParams(window.location.search).get('session_id') || '';
-    if (!/^cs_live_[A-Za-z0-9]+$/.test(sessionId)) return;
-    var endpoint = (window.AXI_CHECKOUT_ENDPOINT || '').trim();
-    if (!endpoint) return;
-    try {
-      var response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify_payment', sessionId: sessionId })
-      });
-      if (!response.ok) return;
-      var data = await response.json();
-      if (!data.paid || typeof data.value !== 'number' || !data.transactionId) return;
-      verifiedPurchase = data;
-      sendPurchaseIfReady();
-    } catch {
-      // Brak eventu jest bezpieczniejszy niż fałszywy zakup w Analytics.
+    var sessionId = new URLSearchParams(window.location.search).get('sessionId') || '';
+    var title = document.getElementById('confirmation-title');
+    var eyebrow = document.getElementById('confirmation-eyebrow');
+    var message = document.getElementById('confirmation-message');
+    var mark = document.getElementById('confirmation-mark');
+    var status = document.getElementById('payment-status');
+    var nextSteps = document.getElementById('next-steps');
+    var fail = function(text){
+      title.textContent = 'Nie udało się potwierdzić zamówienia';
+      eyebrow.textContent = 'Płatność niepotwierdzona';
+      message.textContent = 'Jeśli środki zostały pobrane, napisz na kontakt@axi3d.pl i podaj numer zamówienia.';
+      mark.textContent = '!';
+      status.className = 'payment-status error';
+      status.textContent = text;
+    };
+    if (!/^axip24\.[0-9a-f-]{36}\.\d{2,9}\.[0-9a-f]{24}$/i.test(sessionId)) {
+      fail('Brakuje prawidłowego identyfikatora transakcji.');
+      return;
     }
+    var attempts = 0;
+    var check = async function(){
+      attempts += 1;
+      try {
+        var response = await fetch('https://axi-checkout.onrender.com/p24/status?sessionId=' + encodeURIComponent(sessionId), {
+          headers: { Accept: 'application/json' }
+        });
+        if (!response.ok) throw new Error('status unavailable');
+        var data = await response.json();
+        if (data.status === 'paid' && data.verified === true && Number.isInteger(data.amount) && data.amount > 0 && data.transactionId) {
+          verifiedPurchase = {
+            transactionId: data.transactionId,
+            orderId: data.orderId,
+            value: data.amount / 100,
+            currency: data.currency || 'PLN',
+            items: Array.isArray(data.items) ? data.items : []
+          };
+          mark.textContent = '✓';
+          eyebrow.textContent = 'Płatność przyjęta';
+          title.textContent = 'Dziękujemy za zamówienie!';
+          message.textContent = 'Twoja płatność została przyjęta. W ciągu 3 dni roboczych otrzymasz na maila nagranie poglądowe swojej figurki — na tym etapie będzie można zgłosić ewentualne zmiany, zanim model trafi do druku.';
+          status.className = 'payment-status ok';
+          status.textContent = 'Płatność została opłacona i zweryfikowana w Przelewy24.';
+          nextSteps.hidden = false;
+          sendPurchaseIfReady();
+          return;
+        }
+        if (data.status === 'returned') {
+          fail('Transakcja została zwrócona. Zamówienie nie zostało opłacone.');
+          return;
+        }
+        status.textContent = data.status === 'paid'
+          ? 'Płatność dotarła. Czekamy jeszcze na jej weryfikację…'
+          : 'Płatność nie jest jeszcze potwierdzona. Ponawiam sprawdzenie…';
+        if (attempts < 12) window.setTimeout(check, 2500);
+        else status.textContent = 'Status nie został jeszcze potwierdzony. Odśwież stronę za chwilę.';
+      } catch {
+        if (attempts < 4) window.setTimeout(check, 2500);
+        else fail('Nie udało się odczytać statusu płatności. Spróbuj odświeżyć stronę.');
+      }
+    };
+    check();
   }
 
   document.addEventListener('DOMContentLoaded', function(){

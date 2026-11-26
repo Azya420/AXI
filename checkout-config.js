@@ -1,4 +1,2 @@
-// Publiczny adres endpointu /checkout-session. Nigdy nie wpisuj tu klucza Stripe.
-// Formularz produkcyjny akceptuje wyłącznie sesje live.
-// Klucz live ustaw jako STRIPE_SECRET_KEY w Renderze i wdróż usługę z main.
-window.AXI_CHECKOUT_ENDPOINT = 'https://axi-checkout.onrender.com/checkout-session';
+// Publiczny adres produkcyjnego endpointu Przelewy24. Nigdy nie wpisuj tu kluczy API ani CRC.
+window.AXI_CHECKOUT_ENDPOINT = 'https://axi-checkout.onrender.com/p24/register';
