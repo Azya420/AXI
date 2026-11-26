@@ -1,0 +1,743 @@
+import { MAX_FIGURINES, PRICE_BRACKETS, PRICING_VERSION, TERMS_VERSION, AUTOMATIC_DISCOUNT_PERCENT, BULK_MIN_FIGURINES, getPrice, getItemSubtotal, getDeliveryOption, formatPrice } from './pricing.mjs?v=20261125-prices';
+
+export function initOrderForm(win) {
+  const doc = win.document;
+  const byId = id => doc.getElementById(id);
+  const form = byId('commission-form');
+  if (!form || form.dataset.initialized) return;
+  form.dataset.initialized = 'true';
+  // Walidujemy etapy osobno: wymagane dane kontaktowe są w zamkniętym oknie.
+  form.noValidate = true;
+  const list = byId('figurine-list');
+  const template = list.firstElementChild.cloneNode(true);
+  const addBtn = byId('add-figurine-btn');
+  const openBtn = byId('open-shipping-btn');
+  const submitBtn = byId('commission-submit');
+  const modal = byId('shipping-modal');
+  const errorBox = byId('order-error');
+  const preview = win.AXI_PREVIEW_MODE === true;
+  const pairMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.pairAmount));
+  const bulkMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.bulkAmount));
+  byId('promo-spotlight').hidden = false;
+  byId('promo-discount').textContent = '2+';
+  byId('promo-pair-price').textContent = formatPrice(pairMinimumPrice);
+  byId('promo-bulk-price').textContent = formatPrice(bulkMinimumPrice);
+  byId('journey-min-price').textContent = formatPrice(bulkMinimumPrice);
+  byId('shipping-order-summary').setAttribute('role', 'status');
+  const cards = () => Array.from(list.children);
+  const field = (card, name) => card.querySelector('[data-field="' + name + '"]');
+  let nextId = 1;
+  let busy = false;
+  let completed = false;
+  let lastFocused = null;
+  let previousOverflow = '';
+  let attempt = null;
+  let promotionReview = null;
+  let geowidgetInitialized = false;
+  let previousDisabled = [];
+  let figurineFormStarted = false;
+  let shippingDetailsStarted = false;
+  const selectedPhotos = new WeakMap();
+
+  function trafficAttribution() {
+    const landing = new URL(doc.location.href);
+    const parameters = landing.searchParams;
+    let source = parameters.get('utm_source')?.trim().slice(0, 100) || '';
+    let medium = parameters.get('utm_medium')?.trim().slice(0, 100) || '';
+    let referrerHost = '';
+    try { referrerHost = doc.referrer ? new URL(doc.referrer).hostname.replace(/^www\./, '') : ''; } catch { /* Nieprawidłowy referrer traktujemy jak wejście bezpośrednie. */ }
+    if (!source && parameters.get('gclid')) { source = 'google'; medium ||= 'cpc'; }
+    if (!source && parameters.get('fbclid')) { source = 'meta'; medium ||= 'paid_social'; }
+    if (!source && referrerHost) {
+      if (/(^|\.)google\./.test(referrerHost)) { source = 'google'; medium = 'organic'; }
+      else if (/(^|\.)bing\.com$/.test(referrerHost)) { source = 'bing'; medium = 'organic'; }
+      else if (/(^|\.)(facebook\.com|instagram\.com|tiktok\.com|youtube\.com|youtu\.be)$/.test(referrerHost)) {
+        source = referrerHost.split('.').slice(-2, -1)[0] || referrerHost;
+        medium = 'organic_social';
+      } else { source = referrerHost; medium = 'referral'; }
+    }
+    return {
+      lead_traffic_source: source || '(direct)',
+      lead_traffic_medium: medium || '(none)',
+      lead_traffic_campaign: parameters.get('utm_campaign')?.trim().slice(0, 100) || '(not set)',
+      lead_traffic_content: parameters.get('utm_content')?.trim().slice(0, 100) || '(not set)',
+      lead_traffic_term: parameters.get('utm_term')?.trim().slice(0, 100) || '(not set)',
+      lead_landing_page: landing.pathname.slice(0, 300) || '/',
+      lead_referrer_host: referrerHost || '(direct)'
+    };
+  }
+  const leadAttribution = trafficAttribution();
+
+  function photoKey(file) {
+    return [file.name, file.size, file.lastModified, file.type].join(':');
+  }
+  function syncPhotoInput(input, files) {
+    try {
+      const transfer = new win.DataTransfer();
+      files.forEach(file => transfer.items.add(file));
+      input.files = transfer.files;
+    } catch {
+      // Używane wyłącznie przez środowiska bez DataTransfer (np. testy DOM).
+      Object.defineProperty(input, 'files', { configurable: true, value: files });
+    }
+  }
+  function renderPhotoList(card, files) {
+    const photoList = field(card, 'photo-list');
+    photoList.replaceChildren();
+    files.forEach((file, index) => {
+      const item = doc.createElement('li');
+      item.className = 'photo-item';
+      const name = doc.createElement('span');
+      name.className = 'photo-name';
+      name.textContent = file.name;
+      const remove = doc.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove-photo';
+      remove.dataset.photoIndex = String(index);
+      remove.textContent = 'Usuń';
+      remove.setAttribute('aria-label', 'Usuń zdjęcie ' + file.name);
+      item.append(name, remove);
+      photoList.appendChild(item);
+    });
+  }
+
+  function countLabel(count) {
+    if (count === 1) return '1 figurka';
+    return count + (count >= 2 && count <= 4 ? ' figurki' : ' figurek');
+  }
+  function clearError() { errorBox.hidden = true; errorBox.textContent = ''; }
+  function showError(message) {
+    errorBox.textContent = message;
+    errorBox.hidden = false;
+  }
+  const currentPromotion = () => byId('promotion-code').value.trim().toUpperCase();
+  const deliveryMethod = () => isLocker() ? 'locker' : 'address';
+  const measurementLabels = { eyes: 'linii oczu', head: 'czubka głowy', highest: 'najwyższego punktu' };
+  function readCustomization(card) {
+    const noBase = field(card, 'no-base').checked;
+    const diameterText = field(card, 'base-diameter').value.trim();
+    const heightText = field(card, 'base-height').value.trim();
+    const customBase = !noBase && (diameterText !== '' || heightText !== '');
+    return {
+      baseMode: noBase ? 'none' : customBase ? 'custom' : 'standard',
+      baseDiameter: customBase && diameterText !== '' ? Number(diameterText) : null,
+      baseHeight: customBase && heightText !== '' ? Number(heightText) : null,
+      measurementPoint: field(card, 'measurement-point').value
+    };
+  }
+  const cardItems = () => cards().map(card => ({
+    size: Number(field(card, 'size').value),
+    copies: Number(field(card, 'copies').value),
+    ...readCustomization(card)
+  }));
+  const baseLabel = item => item.baseMode === 'none'
+    ? 'bez podstawki'
+    : item.baseMode === 'custom'
+      ? item.baseDiameter + ' mm średnicy × ' + item.baseHeight + ' mm wysokości'
+      : 'standardowa (dobrana do figurki)';
+  const pricingKey = () => JSON.stringify({ items: cardItems(), email: byId('email').value.trim(), code: currentPromotion(), deliveryMethod: deliveryMethod() });
+  function analyticsSnapshot(items) {
+    const analyticsItems = items.flatMap((item, index) => {
+      const price = getPrice(item.size, items.length);
+      const result = [{
+        item_id: 'axi-figurine-' + (index + 1),
+        item_name: 'Personalizowana figurka',
+        item_category: 'Figurka 3D',
+        item_variant: item.size + ' mm',
+        price: price.amount / 100,
+        quantity: 1
+      }];
+      if (item.copies > 1) result.push({
+        item_id: 'axi-figurine-' + (index + 1) + '-copy',
+        item_name: 'Dodatkowy identyczny wydruk',
+        item_category: 'Figurka 3D — kopia',
+        item_variant: item.size + ' mm',
+        price: price.additionalCopyAmount / 100,
+        quantity: item.copies - 1
+      });
+      return result;
+    });
+    return {
+      currency: 'PLN',
+      value: analyticsItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      items: analyticsItems
+    };
+  }
+  function trackGaEvent(name, params) {
+    if (preview || typeof win.gtag !== 'function') return false;
+    win.gtag('event', name, params);
+    return true;
+  }
+  function trackMetaEvent(name, params, options) {
+    if (preview || !win.AXI_TRACKING?.trackMeta) return;
+    win.AXI_TRACKING.trackMeta(name, params, options);
+  }
+  function trackFigurineFormStart(event) {
+    if (figurineFormStarted || !event.target.closest('.figurine-card')) return;
+    figurineFormStarted = trackGaEvent('figurine_form_start', {
+      form_id: 'commission-form',
+      form_name: 'Zamówienie figurki'
+    });
+  }
+  form.addEventListener('input', trackFigurineFormStart);
+  form.addEventListener('change', trackFigurineFormStart);
+  function refresh() {
+    let total = 0;
+    let valid = true;
+    const all = cards();
+    const bulkPricing = all.length >= BULK_MIN_FIGURINES;
+    const quantityPricing = all.length >= 2;
+    all.forEach((card, index) => {
+      card.querySelector('legend').textContent = 'Figurka ' + (index + 1);
+      const remove = card.querySelector('.remove-figurine');
+      remove.hidden = all.length === 1;
+      remove.setAttribute('aria-label', 'Usuń figurkę ' + (index + 1));
+      const prefix = index === 0 ? '' : 'figurka_' + (index + 1) + '_';
+      field(card, 'description').name = prefix + 'opis';
+      field(card, 'photos').name = prefix + 'zdjecia';
+      field(card, 'size').name = prefix + 'rozmiar';
+      field(card, 'copies').name = prefix + 'liczba_identycznych_wydrukow';
+      field(card, 'no-base').name = prefix + 'bez_podstawki';
+      field(card, 'base-diameter').name = prefix + 'srednica_podstawki_mm';
+      field(card, 'base-height').name = prefix + 'wysokosc_podstawki_mm';
+      field(card, 'measurement-point').name = prefix + 'punkt_pomiaru_wysokosci';
+      const input = field(card, 'size');
+      const copiesInput = field(card, 'copies');
+      const noBaseInput = field(card, 'no-base');
+      field(card, 'base-diameter').disabled = noBaseInput.checked;
+      field(card, 'base-height').disabled = noBaseInput.checked;
+      input.setCustomValidity('');
+      copiesInput.setCustomValidity('');
+      const price = getPrice(Number(input.value), all.length);
+      const copies = Number(copiesInput.value);
+      const itemSubtotal = getItemSubtotal(Number(input.value), copies, all.length);
+      const addCopy = field(card, 'add-copy');
+      const copyControls = field(card, 'copy-controls');
+      const copiesExpanded = card.dataset.copiesExpanded === 'true' || Number.isInteger(copies) && copies > 1;
+      if (copiesExpanded) card.dataset.copiesExpanded = 'true';
+      addCopy.hidden = copiesExpanded;
+      copyControls.hidden = !copiesExpanded;
+      addCopy.textContent = price ? '＋ Dodaj kolejny wydruk za ' + formatPrice(price.additionalCopyAmount) : '＋ Dodaj kolejny identyczny wydruk';
+      const discounted = price && price.amount < price.regularAmount;
+      const regularPrice = field(card, 'regular-price');
+      regularPrice.hidden = !discounted;
+      const comparisonTotal = price ? (quantityPricing ? price.saleAmount : price.regularAmount) + Math.max(0, copies - 1) * price.additionalCopyAmount : 0;
+      regularPrice.textContent = discounted && itemSubtotal !== null ? formatPrice(comparisonTotal) : '';
+      regularPrice.setAttribute('aria-label', discounted && itemSubtotal !== null ? (quantityPricing ? 'Cena przy 1 projekcie: ' : 'Cena przed obniżką: ') + formatPrice(comparisonTotal) : 'Cena przed obniżką');
+      field(card, 'price').setAttribute('aria-label', itemSubtotal !== null ? 'Cena za wszystkie identyczne wydruki tej figurki: ' + formatPrice(itemSubtotal) : 'Cena');
+      field(card, 'copy-price').textContent = price ? 'Każdy dodatkowy identyczny wydruk: ' + formatPrice(price.additionalCopyAmount) + '.' : 'Każdy dodatkowy wydruk zostanie doliczony według rozmiaru.';
+      if (itemSubtotal !== null) {
+        total += itemSubtotal;
+        field(card, 'price').textContent = formatPrice(itemSubtotal);
+      } else {
+        valid = false;
+        field(card, 'price').textContent = !input.value ? 'Wpisz rozmiar' : !Number.isSafeInteger(copies) || copies < 1 ? 'Sprawdź liczbę wydruków' : 'Sprawdź rozmiar';
+      }
+    });
+    const totalCopies = all.reduce((sum, card) => sum + (Number.isInteger(Number(field(card, 'copies').value)) ? Number(field(card, 'copies').value) : 0), 0);
+    const label = countLabel(totalCopies) + (totalCopies !== all.length ? ' · ' + all.length + (all.length === 1 ? ' projekt' : ' projekty') : '');
+    const shippingAmount = getDeliveryOption(deliveryMethod()).amount;
+    if (promotionReview?.key !== pricingKey()) promotionReview = null;
+    const applied = valid && promotionReview;
+    byId('figurine-count').value = String(totalCopies);
+    byId('order-count-label').textContent = label;
+    const figurinesTotal = applied ? applied.total - applied.shippingAmount : total;
+    byId('order-total').textContent = valid ? 'Suma: ' + formatPrice(figurinesTotal) : 'Suma:';
+    // Wartość pola ukrytego pozostaje ceną przed kodem. Po potwierdzeniu kodu
+    // wpisujemy końcową kwotę do zgłoszenia bez zmiany identyfikatora próby.
+    byId('price-hidden').value = valid ? formatPrice(total + shippingAmount) : '';
+    byId('shipping-order-summary').textContent = label + (valid ? ' · Suma figurek: ' + formatPrice(figurinesTotal) : '');
+    byId('promotion-result').hidden = !applied;
+    byId('promotion-result').textContent = applied ? 'Kod zastosowany. Rabat: ' + formatPrice(applied.discount) + ' · Suma figurek po rabacie: ' + formatPrice(figurinesTotal) + '. Koszt dostawy zostanie doliczony w Przelewy24.' : '';
+    openBtn.textContent = totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
+    submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
+    addBtn.disabled = all.length >= MAX_FIGURINES;
+    addBtn.textContent = all.length >= MAX_FIGURINES ? 'Maksymalnie ' + MAX_FIGURINES + ' projektów w zamówieniu' : '+ Dodaj kolejny projekt';
+    const progress = Math.min(all.length, BULK_MIN_FIGURINES);
+    byId('discount-progress-fill').style.width = ((progress - 1) / (BULK_MIN_FIGURINES - 1) * 100) + '%';
+    byId('discount-progress').dataset.level = String(progress);
+    const selectedSizes = all.map(card => Number(field(card, 'size').value));
+    const progressPrice = (figurineCount, fallbackAmount) => {
+      const amounts = selectedSizes.map(size => getPrice(size, figurineCount)?.amount).filter(Number.isInteger);
+      if (!amounts.length) return 'od ' + formatPrice(fallbackAmount) + '/szt.';
+      const varies = amounts.length !== all.length || new Set(amounts).size > 1;
+      return (varies ? 'od ' : '') + formatPrice(Math.min(...amounts)) + '/szt.';
+    };
+    byId('discount-step-price-1').textContent = progressPrice(1, 11800);
+    byId('discount-step-price-2').textContent = progressPrice(2, 10600);
+    byId('discount-step-price-3').textContent = progressPrice(3, 7800);
+    byId('discount-step-1').classList.toggle('active', progress >= 1);
+    byId('discount-step-2').classList.toggle('active', progress >= 2);
+    byId('discount-step-3').classList.toggle('active', progress >= 3);
+  }
+  addBtn.addEventListener('click', () => {
+    if (busy || completed || cards().length >= MAX_FIGURINES) return;
+    const card = template.cloneNode(true);
+    const suffix = '-figurine-' + (++nextId);
+    card.querySelectorAll('[id]').forEach(el => { el.id += suffix; });
+    card.querySelectorAll('label[for]').forEach(el => { el.htmlFor += suffix; });
+    card.querySelectorAll('input, textarea, select').forEach(el => {
+      if (el.type === 'checkbox') el.checked = false;
+      else if (el.dataset.field === 'copies') el.value = '1';
+      else if (el.dataset.field === 'measurement-point') el.value = 'head';
+      else el.value = '';
+    });
+    list.appendChild(card);
+    clearError();
+    refresh();
+    field(card, 'description').focus();
+  });
+  list.addEventListener('click', event => {
+    const removePhoto = event.target.closest('.remove-photo');
+    if (removePhoto && !busy && !completed) {
+      const card = removePhoto.closest('.figurine-card');
+      const input = field(card, 'photos');
+      const files = (selectedPhotos.get(input) || Array.from(input.files)).filter((_, index) => index !== Number(removePhoto.dataset.photoIndex));
+      selectedPhotos.set(input, files);
+      syncPhotoInput(input, files);
+      renderPhotoList(card, files);
+      clearError();
+      return;
+    }
+    const addCopy = event.target.closest('[data-field="add-copy"]');
+    if (addCopy && !busy && !completed) {
+      const card = addCopy.closest('.figurine-card');
+      card.dataset.copiesExpanded = 'true';
+      field(card, 'copies').value = '2';
+      clearError();
+      refresh();
+      field(card, 'copies').focus();
+      return;
+    }
+    const removeCopies = event.target.closest('.remove-copies');
+    if (removeCopies && !busy && !completed) {
+      const card = removeCopies.closest('.figurine-card');
+      delete card.dataset.copiesExpanded;
+      field(card, 'copies').value = '1';
+      clearError();
+      refresh();
+      field(card, 'add-copy').focus();
+      return;
+    }
+    const remove = event.target.closest('.remove-figurine');
+    if (!remove || busy || completed || cards().length < 2) return;
+    remove.closest('.figurine-card').remove();
+    clearError();
+    refresh();
+    addBtn.focus();
+  });
+  list.addEventListener('change', event => {
+    const input = event.target.closest('[data-field="photos"]');
+    if (!input) {
+      if (!busy && !completed) { clearError(); refresh(); }
+      return;
+    }
+    if (busy || completed) return;
+    const previous = selectedPhotos.get(input) || [];
+    const unique = new Map(previous.map(file => [photoKey(file), file]));
+    Array.from(input.files).forEach(file => unique.set(photoKey(file), file));
+    const files = Array.from(unique.values());
+    selectedPhotos.set(input, files);
+    syncPhotoInput(input, files);
+    renderPhotoList(input.closest('.figurine-card'), files);
+    clearError();
+  });
+  list.addEventListener('input', () => { if (!busy) { clearError(); refresh(); } });
+  ['promotion-code', 'email'].forEach(id => byId(id).addEventListener('input', () => { if (!busy) { clearError(); refresh(); } }));
+  function validateFigures() {
+    for (const [index, card] of cards().entries()) {
+      const input = field(card, 'size');
+      const copiesInput = field(card, 'copies');
+      const diameterInput = field(card, 'base-diameter');
+      const heightInput = field(card, 'base-height');
+      const measurementInput = field(card, 'measurement-point');
+      input.setCustomValidity('');
+      copiesInput.setCustomValidity('');
+      diameterInput.setCustomValidity('');
+      heightInput.setCustomValidity('');
+      measurementInput.setCustomValidity('');
+      if (!getPrice(Number(input.value))) {
+        input.setCustomValidity('Figurka ' + (index + 1) + ': podaj rozmiar od 20 do 250 mm w pełnych milimetrach.');
+      }
+      if (!input.checkValidity()) {
+        closeModal();
+        input.reportValidity();
+        input.focus();
+        return false;
+      }
+      const copies = Number(copiesInput.value);
+      if (!Number.isSafeInteger(copies) || copies < 1) {
+        copiesInput.setCustomValidity('Figurka ' + (index + 1) + ': wpisz pełną liczbę identycznych wydruków, co najmniej 1.');
+      }
+      if (!copiesInput.checkValidity()) {
+        closeModal();
+        copiesInput.reportValidity();
+        copiesInput.focus();
+        return false;
+      }
+      const customization = readCustomization(card);
+      if (customization.baseMode === 'custom') {
+        if (!Number.isFinite(customization.baseDiameter) || customization.baseDiameter < 1 || customization.baseDiameter > 500) {
+          diameterInput.setCustomValidity('Figurka ' + (index + 1) + ': podaj średnicę podstawki od 1 do 500 mm.');
+        }
+        if (!Number.isFinite(customization.baseHeight) || customization.baseHeight < 1 || customization.baseHeight > 100) {
+          heightInput.setCustomValidity('Figurka ' + (index + 1) + ': podaj wysokość podstawki od 1 do 100 mm.');
+        }
+        for (const advancedInput of [diameterInput, heightInput]) {
+          if (!advancedInput.checkValidity()) {
+            closeModal();
+            field(card, 'advanced-settings').open = true;
+            advancedInput.reportValidity();
+            advancedInput.focus();
+            return false;
+          }
+        }
+      }
+      if (!measurementLabels[customization.measurementPoint]) {
+        measurementInput.setCustomValidity('Figurka ' + (index + 1) + ': wybierz sposób pomiaru wysokości.');
+        closeModal();
+        field(card, 'advanced-settings').open = true;
+        measurementInput.reportValidity();
+        measurementInput.focus();
+        return false;
+      }
+    }
+    refresh();
+    return true;
+  }
+  function initGeowidgetIfNeeded() {
+    if (geowidgetInitialized) return;
+    geowidgetInitialized = true;
+    const script = doc.createElement('script');
+    script.src = 'https://geowidget.easypack24.net/js/sdk-for-javascript.js';
+    script.onload = () => {
+      win.easyPack.init({ defaultLocale: 'pl', points: { types: ['parcel_locker'] }, map: { initialTypes: ['parcel_locker'] } });
+      win.easyPack.mapWidget('easypack-map', point => {
+        byId('paczkomat-hidden').value = point.name + ' — ' + point.address.line1 + ', ' + point.address.line2;
+        byId('paczkomat-status').textContent = 'Wybrany paczkomat: ' + point.name + ' (' + point.address.line1 + ')';
+        byId('easypack-map').style.display = 'none';
+        byId('change-locker-btn').style.display = 'inline-block';
+      });
+    };
+    script.onerror = () => {
+      geowidgetInitialized = false;
+      script.remove();
+      byId('paczkomat-status').textContent = 'Nie udało się wczytać mapy. Wybierz dostawę na adres lub ponownie otwórz to okno.';
+    };
+    doc.body.appendChild(script);
+  }
+  function isLocker() { return doc.querySelector('input[name="dostawa"]:checked').value === 'Paczkomat InPost'; }
+  function updateDelivery() {
+    const locker = isLocker();
+    byId('address-wrap').style.display = locker ? 'none' : 'block';
+    byId('locker-wrap').style.display = locker ? 'block' : 'none';
+    ['ulica', 'kod', 'miasto'].forEach(id => { byId(id).required = !locker; });
+    if (!busy) { clearError(); refresh(); }
+    if (locker && modal.classList.contains('active')) win.requestAnimationFrame(initGeowidgetIfNeeded);
+  }
+  doc.querySelectorAll('input[name="dostawa"]').forEach(radio => radio.addEventListener('change', updateDelivery));
+  byId('change-locker-btn').addEventListener('click', () => {
+    byId('easypack-map').style.display = 'block';
+    byId('change-locker-btn').style.display = 'none';
+  });
+  function openModal() {
+    if (busy || completed || !validateFigures()) return;
+    clearError();
+    if (!modal.classList.contains('active')) {
+      lastFocused = doc.activeElement;
+      previousOverflow = doc.body.style.overflow;
+    }
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+    doc.body.style.overflow = 'hidden';
+    updateDelivery();
+    if (!shippingDetailsStarted) {
+      const analytics = analyticsSnapshot(cardItems());
+      shippingDetailsStarted = trackGaEvent('shipping_details_start', {
+        form_id: 'commission-form',
+        form_name: 'Dane do wysyłki',
+        ...analytics
+      });
+    }
+    byId('name').focus();
+  }
+  function closeModal() {
+    if (busy || !modal.classList.contains('active')) return;
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+    doc.body.style.overflow = previousOverflow;
+    if (lastFocused) lastFocused.focus();
+  }
+  openBtn.addEventListener('click', openModal);
+  byId('shipping-modal-close').addEventListener('click', closeModal);
+  byId('shipping-modal-backdrop').addEventListener('click', closeModal);
+  modal.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); closeModal(); }
+    if (event.key === 'Tab') {
+      const visible = Array.from(modal.querySelectorAll('button:not(:disabled), input:not(:disabled), a[href], [tabindex="0"]'))
+        .filter(el => el.type !== 'hidden' && !el.closest('[hidden]') && !el.closest('[style*="display: none"]'));
+      const first = visible[0], last = visible[visible.length - 1];
+      if (event.shiftKey && doc.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && doc.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+  });
+  function setBusy(value) {
+    busy = value;
+    form.setAttribute('aria-busy', String(value));
+    if (value) {
+      previousDisabled = Array.from(new Set([...form.elements, ...modal.querySelectorAll('button')])).map(el => [el, el.disabled]);
+      previousDisabled.forEach(([el]) => { el.disabled = true; });
+      submitBtn.textContent = 'Wysyłanie…';
+    } else {
+      previousDisabled.forEach(([el, disabled]) => { el.disabled = disabled; });
+      refresh();
+    }
+  }
+  async function responseJson(response) {
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = {}; }
+    if (!response.ok) {
+      const error = new Error(data.error || data.message || 'Usługa jest chwilowo niedostępna. Spróbuj ponownie.');
+      error.retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+      throw error;
+    }
+    return data;
+  }
+  function verifiedCheckoutUrl(value) {
+    let url;
+    try { url = new URL(value); } catch {
+      const error = new Error('Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
+      error.retryable = true;
+      throw error;
+    }
+    const checkoutPath = /^\/trnRequest\/[A-Za-z0-9-]{10,100}\/?$/;
+    if (win.AXI_P24_TEST_MODE !== true || url.protocol !== 'https:' || url.hostname !== 'sandbox.przelewy24.pl' || !checkoutPath.test(url.pathname)) {
+      const error = new Error('Strona testowa obsługuje wyłącznie płatności w sandboxie Przelewy24.');
+      // Zła domena lub tryb sesji to błąd bezpieczeństwa, a nie przejściowa awaria.
+      error.retryable = false;
+      throw error;
+    }
+    return url;
+  }
+  async function preparePayment(endpoint, order) {
+    const controller = new win.AbortController();
+    submitBtn.textContent = 'Przygotowywanie płatności…';
+    const notice = win.setTimeout(() => {
+      byId('shipping-order-summary').textContent = 'Czekamy na usługę płatności. Jej uruchomienie może potrwać około minuty. Nie zamykaj tego okna.';
+    }, 8000);
+    // Mieści wybudzenie darmowej instancji, ale nie blokuje formularza bez końca.
+    const timeout = win.setTimeout(() => controller.abort(), 120000);
+    try {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          const data = await responseJson(await win.fetch(endpoint, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(order), signal: controller.signal
+          }));
+          return { data, url: verifiedCheckoutUrl(data.url) };
+        } catch (error) {
+          const transient = error.retryable === true || error?.name === 'TypeError';
+          if (attempt < 3 && transient && !controller.signal.aborted) {
+            await new Promise(resolve => win.setTimeout(resolve, 500 * (attempt + 1)));
+            continue;
+          }
+          throw error;
+        }
+      }
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('Usługa płatności nie odpowiedziała na czas. Spróbuj ponownie.');
+      throw error;
+    } finally {
+      win.clearTimeout(notice);
+      win.clearTimeout(timeout);
+      submitBtn.textContent = 'Wysyłanie…';
+    }
+  }
+  const checkoutEndpoint = (win.AXI_CHECKOUT_ENDPOINT || '').trim();
+  if (checkoutEndpoint) {
+    // Uruchamia połączenie z backendem podczas wypełniania formularza, zanim
+    // klient przejdzie do płatności. Odpowiedź nie zawiera danych klienta.
+    win.setTimeout(() => {
+      let healthUrl;
+      try { healthUrl = new URL('/health', checkoutEndpoint).href; } catch { return; }
+      const warmup = doc.createElement('img');
+      warmup.hidden = true;
+      warmup.alt = '';
+      warmup.onload = warmup.onerror = () => warmup.remove();
+      warmup.src = healthUrl;
+      doc.body.append(warmup);
+    }, 0);
+  }
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (busy || completed || !validateFigures()) return;
+    if (!modal.classList.contains('active')) { openModal(); return; }
+    if (!byId('terms-accepted').checked) { byId('terms-accepted').reportValidity(); byId('terms-accepted').focus(); return; }
+    if (!form.reportValidity()) return;
+    if (isLocker() && !byId('paczkomat-hidden').value) { win.alert('Wybierz paczkomat na mapie przed wysłaniem zamówienia.'); return; }
+    if (!isLocker() && ['ulica', 'kod', 'miasto'].some(id => !byId(id).value.trim())) { win.alert('Podaj pełny adres dostawy.'); return; }
+    clearError();
+    const items = cardItems();
+    const selectedDeliveryMethod = deliveryMethod();
+    const shippingAmount = getDeliveryOption(selectedDeliveryMethod).amount;
+    const analytics = analyticsSnapshot(items);
+    analytics.value += shippingAmount / 100;
+    analytics.shipping = shippingAmount / 100;
+    const promotionCode = currentPromotion();
+    const endpoint = (win.AXI_CHECKOUT_ENDPOINT || '').trim();
+    if (!endpoint) {
+      closeModal();
+      showError('Wspólna płatność nie jest jeszcze dostępna. Skontaktuj się z nami: kontakt@axi3d.pl.');
+      return;
+    }
+    const payload = new win.FormData(form);
+    // Basin zachowuje pojedynczy załącznik dla jednej nazwy pola. Nadajemy
+    // więc każdemu zdjęciu osobną nazwę, aby wszystkie pliki danej figurki
+    // dotarły w tym samym zgłoszeniu.
+    cards().forEach((card, figurineIndex) => {
+      const photoInput = field(card, 'photos');
+      const photos = selectedPhotos.get(photoInput) || Array.from(photoInput.files);
+      payload.delete(photoInput.name);
+      photos.forEach((photo, photoIndex) => {
+        payload.append(
+          'figurka_' + (figurineIndex + 1) + '_zdjecie_' + (photoIndex + 1),
+          photo,
+          photo.name
+        );
+      });
+    });
+    // Nie zmieniamy pola telefonu — ponowienie nie doklei kolejnego +48.
+    const digits = byId('phone').value.replace(/\D/g, '');
+    payload.set('telefon', '+' + (digits.length === 11 && digits.startsWith('48') ? digits : '48' + digits));
+    if (isLocker()) ['ulica', 'kod_pocztowy', 'miasto'].forEach(name => payload.delete(name));
+    else payload.delete('paczkomat');
+    const totalCopies = items.reduce((sum, item) => sum + item.copies, 0);
+    payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(totalCopies) + ' — AXI');
+    if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
+    payload.set('kod_promocyjny', promotionCode);
+    payload.set('wersja_cennika', PRICING_VERSION);
+    payload.set('uwaga_dotyczaca_ceny', 'TEST PRZELEWY24 — zgłoszenie nie jest wysyłane do realizacji ani do Basin.');
+    const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
+    const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
+    const subtotal = items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, items.length), 0);
+    payload.set('koszt_wysylki', formatPrice(shippingAmount));
+    payload.set('cena_przed_rabatem', formatPrice(regularSubtotal + shippingAmount));
+    payload.set('rabat_automatyczny_procent', String(AUTOMATIC_DISCOUNT_PERCENT));
+    payload.set('rabat_automatyczny', formatPrice(regularSubtotal - saleSubtotal));
+    payload.set('rabat_ilosciowy', formatPrice(saleSubtotal - subtotal));
+    payload.set('cennik_3_plus', items.length >= BULK_MIN_FIGURINES ? 'Tak' : 'Nie');
+    payload.set('cena_przed_kodem', formatPrice(subtotal + shippingAmount));
+    payload.set('rabat', formatPrice(regularSubtotal - subtotal));
+    payload.set('wersja_regulaminu', TERMS_VERSION);
+    payload.set('podsumowanie_figurek', cards().map((card, index) => {
+      const { size, copies, ...customization } = items[index];
+      const copiesLabel = copies === 1 ? '1 identyczny wydruk' : copies >= 2 && copies <= 4 ? copies + ' identyczne wydruki' : copies + ' identycznych wydruków';
+      const prefix = index === 0 ? '' : 'figurka_' + (index + 1) + '_';
+      payload.set(prefix + 'podstawka', baseLabel(customization));
+      payload.set(prefix + 'pomiar_wysokosci', measurementLabels[customization.measurementPoint]);
+      return 'Figurka ' + (index + 1) + ': ' + size + ' mm, ' + copiesLabel + ', razem ' + formatPrice(getItemSubtotal(size, copies, items.length)) + '\nPodstawka: ' + baseLabel(customization) + '\nPomiar wysokości: do ' + measurementLabels[customization.measurementPoint] + '\nOpis: ' + field(card, 'description').value + '\nZdjęcia: ' + (Array.from(field(card, 'photos').files).map(file => file.name).join(', ') || 'brak');
+    }).join('\n\n'));
+    // Ten sam koszyk zachowuje identyfikator przy ponowieniu po błędzie sieci.
+    const fingerprint = JSON.stringify(Array.from(payload.entries()).filter(([key]) => !['numer_zamowienia', 'status_platnosci'].includes(key)).map(([key, val]) => [key, typeof val === 'string' ? val : [val.name, val.size, val.lastModified]]));
+    if (!attempt || attempt.fingerprint !== fingerprint) attempt = { fingerprint, id: win.crypto.randomUUID() };
+    const orderId = attempt.id;
+    byId('order-reference').value = orderId;
+    payload.set('numer_zamowienia', orderId);
+    payload.set('status_platnosci', 'TEST — sandbox Przelewy24, bez prawdziwych pieniędzy');
+    if (!attempt.beginCheckoutTracked) {
+      trackGaEvent('begin_checkout', analytics);
+      trackMetaEvent('InitiateCheckout', {
+        value: analytics.value,
+        currency: analytics.currency,
+        content_type: 'product',
+        content_ids: items.map(item => 'personalizowana-figurka-' + item.size + 'mm'),
+        num_items: totalCopies
+      }, { eventID: orderId + '-checkout' });
+      attempt.beginCheckoutTracked = true;
+    }
+    setBusy(true);
+    try {
+      let paymentUrl;
+      if (endpoint) {
+        const deliveryDestination = isLocker()
+          ? byId('paczkomat-hidden').value.trim()
+          : [byId('ulica').value.trim(), byId('kod').value.trim(), byId('miasto').value.trim()].filter(Boolean).join(', ');
+        const checkoutItems = cards().map((card, index) => ({
+          ...items[index],
+          description: field(card, 'description').value.replace(/\s+/g, ' ').trim().slice(0, 300)
+        }));
+        const prepared = await preparePayment(endpoint, {
+          items: checkoutItems,
+          email: byId('email').value.trim(),
+          customerName: byId('name').value.trim(),
+          deliveryDestination,
+          orderId,
+          deliveryMethod: selectedDeliveryMethod,
+          promotionCode,
+          termsAccepted: byId('terms-accepted').checked,
+          pricingVersion: PRICING_VERSION
+        });
+        const { data, url } = prepared;
+        paymentUrl = url.href;
+        // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
+        if (data.checkoutVersion !== 'p24-sandbox-v1' || data.pricingVersion !== PRICING_VERSION ||
+            data.promotionCode !== promotionCode || data.currency !== 'pln' ||
+            data.subtotal !== subtotal || data.saleSubtotal !== saleSubtotal || data.regularSubtotal !== regularSubtotal ||
+            data.deliveryMethod !== selectedDeliveryMethod || data.shippingAmount !== shippingAmount ||
+            data.automaticDiscount !== regularSubtotal - saleSubtotal ||
+            data.bulkDiscount !== saleSubtotal - subtotal || data.bulkPricing !== (items.length >= BULK_MIN_FIGURINES) ||
+            !Number.isInteger(data.total) || !Number.isInteger(data.discount) ||
+            data.total < shippingAmount || data.discount < 0 || data.total + data.discount !== subtotal + shippingAmount ||
+            (!promotionCode && data.discount !== 0)) {
+          throw new Error('Nie udało się potwierdzić aktualnej ceny. Odśwież stronę i spróbuj ponownie. Zamówienie nie zostało wysłane.');
+        }
+        if (promotionCode) {
+          if (data.discount === 0) {
+            throw new Error('Nie udało się potwierdzić rabatu. Zamówienie nie zostało wysłane.');
+          }
+          if (!promotionReview || promotionReview.key !== pricingKey() || promotionReview.total !== data.total || promotionReview.discount !== data.discount) {
+            promotionReview = { key: pricingKey(), total: data.total, shippingAmount: data.shippingAmount, discount: data.discount };
+            setBusy(false);
+            submitBtn.focus();
+            return; // Klient najpierw widzi cenę po rabacie, dopiero potem potwierdza zamówienie.
+          }
+          payload.set('rabat_z_kodu', formatPrice(data.discount));
+          payload.set('rabat', formatPrice(regularSubtotal + shippingAmount - data.total));
+          payload.set('cena', formatPrice(data.total));
+          analytics.value = data.total / 100;
+        }
+      }
+      payload.set('link_do_platnosci', paymentUrl);
+      // Jedno zgłoszenie zawiera wszystkie figurki i załączniki. Błąd nie może
+      // przekierować do płatności ani automatycznie zdublować zamówienia.
+      if (!preview) {
+        await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
+        if (!attempt.leadTracked) {
+          trackGaEvent('generate_lead', {
+            currency: analytics.currency,
+            value: analytics.value,
+            lead_source: 'order_form',
+            ...leadAttribution
+          });
+          trackMetaEvent('Lead', { currency: analytics.currency, value: analytics.value }, { eventID: orderId + '-lead' });
+          attempt.leadTracked = true;
+        }
+      }
+      completed = true;
+      win.location.assign(paymentUrl);
+    } catch (error) {
+      promotionReview = null;
+      setBusy(false);
+      closeModal();
+      showError('Nie udało się zakończyć zamówienia. ' + error.message + ' Twoje dane i zdjęcia pozostają w formularzu.');
+    }
+  });
+  refresh();
+  updateDelivery();
+}
+
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => initOrderForm(window));
+  else initOrderForm(window);
+}

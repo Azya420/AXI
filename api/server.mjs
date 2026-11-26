@@ -3,6 +3,7 @@ import { Readable } from 'node:stream';
 import { handleCheckout } from './checkout.mjs';
 import { handleStripeWebhook } from './order-confirmation.mjs';
 import { isTestKey, previewResponse } from './preview.mjs';
+import { handleP24TestAccess, handleP24Register, handleP24Notification, handleP24Status, p24ReturnLocation } from './p24-sandbox.mjs';
 import { PRICING_VERSION } from '../pricing.mjs';
 
 const siteOrigin = process.env.AXI_SITE_ORIGIN || 'https://axi3d.pl';
@@ -12,8 +13,15 @@ const config = {
   stripeKey: process.env.STRIPE_SECRET_KEY,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
   reportStripeError: diagnostic => console.error('[axi-checkout]', JSON.stringify(diagnostic)),
+  reportP24Error: diagnostic => console.error('[axi-p24-sandbox]', JSON.stringify(diagnostic)),
   siteOrigin,
   allowedOrigins: (process.env.AXI_ALLOWED_ORIGINS || 'https://axi3d.pl,https://www.axi3d.pl').split(',').map(value => value.trim()),
+  p24: {
+    merchantId: Number(process.env.P24_MERCHANT_ID || process.env.P24_SANDBOX_MERCHANT_ID),
+    posId: Number(process.env.P24_POS_ID || process.env.P24_SANDBOX_POS_ID || process.env.P24_MERCHANT_ID || process.env.P24_SANDBOX_MERCHANT_ID),
+    apiKey: process.env.P24_API_KEY || process.env.P24_SECRET_ID || process.env.P24_SANDBOX_API_KEY,
+    crc: process.env.P24_CRC || process.env.P24_CRC_KEY || process.env.P24_SANDBOX_CRC
+  },
   smtp: {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 465,
@@ -37,6 +45,7 @@ async function readRawRequest(req, limit = 1_000_000) {
 // Ustalony adres usługi, nigdy Host/Origin przesłany przez klienta.
 const previewOrigin = process.env.RENDER_EXTERNAL_URL || 'https://axi-checkout.onrender.com';
 if (new URL(previewOrigin).origin !== previewOrigin || !previewOrigin.startsWith('https://')) throw new Error('Invalid preview origin.');
+config.backendOrigin = previewOrigin;
 // Ograniczenie globalne na proces; nie ufamy nagłówkom IP od klienta.
 // Przy skalowaniu do wielu procesów dodaj limit również w hostingu/proxy.
 let windowStarted = Date.now();
@@ -46,7 +55,37 @@ const server = createServer(async (req, res) => {
   if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     const confirmationConfigured = Boolean(config.stripeKey && config.webhookSecret && config.smtp.host && config.smtp.user && config.smtp.pass && config.smtp.from && config.smtp.secure);
-    res.end(JSON.stringify({ ok: true, checkoutConfigured: Boolean(config.stripeKey), confirmationConfigured, pricingVersion: PRICING_VERSION, revision: process.env.RENDER_GIT_COMMIT || null }));
+    const p24SandboxConfigured = Number.isSafeInteger(config.p24.merchantId) && config.p24.merchantId > 0 && Number.isSafeInteger(config.p24.posId) && config.p24.posId > 0 && Boolean(config.p24.apiKey && config.p24.crc);
+    res.end(JSON.stringify({ ok: true, checkoutConfigured: Boolean(config.stripeKey), confirmationConfigured, p24SandboxConfigured, pricingVersion: PRICING_VERSION, revision: process.env.RENDER_GIT_COMMIT || null }));
+    return;
+  }
+  if (pathname === '/p24-test/return' && req.method === 'GET') {
+    res.writeHead(302, { Location: p24ReturnLocation(new Request('https://axi-api.invalid' + req.url), config), 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+  if (pathname === '/p24-test/access' || pathname === '/p24-test/register' || pathname === '/p24-test/notification' || pathname === '/p24-test/status') {
+    if (Date.now() - windowStarted >= 60000) { windowStarted = Date.now(); requestsInWindow = 0; }
+    if (pathname === '/p24-test/register' && req.method === 'POST' && ++requestsInWindow > 120) {
+      res.writeHead(429, { 'Retry-After': '60', 'Cache-Control': 'no-store' }); res.end(); return;
+    }
+    try {
+      const options = { method: req.method, headers: req.headers };
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) { options.body = Readable.toWeb(req); options.duplex = 'half'; }
+      const request = new Request('https://axi-api.invalid' + req.url, options);
+      const response = pathname === '/p24-test/access'
+        ? await handleP24TestAccess(request, config)
+        : pathname === '/p24-test/register'
+          ? await handleP24Register(request, config)
+          : pathname === '/p24-test/notification'
+            ? await handleP24Notification(request, config)
+            : await handleP24Status(request, config);
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      res.end(await response.text());
+    } catch {
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'Testowa usługa Przelewy24 jest chwilowo niedostępna.' }));
+    }
     return;
   }
   if (pathname === '/stripe-webhook') {
