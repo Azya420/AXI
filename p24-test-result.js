@@ -3,6 +3,9 @@
   const details = document.getElementById('payment-details');
   const title = document.getElementById('result-title');
   const message = document.getElementById('result-message');
+  const livePaymentTest = window.AXI_P24_LIVE_RESULT === true;
+  const statusEndpoint = window.AXI_P24_STATUS_ENDPOINT || 'https://axi-checkout.onrender.com/p24-test/status';
+  const expectedAmount = Number.isSafeInteger(window.AXI_P24_EXPECTED_AMOUNT) ? window.AXI_P24_EXPECTED_AMOUNT : null;
   const params = new URLSearchParams(location.search);
   const sessionId = params.get('sessionId') || '';
   if (!/^axitest\.[0-9a-f-]{36}\.\d{2,9}\.[0-9a-f]{24}$/i.test(sessionId)) {
@@ -16,12 +19,15 @@
   const check = async () => {
     attempts += 1;
     try {
-      const response = await fetch('https://axi-checkout.onrender.com/p24-test/status?sessionId=' + encodeURIComponent(sessionId), { headers: { Accept: 'application/json' } });
+      const response = await fetch(statusEndpoint + '?sessionId=' + encodeURIComponent(sessionId), { headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error('status unavailable');
       const data = await response.json();
       if (data.status === 'paid' && data.verified === true) {
+        if (expectedAmount !== null && data.amount !== expectedAmount) throw new Error('unexpected amount');
         title.textContent = 'Dziękujemy za zamówienie!';
-        message.textContent = 'Zgłoszenie testowe zostało wysłane, a płatność w sandboxie Przelewy24 została poprawnie zakończona.';
+        message.textContent = livePaymentTest
+          ? 'Zgłoszenie testowe zostało wysłane, a prawdziwa płatność 1,50 zł została poprawnie zakończona i zweryfikowana.'
+          : 'Zgłoszenie testowe zostało wysłane, a płatność w sandboxie Przelewy24 została poprawnie zakończona.';
         statusBox.className = 'status ok';
         statusBox.textContent = 'Płatność testowa została opłacona i zweryfikowana.';
         details.textContent = 'Kwota testowa: ' + (data.amount / 100).toFixed(2).replace('.', ',') + ' ' + data.currency;

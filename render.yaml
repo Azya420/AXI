@@ -27,6 +27,14 @@ services:
         sync: false
       - key: P24_CRC
         sync: false
+      - key: P24_LIVE_MERCHANT_ID
+        sync: false
+      - key: P24_LIVE_POS_ID
+        sync: false
+      - key: P24_LIVE_API_KEY
+        sync: false
+      - key: P24_LIVE_CRC
+        sync: false
       - key: SMTP_HOST
         value: smtpout.secureserver.net
       - key: SMTP_PORT

@@ -8,6 +8,12 @@ const verifiedSessions = new Map();
 
 export const P24_SANDBOX_API = 'https://sandbox.przelewy24.pl/api/v1';
 export const P24_SANDBOX_GATEWAY = 'https://sandbox.przelewy24.pl/trnRequest/';
+export const P24_PRODUCTION_API = 'https://secure.przelewy24.pl/api/v1';
+export const P24_PRODUCTION_GATEWAY = 'https://secure.przelewy24.pl/trnRequest/';
+
+const apiBase = config => config.p24ApiBase || P24_SANDBOX_API;
+const gatewayBase = config => config.p24GatewayBase || P24_SANDBOX_GATEWAY;
+const environmentName = config => config.p24Environment || 'sandbox';
 
 function json(status, body, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
@@ -97,16 +103,16 @@ export async function handleP24TestAccess(request, config, p24Fetch = fetch) {
   if (!headers) return json(403, { error: 'Niedozwolone źródło zapytania.' });
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'GET') return json(405, { error: 'Niedozwolona metoda.' }, headers);
-  if (!configured(config)) return json(503, { error: 'Sandbox Przelewy24 nie jest skonfigurowany.' }, headers);
+  if (!configured(config)) return json(503, { error: 'Przelewy24 nie jest skonfigurowane dla wybranego środowiska.' }, headers);
   try {
-    const response = await p24Fetch(P24_SANDBOX_API + '/testAccess', {
+    const response = await p24Fetch(apiBase(config) + '/testAccess', {
       headers: { Authorization: auth(config) }, signal: AbortSignal.timeout(15000)
     });
     const result = await p24Json(response);
-    if (!response.ok || result.data !== true) return json(502, { error: 'Przelewy24 odrzuciło dane dostępowe sandboxa.' }, headers);
-    return json(200, { ok: true, environment: 'sandbox' }, headers);
+    if (!response.ok || result.data !== true) return json(502, { error: 'Przelewy24 odrzuciło dane dostępowe.' }, headers);
+    return json(200, { ok: true, environment: environmentName(config) }, headers);
   } catch {
-    return json(502, { error: 'Nie udało się połączyć z sandboxem Przelewy24.' }, headers);
+    return json(502, { error: 'Nie udało się połączyć z Przelewy24.' }, headers);
   }
 }
 
@@ -115,7 +121,7 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
   if (!headers) return json(403, { error: 'Niedozwolone źródło zapytania.' });
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return json(405, { error: 'Niedozwolona metoda.' }, headers);
-  if (!configured(config)) return json(503, { error: 'Sandbox Przelewy24 nie jest skonfigurowany.' }, headers);
+  if (!configured(config)) return json(503, { error: 'Przelewy24 nie jest skonfigurowane dla wybranego środowiska.' }, headers);
 
   let body;
   try { body = await readJsonBody(request); }
@@ -132,12 +138,13 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
 
   const subtotal = order.items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, order.items.length), 0);
   const delivery = getDeliveryOption(order.deliveryMethod);
-  const amount = subtotal + delivery.amount;
+  const fixedAmount = Number.isSafeInteger(config.p24FixedAmount) && config.p24FixedAmount > 0 ? config.p24FixedAmount : null;
+  const amount = fixedAmount || subtotal + delivery.amount;
   const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
   const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
   const sessionId = createP24SessionId(order.orderId, amount, config.p24.crc);
-  const returnUrl = config.backendOrigin + '/p24-test/return?sessionId=' + encodeURIComponent(sessionId);
-  const statusUrl = config.backendOrigin + '/p24-test/notification';
+  const returnUrl = config.backendOrigin + (config.p24ReturnPath || '/p24-test/return') + '?sessionId=' + encodeURIComponent(sessionId);
+  const statusUrl = config.backendOrigin + (config.p24NotificationPath || '/p24-test/notification');
   const currency = 'PLN';
   const payload = {
     merchantId: config.p24.merchantId,
@@ -145,20 +152,20 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
     sessionId,
     amount,
     currency,
-    description: 'TEST AXI3D - zamowienie ' + order.orderId.slice(0, 8),
+    description: (config.p24Description || 'TEST AXI3D') + ' - ' + order.orderId.slice(0, 8),
     email: order.email,
     country: 'PL',
     language: 'pl',
     urlReturn: returnUrl,
     urlStatus: statusUrl,
     waitForResult: true,
-    shipping: delivery.amount,
     encoding: 'UTF-8',
     sign: p24Sign({ sessionId, merchantId: config.p24.merchantId, amount, currency, crc: config.p24.crc })
   };
+  if (!fixedAmount) payload.shipping = delivery.amount;
 
   try {
-    const response = await p24Fetch(P24_SANDBOX_API + '/transaction/register', {
+    const response = await p24Fetch(apiBase(config) + '/transaction/register', {
       method: 'POST',
       headers: { Authorization: auth(config), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -168,12 +175,12 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
     const token = result?.data?.token;
     if (!response.ok || !/^[A-Za-z0-9-]{10,100}$/.test(token || '')) {
       config.reportP24Error?.({ event: 'p24_register_rejected', status: response.status });
-      return json(502, { error: 'Przelewy24 nie przyjęło transakcji testowej. Sprawdź konfigurację sandboxa.' }, headers);
+      return json(502, { error: 'Przelewy24 nie przyjęło transakcji testowej. Sprawdź konfigurację konta.' }, headers);
     }
     verifiedSessions.set(sessionId, { verified: false, updatedAt: Date.now() });
     return json(200, {
-      url: P24_SANDBOX_GATEWAY + token,
-      checkoutVersion: 'p24-sandbox-v1',
+      url: gatewayBase(config) + token,
+      checkoutVersion: config.p24CheckoutVersion || 'p24-sandbox-v1',
       pricingVersion: PRICING_VERSION,
       regularSubtotal,
       saleSubtotal,
@@ -182,22 +189,23 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
       bulkPricing: order.items.length >= BULK_MIN_FIGURINES,
       subtotal,
       deliveryMethod: order.deliveryMethod,
-      shippingAmount: delivery.amount,
+      shippingAmount: fixedAmount ? 0 : delivery.amount,
       discount: 0,
       total: amount,
       currency: 'pln',
       promotionCode: '',
-      automaticDiscountPercent: AUTOMATIC_DISCOUNT_PERCENT
+      automaticDiscountPercent: AUTOMATIC_DISCOUNT_PERCENT,
+      technicalTestAmount: fixedAmount
     }, headers);
   } catch {
     config.reportP24Error?.({ event: 'p24_register_unavailable' });
-    return json(502, { error: 'Nie udało się połączyć z sandboxem Przelewy24.' }, headers);
+    return json(502, { error: 'Nie udało się połączyć z Przelewy24.' }, headers);
   }
 }
 
 export async function handleP24Notification(request, config, p24Fetch = fetch) {
   if (request.method !== 'POST') return json(405, { error: 'Niedozwolona metoda.' });
-  if (!configured(config)) return json(503, { error: 'Sandbox Przelewy24 nie jest skonfigurowany.' });
+  if (!configured(config)) return json(503, { error: 'Przelewy24 nie jest skonfigurowane dla wybranego środowiska.' });
   let notification;
   try { notification = await readJsonBody(request); }
   catch (error) { return json(error.status || 400, { error: error.message }); }
@@ -241,7 +249,7 @@ export async function handleP24Notification(request, config, p24Fetch = fetch) {
     })
   };
   try {
-    const response = await p24Fetch(P24_SANDBOX_API + '/transaction/verify', {
+    const response = await p24Fetch(apiBase(config) + '/transaction/verify', {
       method: 'PUT',
       headers: { Authorization: auth(config), 'Content-Type': 'application/json' },
       body: JSON.stringify(verifyPayload),
@@ -265,11 +273,11 @@ export async function handleP24Status(request, config, p24Fetch = fetch) {
   if (!headers) return json(403, { error: 'Niedozwolone źródło zapytania.' });
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'GET') return json(405, { error: 'Niedozwolona metoda.' }, headers);
-  if (!configured(config)) return json(503, { error: 'Sandbox Przelewy24 nie jest skonfigurowany.' }, headers);
+  if (!configured(config)) return json(503, { error: 'Przelewy24 nie jest skonfigurowane dla wybranego środowiska.' }, headers);
   const sessionId = new URL(request.url).searchParams.get('sessionId') || '';
   if (!parseP24SessionId(sessionId, config.p24.crc)) return json(400, { error: 'Nieprawidłowy identyfikator transakcji.' }, headers);
   try {
-    const response = await p24Fetch(P24_SANDBOX_API + '/transaction/by/sessionId/' + encodeURIComponent(sessionId), {
+    const response = await p24Fetch(apiBase(config) + '/transaction/by/sessionId/' + encodeURIComponent(sessionId), {
       headers: { Authorization: auth(config) }, signal: AbortSignal.timeout(15000)
     });
     const result = await p24Json(response);
@@ -290,5 +298,5 @@ export async function handleP24Status(request, config, p24Fetch = fetch) {
 export function p24ReturnLocation(request, config) {
   const sessionId = new URL(request.url).searchParams.get('sessionId') || '';
   const valid = configured(config) && parseP24SessionId(sessionId, config.p24.crc);
-  return config.siteOrigin + '/p24-test-result.html' + (valid ? '?sessionId=' + encodeURIComponent(sessionId) : '?error=invalid_session');
+  return config.siteOrigin + (config.p24ResultPath || '/p24-test-result.html') + (valid ? '?sessionId=' + encodeURIComponent(sessionId) : '?error=invalid_session');
 }

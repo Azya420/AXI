@@ -6,6 +6,8 @@ import { JSDOM } from 'jsdom';
 import {
   P24_SANDBOX_API,
   P24_SANDBOX_GATEWAY,
+  P24_PRODUCTION_API,
+  P24_PRODUCTION_GATEWAY,
   createP24SessionId,
   parseP24SessionId,
   p24Sign,
@@ -34,6 +36,19 @@ const config = {
   backendOrigin: 'https://axi-checkout.onrender.com',
   allowedOrigins: ['https://axi3d.pl'],
   p24: { merchantId: 123456, posId: 123456, apiKey: 'sandbox-api-key', crc: 'sandbox-crc-key' }
+};
+const liveConfig = {
+  ...config,
+  p24: { merchantId: 654321, posId: 654321, apiKey: 'live-api-key', crc: 'live-crc-key' },
+  p24ApiBase: P24_PRODUCTION_API,
+  p24GatewayBase: P24_PRODUCTION_GATEWAY,
+  p24Environment: 'production',
+  p24FixedAmount: 150,
+  p24CheckoutVersion: 'p24-live-test-v1',
+  p24Description: 'TEST LIVE AXI3D',
+  p24ReturnPath: '/p24-live-test/return',
+  p24NotificationPath: '/p24-live-test/notification',
+  p24ResultPath: '/p24-live-test-result.html'
 };
 const request = (body = order, origin = 'https://axi3d.pl') => new Request('https://api.example/p24-test/register', {
   method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
@@ -96,6 +111,43 @@ test('registration rejects foreign origins, production-independent missing confi
   const response = await handleP24Register(request(withCode), config, never);
   assert.equal(response.status, 400);
   assert.match(await response.text(), /Kody promocyjne/);
+});
+
+test('production test registration uses live P24 with a fixed real payment of 1.50 PLN', async () => {
+  let sent;
+  const p24 = async (url, options) => {
+    assert.equal(url, P24_PRODUCTION_API + '/transaction/register');
+    sent = JSON.parse(options.body);
+    return Response.json({ data: { token: 'live-12345678-abcd-4321-abcd-123456789012' }, responseCode: 0 });
+  };
+  const response = await handleP24Register(request(), liveConfig, p24);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.url, P24_PRODUCTION_GATEWAY + 'live-12345678-abcd-4321-abcd-123456789012');
+  assert.equal(result.checkoutVersion, 'p24-live-test-v1');
+  assert.equal(result.technicalTestAmount, 150);
+  assert.equal(result.total, 150);
+  assert.equal(result.shippingAmount, 0);
+  assert.equal(sent.amount, 150);
+  assert.equal(sent.shipping, undefined);
+  assert.equal(sent.waitForResult, true);
+  assert.equal(sent.urlStatus, liveConfig.backendOrigin + '/p24-live-test/notification');
+  assert.match(sent.urlReturn, /^https:\/\/axi-checkout\.onrender\.com\/p24-live-test\/return\?sessionId=/);
+  assert.match(sent.description, /^TEST LIVE AXI3D/);
+  assert.equal(sent.sign, p24Sign({
+    sessionId: sent.sessionId, merchantId: liveConfig.p24.merchantId, amount: 150, currency: 'PLN', crc: liveConfig.p24.crc
+  }));
+});
+
+test('production testAccess uses secure P24 and reports the production environment', async () => {
+  const p24 = async (url, options) => {
+    assert.equal(url, P24_PRODUCTION_API + '/testAccess');
+    assert.match(options.headers.Authorization, /^Basic /);
+    return Response.json({ data: true, error: '' });
+  };
+  const response = await handleP24TestAccess(new Request('https://api.example/p24-live-test/access', { headers: { Origin: config.siteOrigin } }), liveConfig, p24);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true, environment: 'production' });
 });
 
 test('valid notification is signed, verified through P24 and visible on the result page status endpoint', async () => {
@@ -222,5 +274,60 @@ test('hidden test page sends a marked Basin submission and then uses only P24 sa
   assert.equal(calls[0].url, win.AXI_CHECKOUT_ENDPOINT);
   assert.match(calls[1].url, /^https:\/\/usebasin\.com\//);
   assert.deepEqual(redirects, [P24_SANDBOX_GATEWAY + '12345678-abcd-4321-abcd-123456789012']);
+  dom.window.close();
+});
+
+test('hidden live page submits a TEST LIVE intake and accepts only secure P24 for 1.50 PLN', async () => {
+  const html = readFileSync(new URL('../p24-live-test.html', import.meta.url), 'utf8');
+  assert.match(html, /prawdziwe 1,50 zł/);
+  assert.match(html, /p24-live-test-config\.js/);
+  assert.doesNotMatch(html, /tracking\.js|checkout-config\.js|p24-test-config\.js/);
+  const dom = new JSDOM(html, { url: 'https://axi3d.pl/p24-live-test.html', pretendToBeVisual: true });
+  const doc = dom.window.document;
+  const calls = [];
+  const redirects = [];
+  const win = {
+    document: doc, FormData: dom.window.FormData, crypto: webcrypto,
+    AbortController, setTimeout, clearTimeout, Date: dom.window.Date,
+    requestAnimationFrame: () => {}, alert: () => {}, location: { assign: url => redirects.push(url) },
+    AXI_CHECKOUT_ENDPOINT: 'https://axi-checkout.onrender.com/p24-live-test/register',
+    AXI_PREVIEW_MODE: true, AXI_P24_TEST_MODE: true, AXI_P24_TEST_SUBMIT: true, AXI_P24_LIVE_TEST_MODE: true,
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      if (url.includes('usebasin.com')) {
+        assert.match(options.body.get('subject'), /^TEST LIVE P24 — NIE REALIZOWAĆ/);
+        assert.equal(options.body.get('kwota_testowej_platnosci'), '1,50 zł');
+        assert.match(options.body.get('status_platnosci'), /prawdziwą płatność 1,50 zł/);
+        return Response.json({ success: true });
+      }
+      return Response.json({
+        url: P24_PRODUCTION_GATEWAY + 'live-12345678-abcd-4321-abcd-123456789012',
+        checkoutVersion: 'p24-live-test-v1', pricingVersion: PRICING_VERSION,
+        regularSubtotal: 11800, saleSubtotal: 11800, automaticDiscount: 0,
+        bulkDiscount: 0, bulkPricing: false, subtotal: 11800,
+        deliveryMethod: 'address', shippingAmount: 0, discount: 0,
+        total: 150, currency: 'pln', promotionCode: '', technicalTestAmount: 150
+      });
+    }
+  };
+  initOrderForm(win);
+  const input = (id, value) => {
+    const element = doc.getElementById(id);
+    element.value = value;
+    element.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  };
+  input('scale', '32');
+  doc.getElementById('open-shipping-btn').click();
+  input('name', 'Klient Live Test'); input('email', 'live@example.com'); input('phone', '600123456');
+  const address = doc.querySelector('input[name="dostawa"][value="Na adres"]');
+  address.checked = true; address.dispatchEvent(new dom.window.Event('change'));
+  input('ulica', 'Testowa 1'); input('kod', '00-001'); input('miasto', 'Warszawa');
+  doc.getElementById('terms-accepted').checked = true;
+  doc.getElementById('commission-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url, win.AXI_CHECKOUT_ENDPOINT);
+  assert.match(calls[1].url, /^https:\/\/usebasin\.com\//);
+  assert.deepEqual(redirects, [P24_PRODUCTION_GATEWAY + 'live-12345678-abcd-4321-abcd-123456789012']);
   dom.window.close();
 });

@@ -16,6 +16,7 @@ export function initOrderForm(win) {
   const modal = byId('shipping-modal');
   const errorBox = byId('order-error');
   const preview = win.AXI_PREVIEW_MODE === true;
+  const livePaymentTest = win.AXI_P24_LIVE_TEST_MODE === true;
   const submitSandboxOrder = win.AXI_P24_TEST_MODE === true && win.AXI_P24_TEST_SUBMIT === true;
   const pairMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.pairAmount));
   const bulkMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.bulkAmount));
@@ -252,6 +253,7 @@ export function initOrderForm(win) {
     byId('promotion-result').textContent = applied ? 'Kod zastosowany. Rabat: ' + formatPrice(applied.discount) + ' · Suma figurek po rabacie: ' + formatPrice(figurinesTotal) + '. Koszt dostawy zostanie doliczony w Przelewy24.' : '';
     openBtn.textContent = totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
     submitBtn.textContent = applied ? 'Przejdź do płatności' : currentPromotion() ? 'Sprawdź kod i cenę' : totalCopies === 1 ? 'Zamów figurkę' : 'Zamów figurki';
+    if (livePaymentTest) submitBtn.textContent = 'Zapłać testowo 1,50 zł';
     addBtn.disabled = all.length >= MAX_FIGURINES;
     addBtn.textContent = all.length >= MAX_FIGURINES ? 'Maksymalnie ' + MAX_FIGURINES + ' projektów w zamówieniu' : '+ Dodaj kolejny projekt';
     const progress = Math.min(all.length, BULK_MIN_FIGURINES);
@@ -513,8 +515,11 @@ export function initOrderForm(win) {
       throw error;
     }
     const checkoutPath = /^\/trnRequest\/[A-Za-z0-9-]{10,100}\/?$/;
-    if (win.AXI_P24_TEST_MODE !== true || url.protocol !== 'https:' || url.hostname !== 'sandbox.przelewy24.pl' || !checkoutPath.test(url.pathname)) {
-      const error = new Error('Strona testowa obsługuje wyłącznie płatności w sandboxie Przelewy24.');
+    const expectedHost = livePaymentTest ? 'secure.przelewy24.pl' : 'sandbox.przelewy24.pl';
+    if (win.AXI_P24_TEST_MODE !== true || url.protocol !== 'https:' || url.hostname !== expectedHost || !checkoutPath.test(url.pathname)) {
+      const error = new Error(livePaymentTest
+        ? 'Test produkcyjny obsługuje wyłącznie prawdziwą bramkę Przelewy24.'
+        : 'Strona testowa obsługuje wyłącznie płatności w sandboxie Przelewy24.');
       // Zła domena lub tryb sesji to błąd bezpieczeństwa, a nie przejściowa awaria.
       error.retryable = false;
       throw error;
@@ -614,11 +619,13 @@ export function initOrderForm(win) {
     if (isLocker()) ['ulica', 'kod_pocztowy', 'miasto'].forEach(name => payload.delete(name));
     else payload.delete('paczkomat');
     const totalCopies = items.reduce((sum, item) => sum + item.copies, 0);
-    payload.set('subject', (preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(totalCopies) + ' — AXI');
-    if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
+    payload.set('subject', (livePaymentTest ? 'TEST LIVE P24 — NIE REALIZOWAĆ — ' : preview ? 'TEST — NIE REALIZOWAĆ — ' : 'Nowe zamówienie — ') + countLabel(totalCopies) + ' — AXI');
+    if (preview) payload.set('tryb', livePaymentTest ? 'TEST LIVE P24 — PRAWDZIWA PŁATNOŚĆ — NIE REALIZOWAĆ' : 'TEST — NIE REALIZOWAĆ');
     payload.set('kod_promocyjny', promotionCode);
     payload.set('wersja_cennika', PRICING_VERSION);
-    payload.set('uwaga_dotyczaca_ceny', 'TEST PRZELEWY24 — zgłoszenie służy wyłącznie do sprawdzenia integracji i nie może zostać przekazane do realizacji.');
+    payload.set('uwaga_dotyczaca_ceny', livePaymentTest
+      ? 'TEST LIVE PRZELEWY24 — pobrano wyłącznie techniczną kwotę 1,50 zł. Zgłoszenie nie może zostać przekazane do realizacji.'
+      : 'TEST PRZELEWY24 — zgłoszenie służy wyłącznie do sprawdzenia integracji i nie może zostać przekazane do realizacji.');
     const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const subtotal = items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, items.length), 0);
@@ -645,7 +652,12 @@ export function initOrderForm(win) {
     const orderId = attempt.id;
     byId('order-reference').value = orderId;
     payload.set('numer_zamowienia', orderId);
-    payload.set('status_platnosci', 'TEST — sandbox Przelewy24, bez prawdziwych pieniędzy');
+    payload.set('status_platnosci', livePaymentTest ? 'TEST LIVE P24 — oczekuje na prawdziwą płatność 1,50 zł' : 'TEST — sandbox Przelewy24, bez prawdziwych pieniędzy');
+    if (livePaymentTest) {
+      payload.set('wartosc_zamowienia_wg_formularza', payload.get('cena') || formatPrice(subtotal + shippingAmount));
+      payload.set('cena', '1,50 zł — techniczna płatność TEST LIVE P24');
+      payload.set('kwota_testowej_platnosci', '1,50 zł');
+    }
     if (!attempt.beginCheckoutTracked) {
       trackGaEvent('begin_checkout', analytics);
       trackMetaEvent('InitiateCheckout', {
@@ -682,7 +694,12 @@ export function initOrderForm(win) {
         const { data, url } = prepared;
         paymentUrl = url.href;
         // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
-        if (data.checkoutVersion !== 'p24-sandbox-v1' || data.pricingVersion !== PRICING_VERSION ||
+        const invalidTechnicalLiveTest = livePaymentTest && (
+          data.checkoutVersion !== 'p24-live-test-v1' || data.pricingVersion !== PRICING_VERSION ||
+          data.promotionCode !== '' || data.currency !== 'pln' || data.technicalTestAmount !== 150 ||
+          data.total !== 150 || data.shippingAmount !== 0 || data.discount !== 0
+        );
+        const invalidSandboxTest = !livePaymentTest && (data.checkoutVersion !== 'p24-sandbox-v1' || data.pricingVersion !== PRICING_VERSION ||
             data.promotionCode !== promotionCode || data.currency !== 'pln' ||
             data.subtotal !== subtotal || data.saleSubtotal !== saleSubtotal || data.regularSubtotal !== regularSubtotal ||
             data.deliveryMethod !== selectedDeliveryMethod || data.shippingAmount !== shippingAmount ||
@@ -690,7 +707,8 @@ export function initOrderForm(win) {
             data.bulkDiscount !== saleSubtotal - subtotal || data.bulkPricing !== (items.length >= BULK_MIN_FIGURINES) ||
             !Number.isInteger(data.total) || !Number.isInteger(data.discount) ||
             data.total < shippingAmount || data.discount < 0 || data.total + data.discount !== subtotal + shippingAmount ||
-            (!promotionCode && data.discount !== 0)) {
+            (!promotionCode && data.discount !== 0));
+        if (invalidTechnicalLiveTest || invalidSandboxTest) {
           throw new Error('Nie udało się potwierdzić aktualnej ceny. Odśwież stronę i spróbuj ponownie. Zamówienie nie zostało wysłane.');
         }
         if (promotionCode) {
