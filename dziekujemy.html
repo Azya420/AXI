@@ -50,6 +50,7 @@
   }
   nav.wrap{
     display:flex; align-items:center;
+    justify-content:center;
     height:76px;
   }
   .logo{
@@ -101,24 +102,6 @@
   }
   .payment-status{padding:12px 16px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--ink-dim);font-size:.9rem}
   .payment-status.error{color:#fca5a5;border-color:rgba(252,165,165,.35)}
-  .next-steps{
-    list-style:none;
-    display:grid;
-    gap:14px;
-    text-align:left;
-    max-width:44ch;
-    margin-top:6px;
-  }
-  .next-steps li{
-    display:flex; gap:12px; align-items:flex-start;
-    font-size:0.92rem; color:var(--ink-dim);
-  }
-  .next-steps li::before{
-    content:"◆";
-    color:var(--bronze);
-    font-size:0.6rem;
-    margin-top:6px;
-  }
   .btn{
     display:inline-block;
     padding:14px 28px;
@@ -189,10 +172,6 @@
     <h1 id="confirmation-title">Sprawdzamy płatność…</h1>
     <p id="confirmation-message">Poczekaj chwilę. Potwierdzamy płatność w Przelewy24.</p>
     <div class="payment-status" id="payment-status" role="status" aria-live="polite">Łączenie z Przelewy24…</div>
-    <ul class="next-steps" id="next-steps" hidden>
-      <li><span>Nagranie poglądowe figurki na e-mail w ciągu 3 dni roboczych</span></li>
-      <li><span>Pytania w międzyczasie? Pisz na <a href="mailto:kontakt@axi3d.pl" style="color:var(--violet-bright); text-decoration:underline;">kontakt@axi3d.pl</a></span></li>
-    </ul>
     <a class="btn" href="/">Wróć na stronę główną</a>
   </div>
 </main>
@@ -253,7 +232,6 @@
     var message = document.getElementById('confirmation-message');
     var mark = document.getElementById('confirmation-mark');
     var status = document.getElementById('payment-status');
-    var nextSteps = document.getElementById('next-steps');
     var fail = function(text){
       title.textContent = 'Nie udało się potwierdzić zamówienia';
       eyebrow.textContent = 'Płatność niepotwierdzona';
@@ -289,7 +267,6 @@
           message.textContent = 'Twoja płatność została przyjęta. W ciągu 3 dni roboczych otrzymasz na maila nagranie poglądowe swojej figurki.';
           status.hidden = true;
           status.textContent = '';
-          nextSteps.hidden = false;
           sendPurchaseIfReady();
           return;
         }
