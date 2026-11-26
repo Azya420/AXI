@@ -100,7 +100,6 @@
     font-size:1.02rem;
   }
   .payment-status{padding:12px 16px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--ink-dim);font-size:.9rem}
-  .payment-status.ok{color:#86efac;border-color:rgba(134,239,172,.35)}
   .payment-status.error{color:#fca5a5;border-color:rgba(252,165,165,.35)}
   .next-steps{
     list-style:none;
@@ -289,8 +288,8 @@
           eyebrow.textContent = 'Płatność przyjęta';
           title.textContent = 'Dziękujemy za zamówienie!';
           message.textContent = 'Twoja płatność została przyjęta. W ciągu 3 dni roboczych otrzymasz na maila nagranie poglądowe swojej figurki — na tym etapie będzie można zgłosić ewentualne zmiany, zanim model trafi do druku.';
-          status.className = 'payment-status ok';
-          status.textContent = 'Płatność została opłacona i zweryfikowana w Przelewy24.';
+          status.hidden = true;
+          status.textContent = '';
           nextSteps.hidden = false;
           sendPurchaseIfReady();
           return;
