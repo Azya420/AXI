@@ -214,6 +214,71 @@ test('production P24 validates the existing promotion code and charges the disco
   assert.equal(result.total, 12269);
 });
 
+test('single-use 99% code discounts delivery and is disabled only after verified P24 payment', async () => {
+  const discountedOrder = {
+    ...order,
+    orderId: 'd94506db-c540-4be2-a5e9-5c7fe241df0d',
+    promotionCode: 'P24-TEST-99-Q7M4'
+  };
+  let sessionId;
+  let deactivated = false;
+  const provider = async (url, options) => {
+    if (url.startsWith('https://api.stripe.com/v1/promotion_codes?')) return Response.json({ data: [{
+      id: 'promo_single_use', active: true, code: discountedOrder.promotionCode,
+      max_redemptions: 1, times_redeemed: 0, customer: null, customer_account: null,
+      promotion: { type: 'coupon', coupon: {
+        id: 'coupon_99', valid: true, percent_off: 99, max_redemptions: 1, times_redeemed: 0,
+        metadata: { shipping_discount_percent: '99' }
+      } },
+      restrictions: {}
+    }] });
+    if (url === P24_PRODUCTION_API + '/transaction/register') {
+      const sent = JSON.parse(options.body);
+      sessionId = sent.sessionId;
+      assert.equal(sent.amount, 134);
+      assert.equal(sent.shipping, 16);
+      return Response.json({ data: { token: 'single-use-12345678-abcd-4321-abcd-123456789012' }, responseCode: 0 });
+    }
+    if (url === P24_PRODUCTION_API + '/transaction/verify') {
+      assert.equal(deactivated, false);
+      return Response.json({ data: { status: 'success' }, responseCode: 0 });
+    }
+    if (url === 'https://api.stripe.com/v1/promotion_codes/promo_single_use') {
+      assert.equal(options.method, 'POST');
+      assert.equal(options.body.get('active'), 'false');
+      deactivated = true;
+      return Response.json({ id: 'promo_single_use', active: false });
+    }
+    throw new Error('Unexpected provider URL: ' + url);
+  };
+
+  const registration = await handleP24Register(request(discountedOrder), productionConfig, provider);
+  assert.equal(registration.status, 200);
+  const result = await registration.json();
+  assert.equal(result.discount, 11682);
+  assert.equal(result.shippingAmount, 16);
+  assert.equal(result.total, 134);
+  assert.equal(deactivated, false);
+
+  const notification = {
+    merchantId: productionConfig.p24.merchantId,
+    posId: productionConfig.p24.posId,
+    sessionId,
+    amount: 134,
+    originAmount: 134,
+    currency: 'PLN',
+    orderId: 912345678,
+    methodId: 154,
+    statement: 'AXI3D test'
+  };
+  notification.sign = p24Sign({ ...notification, crc: productionConfig.p24.crc });
+  const response = await handleP24Notification(new Request('https://api.example/p24/notification', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(notification)
+  }), productionConfig, provider);
+  assert.equal(response.status, 200);
+  assert.equal(deactivated, true);
+});
+
 test('paid P24 status can recover verification after a server restart', async () => {
   const recoveryOrderId = 'b47644cd-a199-42bd-846c-d87a266e58bd';
   const amount = 13449;

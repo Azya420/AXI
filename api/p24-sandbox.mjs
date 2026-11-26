@@ -136,7 +136,27 @@ async function promotionAmounts(order, subtotal, shippingAmount, config, stripeF
       configuredShippingDiscount <= 100 && coupon.percent_off === configuredShippingDiscount) {
     shippingAmount = Math.round(shippingAmount * (100 - configuredShippingDiscount) / 100);
   }
-  return { promotionCode: order.promotionCode, discount, shippingAmount };
+  return {
+    promotionCode: order.promotionCode,
+    promotionId: promotion.id,
+    singleUse: promotion.max_redemptions === 1 || coupon.max_redemptions === 1,
+    discount,
+    shippingAmount
+  };
+}
+
+async function deactivateSingleUsePromotion(order, config, stripeFetch) {
+  if (!order?.singleUsePromotionId || !config.stripeKey) return;
+  const response = await stripeFetch('https://api.stripe.com/v1/promotion_codes/' + encodeURIComponent(order.singleUsePromotionId), {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + config.stripeKey,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ active: 'false' }),
+    signal: AbortSignal.timeout(15000)
+  });
+  if (!response.ok) throw new Error('Promotion code deactivation failed');
 }
 
 async function readJsonBody(request) {
@@ -215,6 +235,9 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
   if (!fixedAmount) {
     try { promotion = await promotionAmounts(order, subtotal, delivery.amount, config, p24Fetch); }
     catch (error) { return json(error.status || 400, { error: error.message, code: error.code }, headers); }
+    if (promotion.singleUse === true && typeof promotion.promotionId === 'string') {
+      order.singleUsePromotionId = promotion.promotionId;
+    }
   }
   const amount = fixedAmount || subtotal + promotion.shippingAmount - promotion.discount;
   if (!Number.isSafeInteger(amount) || amount < 1) return json(400, {
@@ -345,6 +368,8 @@ export async function handleP24Notification(request, config, p24Fetch = fetch) {
     }
     const current = verifiedSessions.get(notification.sessionId) || {};
     verifiedSessions.set(notification.sessionId, { ...current, verified: true, orderId: notification.orderId, updatedAt: Date.now() });
+    try { await deactivateSingleUsePromotion(current.order, config, p24Fetch); }
+    catch { config.reportP24Error?.({ event: 'p24_promotion_deactivation_failed' }); }
     try { await config.onP24Verified?.({ notification, parsed, order: current.order, p24Fetch }); }
     catch { config.reportP24Error?.({ event: 'p24_confirmation_failed' }); }
     return json(200, { ok: true });
