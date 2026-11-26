@@ -80,6 +80,7 @@ test('registration calculates the trusted server total and returns only a sandbo
   assert.equal(sent.shipping, 1649);
   assert.equal(sent.currency, 'PLN');
   assert.equal(sent.urlStatus, config.backendOrigin + '/p24-test/notification');
+  assert.equal(sent.waitForResult, true);
   assert.match(sent.urlReturn, /^https:\/\/axi-checkout\.onrender\.com\/p24-test\/return\?sessionId=/);
   assert.equal(sent.sign, p24Sign({
     sessionId: sent.sessionId, merchantId: config.p24.merchantId, amount: 13449, currency: 'PLN', crc: config.p24.crc
@@ -152,9 +153,10 @@ test('invalid P24 notification signature never reaches transaction verification'
   assert.match(await response.text(), /podpis/);
 });
 
-test('hidden test page uses only P24 sandbox and never submits to Basin or Stripe', async () => {
+test('hidden test page sends a marked Basin submission and then uses only P24 sandbox', async () => {
   const html = readFileSync(new URL('../p24-sandbox-test.html', import.meta.url), 'utf8');
-  assert.doesNotMatch(html, /usebasin\.com|tracking\.js|checkout-config\.js|order-form\.mjs/);
+  assert.match(html, /usebasin\.com\/f\/235f4a9bd75b/);
+  assert.doesNotMatch(html, /tracking\.js|checkout-config\.js|order-form\.mjs/);
   assert.match(html, /noindex,nofollow,noarchive/);
   const dom = new JSDOM(html, { url: 'https://axi3d.pl/p24-sandbox-test.html', pretendToBeVisual: true });
   const doc = dom.window.document;
@@ -174,8 +176,16 @@ test('hidden test page uses only P24 sandbox and never submits to Basin or Strip
     AXI_CHECKOUT_ENDPOINT: 'https://axi-checkout.onrender.com/p24-test/register',
     AXI_PREVIEW_MODE: true,
     AXI_P24_TEST_MODE: true,
+    AXI_P24_TEST_SUBMIT: true,
     fetch: async (url, options) => {
       calls.push({ url, options });
+      if (url.includes('usebasin.com')) {
+        assert.equal(options.body.get('tryb'), 'TEST — NIE REALIZOWAĆ');
+        assert.match(options.body.get('subject'), /^TEST — NIE REALIZOWAĆ/);
+        assert.equal(options.body.get('status_platnosci'), 'TEST — sandbox Przelewy24, bez prawdziwych pieniędzy');
+        assert.match(options.body.get('link_do_platnosci'), /^https:\/\/sandbox\.przelewy24\.pl\/trnRequest\//);
+        return Response.json({ success: true });
+      }
       const submitted = JSON.parse(options.body);
       assert.equal(submitted.items[0].size, 32);
       return Response.json({
@@ -208,8 +218,9 @@ test('hidden test page uses only P24 sandbox and never submits to Basin or Strip
   doc.getElementById('terms-accepted').checked = true;
   doc.getElementById('commission-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
   await new Promise(resolve => setTimeout(resolve, 30));
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
   assert.equal(calls[0].url, win.AXI_CHECKOUT_ENDPOINT);
+  assert.match(calls[1].url, /^https:\/\/usebasin\.com\//);
   assert.deepEqual(redirects, [P24_SANDBOX_GATEWAY + '12345678-abcd-4321-abcd-123456789012']);
   dom.window.close();
 });

@@ -1,6 +1,7 @@
 // Wyłącznie dla ukrytej strony testowej. Produkcyjny formularz nadal używa checkout-config.js i Stripe.
 window.AXI_PREVIEW_MODE = true;
 window.AXI_P24_TEST_MODE = true;
+window.AXI_P24_TEST_SUBMIT = true;
 window.AXI_CHECKOUT_ENDPOINT = 'https://axi-checkout.onrender.com/p24-test/register';
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -11,7 +12,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!response.ok) throw new Error('access rejected');
     const data = await response.json();
     if (data.ok !== true || data.environment !== 'sandbox') throw new Error('invalid response');
-    status.textContent = 'Połączenie z sandboxem działa. Formularz nie wysyła zgłoszenia do realizacji.';
+    status.textContent = 'Połączenie z sandboxem działa. Zgłoszenie zostanie wysłane jako TEST — NIE REALIZOWAĆ.';
   } catch {
     status.textContent = 'Brak połączenia z sandboxem. Sprawdź wdrożenie Render i zmienne P24.';
   }

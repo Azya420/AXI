@@ -16,6 +16,7 @@ export function initOrderForm(win) {
   const modal = byId('shipping-modal');
   const errorBox = byId('order-error');
   const preview = win.AXI_PREVIEW_MODE === true;
+  const submitSandboxOrder = win.AXI_P24_TEST_MODE === true && win.AXI_P24_TEST_SUBMIT === true;
   const pairMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.pairAmount));
   const bulkMinimumPrice = Math.min(...PRICE_BRACKETS.map(price => price.bulkAmount));
   byId('promo-spotlight').hidden = false;
@@ -617,7 +618,7 @@ export function initOrderForm(win) {
     if (preview) payload.set('tryb', 'TEST — NIE REALIZOWAĆ');
     payload.set('kod_promocyjny', promotionCode);
     payload.set('wersja_cennika', PRICING_VERSION);
-    payload.set('uwaga_dotyczaca_ceny', 'TEST PRZELEWY24 — zgłoszenie nie jest wysyłane do realizacji ani do Basin.');
+    payload.set('uwaga_dotyczaca_ceny', 'TEST PRZELEWY24 — zgłoszenie służy wyłącznie do sprawdzenia integracji i nie może zostać przekazane do realizacji.');
     const regularSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const saleSubtotal = items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0);
     const subtotal = items.reduce((sum, item) => sum + getItemSubtotal(item.size, item.copies, items.length), 0);
@@ -711,7 +712,7 @@ export function initOrderForm(win) {
       payload.set('link_do_platnosci', paymentUrl);
       // Jedno zgłoszenie zawiera wszystkie figurki i załączniki. Błąd nie może
       // przekierować do płatności ani automatycznie zdublować zamówienia.
-      if (!preview) {
+      if (!preview || submitSandboxOrder) {
         await responseJson(await win.fetch(form.action, { method: 'POST', body: payload, headers: { Accept: 'application/json' } }));
         if (!attempt.leadTracked) {
           trackGaEvent('generate_lead', {

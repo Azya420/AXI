@@ -1,9 +1,13 @@
 (() => {
   const statusBox = document.getElementById('payment-status');
   const details = document.getElementById('payment-details');
+  const title = document.getElementById('result-title');
+  const message = document.getElementById('result-message');
   const params = new URLSearchParams(location.search);
   const sessionId = params.get('sessionId') || '';
   if (!/^axitest\.[0-9a-f-]{36}\.\d{2,9}\.[0-9a-f]{24}$/i.test(sessionId)) {
+    title.textContent = 'Nie udało się potwierdzić zamówienia';
+    message.textContent = 'Wróć do formularza testowego i spróbuj ponownie.';
     statusBox.className = 'status error';
     statusBox.textContent = 'Nieprawidłowy identyfikator transakcji testowej.';
     return;
@@ -16,17 +20,22 @@
       if (!response.ok) throw new Error('status unavailable');
       const data = await response.json();
       if (data.status === 'paid' && data.verified === true) {
+        title.textContent = 'Dziękujemy za zamówienie!';
+        message.textContent = 'Zgłoszenie testowe zostało wysłane, a płatność w sandboxie Przelewy24 została poprawnie zakończona.';
         statusBox.className = 'status ok';
-        statusBox.textContent = 'Sukces: płatność testowa została opłacona i zweryfikowana przez backend.';
+        statusBox.textContent = 'Płatność testowa została opłacona i zweryfikowana.';
         details.textContent = 'Kwota testowa: ' + (data.amount / 100).toFixed(2).replace('.', ',') + ' ' + data.currency;
         return;
       }
       if (data.status === 'returned') {
+        title.textContent = 'Płatność została zwrócona';
+        message.textContent = 'Testowe zamówienie nie zostało potwierdzone.';
         statusBox.className = 'status error';
         statusBox.textContent = 'Transakcja testowa została zwrócona.';
         return;
       }
       statusBox.className = 'status wait';
+      title.textContent = 'Sprawdzamy płatność…';
       statusBox.textContent = data.status === 'paid'
         ? 'Płatność dotarła. Czekamy jeszcze na potwierdzenie weryfikacji…'
         : 'Płatność nie jest jeszcze potwierdzona. Ponawiam sprawdzenie…';

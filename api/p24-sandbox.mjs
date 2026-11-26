@@ -151,6 +151,7 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
     language: 'pl',
     urlReturn: returnUrl,
     urlStatus: statusUrl,
+    waitForResult: true,
     shipping: delivery.amount,
     encoding: 'UTF-8',
     sign: p24Sign({ sessionId, merchantId: config.p24.merchantId, amount, currency, crc: config.p24.crc })
