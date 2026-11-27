@@ -22,13 +22,15 @@
     header{position:relative;z-index:2;border-bottom:1px solid var(--line);background:rgba(16,9,22,.88);backdrop-filter:blur(10px)}
     nav{height:92px;display:flex;align-items:center;justify-content:space-between}
     .logo img{width:92px;height:92px;display:block;object-fit:contain}
+    .nav-actions{display:flex;align-items:center;gap:10px}
     .back-link{border:1px solid var(--line);padding:10px 16px;text-decoration:none;font-size:.82rem;transition:.2s}
     .back-link:hover,.back-link:focus-visible{border-color:var(--violet-bright);background:rgba(109,40,217,.16)}
+    .profile-menu{position:relative}.profile-trigger{appearance:none;width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;cursor:pointer;transition:background .2s,filter .2s,transform .2s}.profile-trigger img{display:block;width:42px;height:42px}.profile-trigger:hover,.profile-trigger:focus-visible,.profile-trigger[aria-expanded="true"]{background:rgba(109,40,217,.2);filter:drop-shadow(0 0 7px rgba(167,139,250,.42));transform:translateY(-1px);outline:none}
+    .profile-dropdown{position:absolute;right:0;top:calc(100% + 11px);width:210px;padding:8px;background:#1a1023;border:1px solid var(--line);box-shadow:0 18px 45px rgba(0,0,0,.42);z-index:20}.profile-dropdown::before{content:"";position:absolute;right:15px;top:-6px;width:10px;height:10px;background:#1a1023;border-left:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(45deg)}.menu-item{width:100%;display:block;appearance:none;border:0;background:transparent;color:var(--ink);padding:11px 12px;text-align:left;text-decoration:none;font:500 .8rem Sora,sans-serif;cursor:pointer}.menu-item:hover,.menu-item:focus-visible{background:rgba(109,40,217,.2);outline:none}.menu-item + .menu-item{border-top:1px solid var(--line)}
     main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:56px 0 72px}
-    .auth-shell{width:min(100%,470px)}
+    .auth-shell{width:min(100%,470px);transition:width .2s}.auth-shell.account-view{width:min(100%,760px)}
     .eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--bronze);text-align:center;margin-bottom:12px}
     h1{font-family:Cinzel,serif;font-size:clamp(2rem,7vw,2.75rem);line-height:1.12;text-align:center;margin-bottom:12px}
-    .intro{color:var(--ink-dim);text-align:center;margin:0 auto 28px;max-width:42ch}
     .card{background:rgba(26,16,35,.94);border:1px solid var(--line);padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
     .tabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);margin-bottom:24px}
     .tab{appearance:none;border:0;background:transparent;color:var(--ink-dim);padding:12px;cursor:pointer;font:600 .86rem Sora,sans-serif}
@@ -48,31 +50,37 @@
     .status{font-size:.82rem;padding:11px 12px;border:1px solid var(--line);color:var(--ink-dim);background:#120b19}
     .status.error{border-color:rgba(252,165,165,.45);color:var(--danger)}
     .status.success{border-color:rgba(134,239,172,.4);color:var(--success)}
-    .account-card{text-align:center;display:grid;gap:18px}
-    .account-email{font-weight:600;word-break:break-word}
-    .account-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.account-actions .button{text-decoration:none}
-    .customer-orders{text-align:left;border-top:1px solid var(--line);padding-top:22px}.customer-orders h3{font:600 1.18rem Cinzel,serif;margin:0 0 6px}.orders-intro{color:var(--ink-dim);font-size:.8rem;margin:0 0 16px}
+    .orders-shell{background:rgba(26,16,35,.94);border:1px solid var(--line);padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+    .customer-orders{text-align:left}.customer-orders h3{font:600 1.3rem Cinzel,serif;margin:0 0 6px}.orders-intro{color:var(--ink-dim);font-size:.8rem;margin:0 0 16px}
     .orders-list{display:grid;gap:14px}.empty-orders{border:1px dashed var(--line);padding:20px;color:var(--ink-dim);font-size:.84rem;text-align:center}
     .customer-order{border:1px solid var(--line);background:#120b19;padding:17px}.customer-order-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.order-number{font:600 1rem Cinzel,serif;margin:0 0 3px}.order-title{font-size:.76rem;color:var(--ink-dim);margin:0}.order-status{display:inline-flex;padding:5px 8px;border:1px solid rgba(167,139,250,.38);color:var(--violet-bright);font-size:.64rem;text-transform:uppercase;letter-spacing:.04em;text-align:center}
     .order-date{font-size:.7rem;color:var(--ink-faint);margin:11px 0}.order-message{border-left:2px solid var(--bronze);padding-left:10px;color:var(--ink-dim);font-size:.78rem;margin:12px 0}.timeline{border-top:1px solid var(--line);margin-top:14px;padding-top:13px}.timeline-title{font-size:.69rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:0 0 10px}.timeline-list{display:grid;gap:9px}.timeline-item{display:grid;grid-template-columns:9px 1fr;gap:9px;align-items:start;font-size:.7rem;color:var(--ink-dim)}.timeline-dot{width:8px;height:8px;border-radius:50%;background:var(--violet-bright);margin-top:5px;box-shadow:0 0 8px rgba(167,139,250,.5)}.timeline-item strong{display:block;color:var(--ink);font-weight:500}.timeline-item time{color:var(--ink-faint)}
     .privacy{font-size:.72rem;color:var(--ink-faint)}
     [hidden]{display:none!important}
     footer{position:relative;z-index:1;border-top:1px solid var(--line);padding:24px 0;text-align:center;color:var(--ink-faint);font-size:.72rem}
-    @media(max-width:520px){.wrap{width:min(100% - 28px,1080px)}.card{padding:22px 18px}nav{height:78px}.logo img{width:78px;height:78px}.customer-order-head{flex-direction:column}}
+    @media(max-width:520px){.wrap{width:min(100% - 28px,1080px)}.card,.orders-shell{padding:22px 18px}nav{height:78px}.logo img{width:78px;height:78px}.back-link{padding:8px 10px;font-size:.72rem}.profile-trigger{width:40px;height:40px}.profile-trigger img{width:38px;height:38px}.customer-order-head{flex-direction:column}}
   </style>
 </head>
 <body>
   <header>
     <nav class="wrap">
       <a class="logo" href="/preview/" aria-label="AXI — strona testowa"><img src="https://axi3d.pl/logo%20white.png" alt="AXI"></a>
-      <a class="back-link" href="/preview/">Wróć do strony</a>
+      <div class="nav-actions">
+        <a class="back-link" href="/preview/">Wróć do strony</a>
+        <div class="profile-menu" id="profile-menu" hidden>
+          <button class="profile-trigger" id="profile-menu-button" type="button" aria-label="Menu konta" aria-expanded="false" aria-controls="profile-dropdown"><img src="/preview/account-icon.svg" alt=""></button>
+          <div class="profile-dropdown" id="profile-dropdown" role="menu" hidden>
+            <a class="menu-item" id="admin-link" href="/preview/admin.html" role="menuitem" hidden>Panel administracyjny</a>
+            <button class="menu-item" id="logout-button" type="button" role="menuitem">Wyloguj się</button>
+          </div>
+        </div>
+      </div>
     </nav>
   </header>
   <main>
     <section class="auth-shell" aria-labelledby="account-title">
       <p class="eyebrow">Strefa klienta</p>
       <h1 id="account-title">Moje konto</h1>
-      <p class="intro" id="account-intro">Zaloguj się lub utwórz konto, aby w przyszłości sprawdzać swoje zamówienia.</p>
 
       <div class="card" id="auth-card">
         <div class="tabs" role="tablist" aria-label="Logowanie lub rejestracja">
@@ -126,11 +134,7 @@
         </div>
       </div>
 
-      <div class="card account-card" id="account-card" hidden>
-        <p class="eyebrow">Zalogowano</p>
-        <h2>Twoje konto testowe</h2>
-        <p class="account-email" id="account-email"></p>
-        <div class="account-actions"><a class="button button-secondary" id="admin-link" href="/preview/admin.html" hidden>Panel administracyjny</a><button class="button button-secondary" id="logout-button" type="button">Wyloguj się</button></div>
+      <div class="orders-shell" id="account-card" hidden>
         <section class="customer-orders" aria-labelledby="orders-title">
           <h3 id="orders-title">Historia zamówień</h3>
           <p class="orders-intro">Tutaj zobaczysz zlecenia przypisane przez AXI do Twojego konta oraz ich aktualny status.</p>

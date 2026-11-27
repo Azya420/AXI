@@ -110,9 +110,16 @@ test('account page supports registration, login, password reset and logout witho
   assert.match(html, /id="forgot-form"/);
   assert.match(html, /id="reset-form"/);
   assert.match(html, /id="logout-button"/);
-  assert.match(html, /id="admin-link" href="\/preview\/admin\.html" hidden/);
+  assert.match(html, /id="admin-link" href="\/preview\/admin\.html" role="menuitem" hidden/);
+  assert.match(html, /id="profile-menu" hidden/);
+  assert.match(html, /id="profile-menu-button"[^>]+aria-label="Menu konta"/);
+  assert.match(html, /src="\/preview\/account-icon\.svg" alt=""/);
+  assert.match(html, /id="profile-dropdown" role="menu" hidden/);
   assert.match(html, /id="orders-state"/);
   assert.match(html, /id="orders-list"/);
+  assert.doesNotMatch(html, /Zaloguj się lub utwórz konto, aby w przyszłości sprawdzać swoje zamówienia/);
+  assert.doesNotMatch(html, /Zalogowano|Twoje konto testowe|account-email/);
+  assert.ok(html.indexOf('id="logout-button"') < html.indexOf('<main>'));
   assert.match(html, /src="\/preview\/supabase-config\.js"/);
   assert.match(html, /src="\/preview\/account\.mjs"/);
   assert.ok(!html.includes(config.stripeKey));
@@ -122,6 +129,7 @@ test('account page supports registration, login, password reset and logout witho
   assert.match(script, /resetPasswordForEmail/);
   assert.match(script, /updateUser/);
   assert.match(script, /signOut/);
+  assert.match(script, /setProfileMenu/);
   assert.match(script, /from\('orders'\)/);
   assert.match(script, /from\('order_status_history'\)/);
 });

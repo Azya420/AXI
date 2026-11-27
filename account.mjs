@@ -15,9 +15,9 @@ const STATUS_LABELS = Object.freeze({
 
 const config = window.AXI_SUPABASE;
 const elements = {
+  shell: document.querySelector('.auth-shell'),
   authCard: document.querySelector('#auth-card'),
   accountCard: document.querySelector('#account-card'),
-  accountEmail: document.querySelector('#account-email'),
   status: document.querySelector('#global-status'),
   loginTab: document.querySelector('#login-tab'),
   registerTab: document.querySelector('#register-tab'),
@@ -32,6 +32,9 @@ const elements = {
   forgotButton: document.querySelector('#forgot-button'),
   forgotBack: document.querySelector('#forgot-back'),
   logoutButton: document.querySelector('#logout-button'),
+  profileMenu: document.querySelector('#profile-menu'),
+  profileMenuButton: document.querySelector('#profile-menu-button'),
+  profileDropdown: document.querySelector('#profile-dropdown'),
   adminLink: document.querySelector('#admin-link'),
   ordersState: document.querySelector('#orders-state'),
   ordersList: document.querySelector('#orders-list')
@@ -70,15 +73,24 @@ function showAuthPanel(name) {
   setStatus();
 }
 
-function showSignedIn(user) {
+function setProfileMenu(open) {
+  elements.profileMenuButton.setAttribute('aria-expanded', String(open));
+  elements.profileDropdown.hidden = !open;
+}
+
+function showSignedIn() {
   elements.authCard.hidden = true;
   elements.accountCard.hidden = false;
-  elements.accountEmail.textContent = user.email || 'Konto testowe';
+  elements.profileMenu.hidden = false;
+  elements.shell.classList.add('account-view');
 }
 
 function showSignedOut() {
   elements.accountCard.hidden = true;
   elements.authCard.hidden = false;
+  elements.profileMenu.hidden = true;
+  elements.shell.classList.remove('account-view');
+  setProfileMenu(false);
   elements.adminLink.hidden = true;
   elements.ordersList.replaceChildren();
   elements.ordersState.textContent = 'Wczytywanie zamówień…';
@@ -220,9 +232,22 @@ if (!isValidPublicConfig(config)) {
   }
 
   function openAccount(user) {
-    showSignedIn(user);
+    showSignedIn();
     void loadAccountData(user);
   }
+
+  elements.profileMenuButton.addEventListener('click', event => {
+    event.stopPropagation();
+    setProfileMenu(elements.profileDropdown.hidden);
+  });
+  elements.profileDropdown.addEventListener('click', event => event.stopPropagation());
+  document.addEventListener('click', () => setProfileMenu(false));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      setProfileMenu(false);
+      elements.profileMenuButton.focus();
+    }
+  });
 
   elements.loginTab.addEventListener('click', () => showAuthPanel('login'));
   elements.registerTab.addEventListener('click', () => showAuthPanel('register'));
@@ -318,13 +343,19 @@ if (!isValidPublicConfig(config)) {
     elements.logoutButton.disabled = true;
     const { error } = await supabase.auth.signOut();
     elements.logoutButton.disabled = false;
-    if (error) setStatus(friendlyError(error), 'error');
+    if (error) {
+      elements.ordersState.textContent = friendlyError(error);
+      elements.ordersState.hidden = false;
+    }
   });
 
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
       elements.accountCard.hidden = true;
       elements.authCard.hidden = false;
+      elements.profileMenu.hidden = true;
+      elements.shell.classList.remove('account-view');
+      setProfileMenu(false);
       showAuthPanel('reset');
       setStatus('Ustaw nowe hasło do konta.', 'success');
       return;
