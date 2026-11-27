@@ -116,7 +116,7 @@ try {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     elements.authArea.hidden = true;
-    try { await claim(session, true); }
+    try { await claim(session, false); }
     catch (error) {
       elements.authArea.hidden = false;
       setStatus(error.message + ' Wyloguj się w panelu konta i zaloguj adresem użytym w tym zamówieniu.', 'error');
