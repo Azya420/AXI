@@ -1,16 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isTestKey, previewResponse, renderPreviewHtml } from '../api/preview.mjs';
+import { isSupabasePublicConfig, isTestKey, previewResponse, renderPreviewHtml } from '../api/preview.mjs';
 import { handleCheckout, stripeParameters } from '../api/checkout.mjs';
 
 import { PRICING_VERSION } from '../pricing.mjs';
 
-const config = { stripeKey: 'rk_test_fixture', siteOrigin: 'https://axi3d.pl' };
+const config = {
+  stripeKey: 'rk_test_fixture',
+  siteOrigin: 'https://axi3d.pl',
+  supabaseUrl: 'https://exampleproject.supabase.co',
+  supabasePublishableKey: `sb_publishable_${'a'.repeat(30)}`
+};
 test('preview assets require a test key and never expose arbitrary repository files', async () => {
   assert.ok(isTestKey('sk_test_fixture'));
   for (const stripeKey of [undefined, '', 'pk_test_fixture', 'rk_live_fixture', 'sk_live_fixture']) {
     assert.ok(!isTestKey(stripeKey));
-    for (const path of ['/preview/', '/preview/order-form.mjs', '/preview/checkout-config.js']) {
+    for (const path of ['/preview/', '/preview/konto.html', '/preview/order-form.mjs', '/preview/checkout-config.js', '/preview/supabase-config.js']) {
       assert.equal((await previewResponse(path, 'GET', { ...config, stripeKey })).status, 404);
     }
   }
@@ -48,6 +53,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
+  assert.match(html, /href="\/preview\/konto\.html">Moje konto<\/a>/);
   assert.ok(!html.includes('data-field="sale-badge"'));
   assert.match(html, /Paczkomat InPost \(16,49 zł\)/);
   assert.match(html, /Na adres \(19,49 zł\)/);
@@ -61,6 +67,53 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(await (await previewResponse('/preview/checkout-config.js', 'GET', config)).text(), /AXI_PREVIEW_MODE = true/);
   assert.equal(await (await previewResponse('/preview/order-form.mjs', 'HEAD', config)).text(), '');
   assert.equal((await previewResponse('/preview', 'GET', config)).headers.get('Location'), '/preview/');
+});
+test('preview exposes only a validated public Supabase configuration', async () => {
+  assert.ok(isSupabasePublicConfig(config));
+  for (const invalid of [
+    {},
+    { ...config, supabaseUrl: 'http://exampleproject.supabase.co' },
+    { ...config, supabaseUrl: 'https://exampleproject.supabase.co/path' },
+    { ...config, supabaseUrl: 'https://exampleproject.supabase.co.evil.example' },
+    { ...config, supabasePublishableKey: 'service_role_secret' }
+  ]) assert.equal(isSupabasePublicConfig(invalid), false);
+
+  const response = await previewResponse('/preview/supabase-config.js', 'GET', config);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  const source = await response.text();
+  assert.match(source, /window\.AXI_SUPABASE/);
+  assert.match(source, /exampleproject\.supabase\.co/);
+  assert.match(source, /sb_publishable_/);
+  assert.ok(!source.includes(config.stripeKey));
+  assert.doesNotMatch(source, /service_role|secret/i);
+
+  const disabled = await (await previewResponse('/preview/supabase-config.js', 'GET', {
+    ...config,
+    supabasePublishableKey: 'not-public'
+  })).text();
+  assert.equal(disabled, 'window.AXI_SUPABASE = null;\n');
+});
+test('account page supports registration, login, password reset and logout without exposing secrets', async () => {
+  const response = await previewResponse('/preview/konto.html', 'GET', config);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('X-Robots-Tag'), 'noindex, nofollow');
+  const html = await response.text();
+  assert.match(html, /PODGLĄD TESTOWY/);
+  assert.match(html, /id="login-form"/);
+  assert.match(html, /id="register-form"/);
+  assert.match(html, /id="forgot-form"/);
+  assert.match(html, /id="reset-form"/);
+  assert.match(html, /id="logout-button"/);
+  assert.match(html, /src="\/preview\/supabase-config\.js"/);
+  assert.match(html, /src="\/preview\/account\.mjs"/);
+  assert.ok(!html.includes(config.stripeKey));
+  assert.ok(!html.includes(config.supabasePublishableKey));
+  const script = await (await previewResponse('/preview/account.mjs', 'GET', config)).text();
+  assert.match(script, /signInWithPassword/);
+  assert.match(script, /resetPasswordForEmail/);
+  assert.match(script, /updateUser/);
+  assert.match(script, /signOut/);
 });
 test('preview does not rewrite remote references or empty image placeholders', () => {
   const html = renderPreviewHtml('<html><head></head><body><img src=""><img src="https://cdn.example/photo.png"><a href="regulamin.html">Regulamin</a></body></html>', config.siteOrigin);

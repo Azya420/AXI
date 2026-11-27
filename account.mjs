@@ -1,0 +1,215 @@
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm';
+
+const config = window.AXI_SUPABASE;
+const elements = {
+  authCard: document.querySelector('#auth-card'),
+  accountCard: document.querySelector('#account-card'),
+  accountEmail: document.querySelector('#account-email'),
+  status: document.querySelector('#global-status'),
+  loginTab: document.querySelector('#login-tab'),
+  registerTab: document.querySelector('#register-tab'),
+  loginPanel: document.querySelector('#login-panel'),
+  registerPanel: document.querySelector('#register-panel'),
+  forgotPanel: document.querySelector('#forgot-panel'),
+  resetPanel: document.querySelector('#reset-panel'),
+  loginForm: document.querySelector('#login-form'),
+  registerForm: document.querySelector('#register-form'),
+  forgotForm: document.querySelector('#forgot-form'),
+  resetForm: document.querySelector('#reset-form'),
+  forgotButton: document.querySelector('#forgot-button'),
+  forgotBack: document.querySelector('#forgot-back'),
+  logoutButton: document.querySelector('#logout-button')
+};
+
+function isValidPublicConfig(value) {
+  if (!value || typeof value.url !== 'string' || typeof value.publishableKey !== 'string') return false;
+  try {
+    const url = new URL(value.url);
+    return url.protocol === 'https:' && url.pathname === '/' && url.search === '' && url.hash === '' &&
+      url.hostname.endsWith('.supabase.co') && /^sb_publishable_[A-Za-z0-9_-]{20,}$/.test(value.publishableKey);
+  } catch {
+    return false;
+  }
+}
+
+function setStatus(message = '', type = '') {
+  elements.status.textContent = message;
+  elements.status.className = `status${type ? ` ${type}` : ''}`;
+  elements.status.hidden = !message;
+}
+
+function setBusy(form, busy) {
+  for (const control of form.elements) control.disabled = busy;
+}
+
+function showAuthPanel(name) {
+  const isLogin = name === 'login';
+  elements.loginTab.setAttribute('aria-selected', String(isLogin));
+  elements.registerTab.setAttribute('aria-selected', String(name === 'register'));
+  elements.loginPanel.hidden = !isLogin;
+  elements.registerPanel.hidden = name !== 'register';
+  elements.forgotPanel.hidden = name !== 'forgot';
+  elements.resetPanel.hidden = name !== 'reset';
+  elements.loginTab.closest('.tabs').hidden = !['login', 'register'].includes(name);
+  setStatus();
+}
+
+function showSignedIn(user) {
+  elements.authCard.hidden = true;
+  elements.accountCard.hidden = false;
+  elements.accountEmail.textContent = user.email || 'Konto testowe';
+}
+
+function showSignedOut() {
+  elements.accountCard.hidden = true;
+  elements.authCard.hidden = false;
+  showAuthPanel('login');
+}
+
+function passwordError(password) {
+  if (password.length < 8) return 'Hasło musi mieć co najmniej 8 znaków.';
+  if (!/[a-z]/.test(password)) return 'Hasło musi zawierać małą literę.';
+  if (!/[A-Z]/.test(password)) return 'Hasło musi zawierać wielką literę.';
+  if (!/[0-9]/.test(password)) return 'Hasło musi zawierać cyfrę.';
+  return '';
+}
+
+function friendlyError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  if (message.includes('invalid login credentials')) return 'Nieprawidłowy e-mail lub hasło.';
+  if (message.includes('user already registered')) return 'Konto z tym adresem e-mail już istnieje.';
+  if (message.includes('email rate limit')) return 'Wysłano zbyt wiele wiadomości. Spróbuj ponownie później.';
+  if (message.includes('rate limit') || message.includes('too many requests')) return 'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.';
+  if (message.includes('password')) return 'Hasło nie spełnia wymagań bezpieczeństwa.';
+  return 'Nie udało się wykonać tej operacji. Spróbuj ponownie.';
+}
+
+if (!isValidPublicConfig(config)) {
+  setStatus('Logowanie nie jest jeszcze skonfigurowane na serwerze testowym.', 'error');
+  for (const form of [elements.loginForm, elements.registerForm, elements.forgotForm, elements.resetForm]) {
+    for (const control of form.elements) control.disabled = true;
+  }
+} else {
+  const supabase = createClient(config.url, config.publishableKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'implicit'
+    }
+  });
+
+  elements.loginTab.addEventListener('click', () => showAuthPanel('login'));
+  elements.registerTab.addEventListener('click', () => showAuthPanel('register'));
+  elements.forgotButton.addEventListener('click', () => {
+    elements.forgotForm.elements.email.value = elements.loginForm.elements.email.value;
+    showAuthPanel('forgot');
+  });
+  elements.forgotBack.addEventListener('click', () => showAuthPanel('login'));
+
+  elements.loginForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    setStatus();
+    setBusy(elements.loginForm, true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: elements.loginForm.elements.email.value.trim(),
+        password: elements.loginForm.elements.password.value
+      });
+      if (error) throw error;
+      elements.loginForm.reset();
+    } catch (error) {
+      setStatus(friendlyError(error), 'error');
+    } finally {
+      setBusy(elements.loginForm, false);
+    }
+  });
+
+  elements.registerForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    setStatus();
+    const password = elements.registerForm.elements.password.value;
+    const confirmation = elements.registerForm.elements['password-confirm'].value;
+    const validationError = passwordError(password);
+    if (validationError) return setStatus(validationError, 'error');
+    if (password !== confirmation) return setStatus('Wpisane hasła nie są identyczne.', 'error');
+    setBusy(elements.registerForm, true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: elements.registerForm.elements.email.value.trim(),
+        password
+      });
+      if (error) throw error;
+      elements.registerForm.reset();
+      if (!data.session) setStatus('Konto utworzono. Jeśli wymagane jest potwierdzenie, sprawdź skrzynkę e-mail.', 'success');
+    } catch (error) {
+      setStatus(friendlyError(error), 'error');
+    } finally {
+      setBusy(elements.registerForm, false);
+    }
+  });
+
+  elements.forgotForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    setStatus();
+    setBusy(elements.forgotForm, true);
+    try {
+      const redirectTo = `${window.location.origin}/preview/konto.html?mode=reset`;
+      const { error } = await supabase.auth.resetPasswordForEmail(elements.forgotForm.elements.email.value.trim(), { redirectTo });
+      if (error) throw error;
+      setStatus('Jeśli konto istnieje, wysłaliśmy wiadomość z linkiem do zmiany hasła.', 'success');
+    } catch (error) {
+      setStatus(friendlyError(error), 'error');
+    } finally {
+      setBusy(elements.forgotForm, false);
+    }
+  });
+
+  elements.resetForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    setStatus();
+    const password = elements.resetForm.elements.password.value;
+    const confirmation = elements.resetForm.elements['password-confirm'].value;
+    const validationError = passwordError(password);
+    if (validationError) return setStatus(validationError, 'error');
+    if (password !== confirmation) return setStatus('Wpisane hasła nie są identyczne.', 'error');
+    setBusy(elements.resetForm, true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      elements.resetForm.reset();
+      history.replaceState({}, '', '/preview/konto.html');
+      setStatus('Hasło zostało zmienione.', 'success');
+      const { data } = await supabase.auth.getUser();
+      if (data.user) showSignedIn(data.user);
+    } catch (error) {
+      setStatus(friendlyError(error), 'error');
+    } finally {
+      setBusy(elements.resetForm, false);
+    }
+  });
+
+  elements.logoutButton.addEventListener('click', async () => {
+    elements.logoutButton.disabled = true;
+    const { error } = await supabase.auth.signOut();
+    elements.logoutButton.disabled = false;
+    if (error) setStatus(friendlyError(error), 'error');
+  });
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      elements.accountCard.hidden = true;
+      elements.authCard.hidden = false;
+      showAuthPanel('reset');
+      setStatus('Ustaw nowe hasło do konta.', 'success');
+      return;
+    }
+    if (session?.user) showSignedIn(session.user);
+    else if (event === 'SIGNED_OUT') showSignedOut();
+  });
+
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) setStatus(friendlyError(error), 'error');
+  else if (session?.user) showSignedIn(session.user);
+  else showSignedOut();
+}

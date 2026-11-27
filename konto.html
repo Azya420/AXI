@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Moje konto — AXI TEST</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#100916;--bg-elevated:#1a1023;--ink:#f4eefb;--ink-dim:#b7a8c9;
+      --ink-faint:#7c6c93;--violet:#6d28d9;--violet-bright:#a78bfa;
+      --bronze:#c9a24b;--line:rgba(167,139,250,.18);--danger:#fca5a5;--success:#86efac;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:Sora,sans-serif;line-height:1.55;display:flex;flex-direction:column}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse 850px 480px at 15% -10%,rgba(109,40,217,.24),transparent 60%),radial-gradient(ellipse 700px 500px at 100% 10%,rgba(201,162,75,.07),transparent 60%);pointer-events:none}
+    a{color:inherit}
+    .wrap{width:min(100% - 40px,1080px);margin-inline:auto}
+    header{position:relative;z-index:2;border-bottom:1px solid var(--line);background:rgba(16,9,22,.88);backdrop-filter:blur(10px)}
+    nav{height:92px;display:flex;align-items:center;justify-content:space-between}
+    .logo img{width:92px;height:92px;display:block;object-fit:contain}
+    .back-link{border:1px solid var(--line);padding:10px 16px;text-decoration:none;font-size:.82rem;transition:.2s}
+    .back-link:hover,.back-link:focus-visible{border-color:var(--violet-bright);background:rgba(109,40,217,.16)}
+    .test-notice{position:relative;z-index:1;background:#fff1bc;color:#211b0d;text-align:center;padding:10px 20px;font-size:.82rem;font-weight:600}
+    main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:56px 0 72px}
+    .auth-shell{width:min(100%,470px)}
+    .eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--bronze);text-align:center;margin-bottom:12px}
+    h1{font-family:Cinzel,serif;font-size:clamp(2rem,7vw,2.75rem);line-height:1.12;text-align:center;margin-bottom:12px}
+    .intro{color:var(--ink-dim);text-align:center;margin:0 auto 28px;max-width:42ch}
+    .card{background:rgba(26,16,35,.94);border:1px solid var(--line);padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+    .tabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);margin-bottom:24px}
+    .tab{appearance:none;border:0;background:transparent;color:var(--ink-dim);padding:12px;cursor:pointer;font:600 .86rem Sora,sans-serif}
+    .tab[aria-selected="true"]{background:var(--violet);color:#fff}
+    form{display:grid;gap:16px}
+    .field{display:grid;gap:7px}
+    label{font-size:.82rem;color:var(--ink-dim)}
+    input{width:100%;border:1px solid var(--line);background:#120b19;color:var(--ink);padding:13px 14px;font:inherit;border-radius:0}
+    input:focus{outline:2px solid rgba(167,139,250,.45);outline-offset:1px;border-color:var(--violet-bright)}
+    .password-hint{font-size:.72rem;color:var(--ink-faint)}
+    .button{appearance:none;border:1px solid var(--violet);background:var(--violet);color:#fff;padding:13px 18px;font:600 .88rem Sora,sans-serif;cursor:pointer;transition:.2s}
+    .button:hover,.button:focus-visible{background:var(--violet-bright);border-color:var(--violet-bright);color:#150a22}
+    .button:disabled{opacity:.55;cursor:wait}
+    .button-secondary{background:transparent;border-color:var(--line);color:var(--ink)}
+    .button-secondary:hover,.button-secondary:focus-visible{background:rgba(109,40,217,.16);color:var(--ink)}
+    .text-button{appearance:none;border:0;background:none;color:var(--violet-bright);text-decoration:underline;cursor:pointer;font:inherit;font-size:.8rem;justify-self:center}
+    .status{font-size:.82rem;padding:11px 12px;border:1px solid var(--line);color:var(--ink-dim);background:#120b19}
+    .status.error{border-color:rgba(252,165,165,.45);color:var(--danger)}
+    .status.success{border-color:rgba(134,239,172,.4);color:var(--success)}
+    .account-card{text-align:center;display:grid;gap:18px}
+    .account-email{font-weight:600;word-break:break-word}
+    .empty-orders{border:1px dashed var(--line);padding:20px;color:var(--ink-dim);font-size:.88rem}
+    .privacy{font-size:.72rem;color:var(--ink-faint)}
+    [hidden]{display:none!important}
+    footer{position:relative;z-index:1;border-top:1px solid var(--line);padding:24px 0;text-align:center;color:var(--ink-faint);font-size:.72rem}
+    @media(max-width:520px){.wrap{width:min(100% - 28px,1080px)}.card{padding:22px 18px}nav{height:78px}.logo img{width:78px;height:78px}}
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="wrap">
+      <a class="logo" href="/preview/" aria-label="AXI — strona testowa"><img src="https://axi3d.pl/logo%20white.png" alt="AXI"></a>
+      <a class="back-link" href="/preview/">Wróć do strony</a>
+    </nav>
+  </header>
+  <div class="test-notice">PODGLĄD TESTOWY — konta utworzone tutaj nie są kontami produkcyjnymi</div>
+
+  <main>
+    <section class="auth-shell" aria-labelledby="account-title">
+      <p class="eyebrow">Strefa klienta</p>
+      <h1 id="account-title">Moje konto</h1>
+      <p class="intro" id="account-intro">Zaloguj się lub utwórz konto, aby w przyszłości sprawdzać swoje zamówienia.</p>
+
+      <div class="card" id="auth-card">
+        <div class="tabs" role="tablist" aria-label="Logowanie lub rejestracja">
+          <button class="tab" id="login-tab" type="button" role="tab" aria-selected="true" aria-controls="login-panel">Logowanie</button>
+          <button class="tab" id="register-tab" type="button" role="tab" aria-selected="false" aria-controls="register-panel">Rejestracja</button>
+        </div>
+
+        <div id="global-status" class="status" role="status" aria-live="polite" hidden></div>
+
+        <div id="login-panel" role="tabpanel" aria-labelledby="login-tab">
+          <form id="login-form">
+            <div class="field"><label for="login-email">Adres e-mail</label><input id="login-email" name="email" type="email" autocomplete="email" required maxlength="254"></div>
+            <div class="field"><label for="login-password">Hasło</label><input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="200"></div>
+            <button class="button" type="submit">Zaloguj się</button>
+            <button class="text-button" id="forgot-button" type="button">Nie pamiętam hasła</button>
+          </form>
+        </div>
+
+        <div id="register-panel" role="tabpanel" aria-labelledby="register-tab" hidden>
+          <form id="register-form">
+            <div class="field"><label for="register-email">Adres e-mail</label><input id="register-email" name="email" type="email" autocomplete="email" required maxlength="254"></div>
+            <div class="field">
+              <label for="register-password">Hasło</label>
+              <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="200" aria-describedby="password-hint">
+              <p class="password-hint" id="password-hint">Minimum 8 znaków, mała i wielka litera oraz cyfra.</p>
+            </div>
+            <div class="field"><label for="register-password-confirm">Powtórz hasło</label><input id="register-password-confirm" name="password-confirm" type="password" autocomplete="new-password" required minlength="8" maxlength="200"></div>
+            <button class="button" type="submit">Utwórz konto</button>
+            <p class="privacy">To jest środowisko testowe. Nie używaj hasła wykorzystywanego w innych serwisach.</p>
+          </form>
+        </div>
+
+        <div id="forgot-panel" hidden>
+          <form id="forgot-form">
+            <div class="field"><label for="forgot-email">Adres e-mail konta</label><input id="forgot-email" name="email" type="email" autocomplete="email" required maxlength="254"></div>
+            <button class="button" type="submit">Wyślij link do zmiany hasła</button>
+            <button class="text-button" id="forgot-back" type="button">Wróć do logowania</button>
+          </form>
+        </div>
+
+        <div id="reset-panel" hidden>
+          <form id="reset-form">
+            <div class="field">
+              <label for="reset-password">Nowe hasło</label>
+              <input id="reset-password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="200">
+              <p class="password-hint">Minimum 8 znaków, mała i wielka litera oraz cyfra.</p>
+            </div>
+            <div class="field"><label for="reset-password-confirm">Powtórz nowe hasło</label><input id="reset-password-confirm" name="password-confirm" type="password" autocomplete="new-password" required minlength="8" maxlength="200"></div>
+            <button class="button" type="submit">Zapisz nowe hasło</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card account-card" id="account-card" hidden>
+        <p class="eyebrow">Zalogowano</p>
+        <h2>Twoje konto testowe</h2>
+        <p class="account-email" id="account-email"></p>
+        <div class="empty-orders">Historia i statusy zamówień pojawią się tutaj w kolejnym etapie.</div>
+        <button class="button button-secondary" id="logout-button" type="button">Wyloguj się</button>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="wrap">© 2026 AXI — środowisko testowe</div></footer>
+  <script src="/preview/supabase-config.js"></script>
+  <script type="module" src="/preview/account.mjs"></script>
+</body>
+</html>

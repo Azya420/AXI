@@ -11,6 +11,8 @@ const parsedOrigin = new URL(siteOrigin);
 if (parsedOrigin.origin !== siteOrigin || parsedOrigin.protocol !== 'https:') throw new Error('AXI_SITE_ORIGIN must be an HTTPS origin without a trailing slash.');
 const config = {
   stripeKey: process.env.STRIPE_SECRET_KEY,
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
   reportStripeError: diagnostic => console.error('[axi-checkout]', JSON.stringify(diagnostic)),
   reportP24Error: diagnostic => console.error('[axi-p24]', JSON.stringify(diagnostic)),
