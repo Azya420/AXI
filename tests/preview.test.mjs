@@ -31,7 +31,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.equal(response.headers.get('X-Robots-Tag'), 'noindex, nofollow');
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
   const html = await response.text();
-  assert.match(html, /PODGLĄD TESTOWY/);
+  assert.doesNotMatch(html, /PODGLĄD TESTOWY/);
   assert.match(html, /id="add-figurine-btn"/);
   assert.match(html, /class="photo-upload-button" for="photos">Dodaj zdjęcie<\/label>/);
   assert.match(html, /<body id="top">/);
@@ -104,7 +104,7 @@ test('account page supports registration, login, password reset and logout witho
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('X-Robots-Tag'), 'noindex, nofollow');
   const html = await response.text();
-  assert.match(html, /PODGLĄD TESTOWY/);
+  assert.doesNotMatch(html, /PODGLĄD TESTOWY/);
   assert.match(html, /id="login-form"/);
   assert.match(html, /id="register-form"/);
   assert.match(html, /id="forgot-form"/);
@@ -130,7 +130,8 @@ test('hidden admin panel manages assignments and statuses without embedding secr
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('X-Robots-Tag'), 'noindex, nofollow');
   const html = await response.text();
-  assert.match(html, /PANEL ADMINISTRACYJNY — ŚRODOWISKO TESTOWE/);
+  assert.doesNotMatch(html, /PANEL ADMINISTRACYJNY — ŚRODOWISKO TESTOWE/);
+  assert.match(html, /<h1>Panel administracyjny<\/h1>/);
   assert.match(html, /id="order-form"/);
   assert.match(html, /id="account-select"/);
   assert.match(html, /id="status-select"/);

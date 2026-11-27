@@ -11,12 +11,6 @@ export function isSupabasePublicConfig(config) {
 }
 
 export function renderPreviewHtml(source, siteOrigin) {
-  const notice = `<aside class="axi-preview-notice" aria-label="Podgląd testowy">
-    <strong>PODGLĄD TESTOWY — płatności bez prawdziwych pieniędzy</strong>
-    <p>Dodawaj figurki i sprawdzaj sumę. W tym podglądzie zgłoszenie i zdjęcia nie są wysyłane do Basin.
-    Używaj fikcyjnych danych i przykładowych zdjęć.</p>
-    <a href="#zamow">Przejdź do nowego formularza ↓</a>
-  </aside>`;
   let html = source
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, script => script.includes('var GA_ID') ? '' : script)
     .replace(/<script\b[^>]*\bdata-analytics\b[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -36,8 +30,6 @@ export function renderPreviewHtml(source, siteOrigin) {
     </div>`)
     .replace('</head>', `<meta name="robots" content="noindex,nofollow">
 <style>
-.axi-preview-notice{position:relative;margin-top:90px;padding:20px 6%;background:#fff1bc;color:#211b0d;font:15px/1.5 sans-serif}
-.axi-preview-notice p{margin:8px 0}.axi-preview-notice a{color:#211b0d;text-decoration:underline}
 .axi-nav-actions{display:flex;align-items:center;gap:10px}
 .axi-account-link{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;text-decoration:none;transition:background .2s,filter .2s,transform .2s}
 .axi-account-link img{display:block;width:42px;height:42px}
@@ -45,7 +37,7 @@ export function renderPreviewHtml(source, siteOrigin) {
 @media(max-width:680px){.axi-nav-actions{gap:7px}.axi-account-link{width:40px;height:40px}.axi-account-link img{width:38px;height:38px}}
 #cookie-banner{display:none!important}
 </style></head>`)
-    .replace(/(<body\b[^>]*>)/i, '$1' + notice);
+  ;
   return html;
 }
 
