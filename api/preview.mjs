@@ -60,7 +60,8 @@ const headers = {
 const modules = {
   '/preview/order-form.mjs': new URL('../order-form.mjs', import.meta.url),
   '/preview/pricing.mjs': new URL('../pricing.mjs', import.meta.url),
-  '/preview/account.mjs': new URL('../account.mjs', import.meta.url)
+  '/preview/account.mjs': new URL('../account.mjs', import.meta.url),
+  '/preview/admin.mjs': new URL('../admin.mjs', import.meta.url)
 };
 
 export async function previewResponse(pathname, method, config) {
@@ -73,6 +74,9 @@ export async function previewResponse(pathname, method, config) {
   }
   if (pathname === '/preview/konto.html') {
     return send(await readFile(new URL('../konto.html', import.meta.url), 'utf8'), 'text/html');
+  }
+  if (pathname === '/preview/admin.html') {
+    return send(await readFile(new URL('../admin.html', import.meta.url), 'utf8'), 'text/html');
   }
   if (pathname === '/preview/account-icon.svg') {
     return send(await readFile(new URL('../account-icon.svg', import.meta.url), 'utf8'), 'image/svg+xml');

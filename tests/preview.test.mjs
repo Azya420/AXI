@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { isSupabasePublicConfig, isTestKey, previewResponse, renderPreviewHtml } from '../api/preview.mjs';
 import { handleCheckout, stripeParameters } from '../api/checkout.mjs';
 
@@ -15,7 +16,7 @@ test('preview assets require a test key and never expose arbitrary repository fi
   assert.ok(isTestKey('sk_test_fixture'));
   for (const stripeKey of [undefined, '', 'pk_test_fixture', 'rk_live_fixture', 'sk_live_fixture']) {
     assert.ok(!isTestKey(stripeKey));
-    for (const path of ['/preview/', '/preview/konto.html', '/preview/account-icon.svg', '/preview/order-form.mjs', '/preview/checkout-config.js', '/preview/supabase-config.js']) {
+    for (const path of ['/preview/', '/preview/konto.html', '/preview/admin.html', '/preview/account-icon.svg', '/preview/order-form.mjs', '/preview/admin.mjs', '/preview/checkout-config.js', '/preview/supabase-config.js']) {
       assert.equal((await previewResponse(path, 'GET', { ...config, stripeKey })).status, 404);
     }
   }
@@ -109,6 +110,9 @@ test('account page supports registration, login, password reset and logout witho
   assert.match(html, /id="forgot-form"/);
   assert.match(html, /id="reset-form"/);
   assert.match(html, /id="logout-button"/);
+  assert.match(html, /id="admin-link" href="\/preview\/admin\.html" hidden/);
+  assert.match(html, /id="orders-state"/);
+  assert.match(html, /id="orders-list"/);
   assert.match(html, /src="\/preview\/supabase-config\.js"/);
   assert.match(html, /src="\/preview\/account\.mjs"/);
   assert.ok(!html.includes(config.stripeKey));
@@ -118,6 +122,38 @@ test('account page supports registration, login, password reset and logout witho
   assert.match(script, /resetPasswordForEmail/);
   assert.match(script, /updateUser/);
   assert.match(script, /signOut/);
+  assert.match(script, /from\('orders'\)/);
+  assert.match(script, /from\('order_status_history'\)/);
+});
+test('hidden admin panel manages assignments and statuses without embedding secrets', async () => {
+  const response = await previewResponse('/preview/admin.html', 'GET', config);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('X-Robots-Tag'), 'noindex, nofollow');
+  const html = await response.text();
+  assert.match(html, /PANEL ADMINISTRACYJNY — ŚRODOWISKO TESTOWE/);
+  assert.match(html, /id="order-form"/);
+  assert.match(html, /id="account-select"/);
+  assert.match(html, /id="status-select"/);
+  assert.match(html, /id="orders-list"/);
+  assert.match(html, /src="\/preview\/admin\.mjs"/);
+  assert.ok(!html.includes(config.stripeKey));
+  assert.ok(!html.includes(config.supabasePublishableKey));
+  const script = await (await previewResponse('/preview/admin.mjs', 'GET', config)).text();
+  assert.match(script, /profile\.role !== 'admin'/);
+  assert.match(script, /from\('profiles'\)/);
+  assert.match(script, /from\('orders'\)\.update/);
+  assert.doesNotMatch(script, /service_role|SUPABASE_SECRET/i);
+});
+test('order portal migration enables RLS and restricts writes to administrators', async () => {
+  const sql = await readFile(new URL('../supabase/migrations/20261127183000_create_test_order_portal.sql', import.meta.url), 'utf8');
+  assert.match(sql, /alter table public\.profiles enable row level security/);
+  assert.match(sql, /alter table public\.orders enable row level security/);
+  assert.match(sql, /alter table public\.order_status_history enable row level security/);
+  assert.match(sql, /with check \(public\.is_axi_admin\(\)\)/);
+  assert.match(sql, /user_id = auth\.uid\(\)/);
+  assert.match(sql, /revoke all on table public\.orders from anon, authenticated/);
+  assert.match(sql, /grant select, insert, update on table public\.orders to authenticated/);
+  assert.doesNotMatch(sql, /grant\s+(?:all|insert|update)[^;]+\s+to\s+anon/i);
 });
 test('preview does not rewrite remote references or empty image placeholders', () => {
   const html = renderPreviewHtml('<html><head></head><body><img src=""><img src="https://cdn.example/photo.png"><a href="regulamin.html">Regulamin</a></body></html>', config.siteOrigin);

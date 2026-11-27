@@ -51,11 +51,15 @@
     .status.success{border-color:rgba(134,239,172,.4);color:var(--success)}
     .account-card{text-align:center;display:grid;gap:18px}
     .account-email{font-weight:600;word-break:break-word}
-    .empty-orders{border:1px dashed var(--line);padding:20px;color:var(--ink-dim);font-size:.88rem}
+    .account-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.account-actions .button{text-decoration:none}
+    .customer-orders{text-align:left;border-top:1px solid var(--line);padding-top:22px}.customer-orders h3{font:600 1.18rem Cinzel,serif;margin:0 0 6px}.orders-intro{color:var(--ink-dim);font-size:.8rem;margin:0 0 16px}
+    .orders-list{display:grid;gap:14px}.empty-orders{border:1px dashed var(--line);padding:20px;color:var(--ink-dim);font-size:.84rem;text-align:center}
+    .customer-order{border:1px solid var(--line);background:#120b19;padding:17px}.customer-order-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.order-number{font:600 1rem Cinzel,serif;margin:0 0 3px}.order-title{font-size:.76rem;color:var(--ink-dim);margin:0}.order-status{display:inline-flex;padding:5px 8px;border:1px solid rgba(167,139,250,.38);color:var(--violet-bright);font-size:.64rem;text-transform:uppercase;letter-spacing:.04em;text-align:center}
+    .order-date{font-size:.7rem;color:var(--ink-faint);margin:11px 0}.order-message{border-left:2px solid var(--bronze);padding-left:10px;color:var(--ink-dim);font-size:.78rem;margin:12px 0}.timeline{border-top:1px solid var(--line);margin-top:14px;padding-top:13px}.timeline-title{font-size:.69rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:0 0 10px}.timeline-list{display:grid;gap:9px}.timeline-item{display:grid;grid-template-columns:9px 1fr;gap:9px;align-items:start;font-size:.7rem;color:var(--ink-dim)}.timeline-dot{width:8px;height:8px;border-radius:50%;background:var(--violet-bright);margin-top:5px;box-shadow:0 0 8px rgba(167,139,250,.5)}.timeline-item strong{display:block;color:var(--ink);font-weight:500}.timeline-item time{color:var(--ink-faint)}
     .privacy{font-size:.72rem;color:var(--ink-faint)}
     [hidden]{display:none!important}
     footer{position:relative;z-index:1;border-top:1px solid var(--line);padding:24px 0;text-align:center;color:var(--ink-faint);font-size:.72rem}
-    @media(max-width:520px){.wrap{width:min(100% - 28px,1080px)}.card{padding:22px 18px}nav{height:78px}.logo img{width:78px;height:78px}}
+    @media(max-width:520px){.wrap{width:min(100% - 28px,1080px)}.card{padding:22px 18px}nav{height:78px}.logo img{width:78px;height:78px}.customer-order-head{flex-direction:column}}
   </style>
 </head>
 <body>
@@ -129,8 +133,13 @@
         <p class="eyebrow">Zalogowano</p>
         <h2>Twoje konto testowe</h2>
         <p class="account-email" id="account-email"></p>
-        <div class="empty-orders">Historia i statusy zamówień pojawią się tutaj w kolejnym etapie.</div>
-        <button class="button button-secondary" id="logout-button" type="button">Wyloguj się</button>
+        <div class="account-actions"><a class="button button-secondary" id="admin-link" href="/preview/admin.html" hidden>Panel administracyjny</a><button class="button button-secondary" id="logout-button" type="button">Wyloguj się</button></div>
+        <section class="customer-orders" aria-labelledby="orders-title">
+          <h3 id="orders-title">Historia zamówień</h3>
+          <p class="orders-intro">Tutaj zobaczysz zlecenia przypisane przez AXI do Twojego konta oraz ich aktualny status.</p>
+          <div id="orders-state" class="empty-orders" role="status" aria-live="polite">Wczytywanie zamówień…</div>
+          <div id="orders-list" class="orders-list"></div>
+        </section>
       </div>
     </section>
   </main>

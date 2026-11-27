@@ -1,5 +1,18 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm';
 
+const STATUS_LABELS = Object.freeze({
+  new: 'Nowe zlecenie',
+  paid: 'Płatność przyjęta',
+  in_modeling: 'Tworzenie modelu 3D',
+  awaiting_approval: 'Oczekuje na akceptację',
+  approved: 'Model zaakceptowany',
+  printing: 'Drukowanie',
+  finishing: 'Obróbka i kontrola jakości',
+  shipped: 'Wysłane',
+  completed: 'Zrealizowane',
+  cancelled: 'Anulowane'
+});
+
 const config = window.AXI_SUPABASE;
 const elements = {
   authCard: document.querySelector('#auth-card'),
@@ -18,7 +31,10 @@ const elements = {
   resetForm: document.querySelector('#reset-form'),
   forgotButton: document.querySelector('#forgot-button'),
   forgotBack: document.querySelector('#forgot-back'),
-  logoutButton: document.querySelector('#logout-button')
+  logoutButton: document.querySelector('#logout-button'),
+  adminLink: document.querySelector('#admin-link'),
+  ordersState: document.querySelector('#orders-state'),
+  ordersList: document.querySelector('#orders-list')
 };
 
 function isValidPublicConfig(value) {
@@ -63,7 +79,72 @@ function showSignedIn(user) {
 function showSignedOut() {
   elements.accountCard.hidden = true;
   elements.authCard.hidden = false;
+  elements.adminLink.hidden = true;
+  elements.ordersList.replaceChildren();
+  elements.ordersState.textContent = 'Wczytywanie zamówień…';
+  elements.ordersState.hidden = false;
   showAuthPanel('login');
+}
+
+function appendText(parent, tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  node.textContent = text;
+  parent.append(node);
+  return node;
+}
+
+function formatDate(value, withTime = false) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pl-PL', withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(new Date(value));
+}
+
+function renderOrders(orders, history) {
+  elements.ordersList.replaceChildren();
+  if (!orders.length) {
+    elements.ordersState.textContent = 'Nie przypisano jeszcze żadnego zamówienia do tego konta.';
+    elements.ordersState.hidden = false;
+    return;
+  }
+  elements.ordersState.hidden = true;
+  for (const order of orders) {
+    const card = document.createElement('article');
+    card.className = 'customer-order';
+    const head = document.createElement('div');
+    head.className = 'customer-order-head';
+    const heading = document.createElement('div');
+    appendText(heading, 'p', 'order-number', order.order_number);
+    appendText(heading, 'p', 'order-title', order.title);
+    head.append(heading);
+    appendText(head, 'span', 'order-status', STATUS_LABELS[order.status] || order.status);
+    card.append(head);
+    appendText(card, 'p', 'order-date', `Data zamówienia: ${formatDate(order.ordered_at)}`);
+    if (order.status_message) appendText(card, 'p', 'order-message', order.status_message);
+
+    const entries = history.filter(item => item.order_id === order.id);
+    if (entries.length) {
+      const timeline = document.createElement('section');
+      timeline.className = 'timeline';
+      appendText(timeline, 'p', 'timeline-title', 'Historia statusów');
+      const list = document.createElement('div');
+      list.className = 'timeline-list';
+      for (const entry of entries) {
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        appendText(item, 'span', 'timeline-dot', '');
+        const content = document.createElement('div');
+        appendText(content, 'strong', '', STATUS_LABELS[entry.status] || entry.status);
+        const time = appendText(content, 'time', '', formatDate(entry.created_at, true));
+        time.dateTime = entry.created_at;
+        if (entry.message) appendText(content, 'span', '', ` · ${entry.message}`);
+        item.append(content);
+        list.append(item);
+      }
+      timeline.append(list);
+      card.append(timeline);
+    }
+    elements.ordersList.append(card);
+  }
 }
 
 function passwordError(password) {
@@ -98,6 +179,50 @@ if (!isValidPublicConfig(config)) {
       flowType: 'implicit'
     }
   });
+  let lastLoadedUserId = null;
+
+  async function loadAccountData(user, force = false) {
+    if (!force && lastLoadedUserId === user.id) return;
+    lastLoadedUserId = user.id;
+    elements.ordersState.textContent = 'Wczytywanie zamówień…';
+    elements.ordersState.hidden = false;
+    elements.ordersList.replaceChildren();
+    elements.adminLink.hidden = true;
+
+    const { data: profile, error: profileError } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+    if (profileError) {
+      lastLoadedUserId = null;
+      elements.ordersState.textContent = ['42P01', 'PGRST205', 'PGRST204'].includes(profileError.code)
+        ? 'System historii zamówień nie został jeszcze skonfigurowany.'
+        : 'Nie udało się wczytać danych konta.';
+      return;
+    }
+    elements.adminLink.hidden = profile?.role !== 'admin';
+    const { data: orders, error: ordersError } = await supabase.from('orders')
+      .select('id,order_number,title,status,status_message,ordered_at,updated_at')
+      .order('ordered_at', { ascending: false });
+    if (ordersError) {
+      lastLoadedUserId = null;
+      elements.ordersState.textContent = 'Nie udało się wczytać historii zamówień.';
+      return;
+    }
+    if (!orders?.length) return renderOrders([], []);
+    const { data: history, error: historyError } = await supabase.from('order_status_history')
+      .select('order_id,status,message,created_at')
+      .in('order_id', orders.map(order => order.id))
+      .order('created_at', { ascending: false });
+    if (historyError) {
+      lastLoadedUserId = null;
+      elements.ordersState.textContent = 'Nie udało się wczytać historii statusów.';
+      return;
+    }
+    renderOrders(orders, history || []);
+  }
+
+  function openAccount(user) {
+    showSignedIn(user);
+    void loadAccountData(user);
+  }
 
   elements.loginTab.addEventListener('click', () => showAuthPanel('login'));
   elements.registerTab.addEventListener('click', () => showAuthPanel('register'));
@@ -181,7 +306,7 @@ if (!isValidPublicConfig(config)) {
       history.replaceState({}, '', '/preview/konto.html');
       setStatus('Hasło zostało zmienione.', 'success');
       const { data } = await supabase.auth.getUser();
-      if (data.user) showSignedIn(data.user);
+      if (data.user) openAccount(data.user);
     } catch (error) {
       setStatus(friendlyError(error), 'error');
     } finally {
@@ -204,12 +329,15 @@ if (!isValidPublicConfig(config)) {
       setStatus('Ustaw nowe hasło do konta.', 'success');
       return;
     }
-    if (session?.user) showSignedIn(session.user);
-    else if (event === 'SIGNED_OUT') showSignedOut();
+    if (session?.user) openAccount(session.user);
+    else if (event === 'SIGNED_OUT') {
+      lastLoadedUserId = null;
+      showSignedOut();
+    }
   });
 
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error) setStatus(friendlyError(error), 'error');
-  else if (session?.user) showSignedIn(session.user);
+  else if (session?.user) openAccount(session.user);
   else showSignedOut();
 }
