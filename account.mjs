@@ -19,14 +19,10 @@ const elements = {
   authCard: document.querySelector('#auth-card'),
   accountCard: document.querySelector('#account-card'),
   status: document.querySelector('#global-status'),
-  loginTab: document.querySelector('#login-tab'),
-  registerTab: document.querySelector('#register-tab'),
   loginPanel: document.querySelector('#login-panel'),
-  registerPanel: document.querySelector('#register-panel'),
   forgotPanel: document.querySelector('#forgot-panel'),
   resetPanel: document.querySelector('#reset-panel'),
   loginForm: document.querySelector('#login-form'),
-  registerForm: document.querySelector('#register-form'),
   forgotForm: document.querySelector('#forgot-form'),
   resetForm: document.querySelector('#reset-form'),
   forgotButton: document.querySelector('#forgot-button'),
@@ -62,14 +58,9 @@ function setBusy(form, busy) {
 }
 
 function showAuthPanel(name) {
-  const isLogin = name === 'login';
-  elements.loginTab.setAttribute('aria-selected', String(isLogin));
-  elements.registerTab.setAttribute('aria-selected', String(name === 'register'));
-  elements.loginPanel.hidden = !isLogin;
-  elements.registerPanel.hidden = name !== 'register';
+  elements.loginPanel.hidden = name !== 'login';
   elements.forgotPanel.hidden = name !== 'forgot';
   elements.resetPanel.hidden = name !== 'reset';
-  elements.loginTab.closest('.tabs').hidden = !['login', 'register'].includes(name);
   setStatus();
 }
 
@@ -179,7 +170,7 @@ function friendlyError(error) {
 
 if (!isValidPublicConfig(config)) {
   setStatus('Logowanie nie jest jeszcze skonfigurowane na serwerze testowym.', 'error');
-  for (const form of [elements.loginForm, elements.registerForm, elements.forgotForm, elements.resetForm]) {
+  for (const form of [elements.loginForm, elements.forgotForm, elements.resetForm]) {
     for (const control of form.elements) control.disabled = true;
   }
 } else {
@@ -249,8 +240,6 @@ if (!isValidPublicConfig(config)) {
     }
   });
 
-  elements.loginTab.addEventListener('click', () => showAuthPanel('login'));
-  elements.registerTab.addEventListener('click', () => showAuthPanel('register'));
   elements.forgotButton.addEventListener('click', () => {
     elements.forgotForm.elements.email.value = elements.loginForm.elements.email.value;
     showAuthPanel('forgot');
@@ -272,30 +261,6 @@ if (!isValidPublicConfig(config)) {
       setStatus(friendlyError(error), 'error');
     } finally {
       setBusy(elements.loginForm, false);
-    }
-  });
-
-  elements.registerForm.addEventListener('submit', async event => {
-    event.preventDefault();
-    setStatus();
-    const password = elements.registerForm.elements.password.value;
-    const confirmation = elements.registerForm.elements['password-confirm'].value;
-    const validationError = passwordError(password);
-    if (validationError) return setStatus(validationError, 'error');
-    if (password !== confirmation) return setStatus('Wpisane hasła nie są identyczne.', 'error');
-    setBusy(elements.registerForm, true);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: elements.registerForm.elements.email.value.trim(),
-        password
-      });
-      if (error) throw error;
-      elements.registerForm.reset();
-      if (!data.session) setStatus('Konto utworzono. Jeśli wymagane jest potwierdzenie, sprawdź skrzynkę e-mail.', 'success');
-    } catch (error) {
-      setStatus(friendlyError(error), 'error');
-    } finally {
-      setBusy(elements.registerForm, false);
     }
   });
 

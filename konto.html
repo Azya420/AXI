@@ -83,33 +83,14 @@
       <h1 id="account-title">Moje konto</h1>
 
       <div class="card" id="auth-card">
-        <div class="tabs" role="tablist" aria-label="Logowanie lub rejestracja">
-          <button class="tab" id="login-tab" type="button" role="tab" aria-selected="true" aria-controls="login-panel">Logowanie</button>
-          <button class="tab" id="register-tab" type="button" role="tab" aria-selected="false" aria-controls="register-panel">Rejestracja</button>
-        </div>
-
         <div id="global-status" class="status" role="status" aria-live="polite" hidden></div>
 
-        <div id="login-panel" role="tabpanel" aria-labelledby="login-tab">
+        <div id="login-panel">
           <form id="login-form">
             <div class="field"><label for="login-email">Adres e-mail</label><input id="login-email" name="email" type="email" autocomplete="email" required maxlength="254"></div>
             <div class="field"><label for="login-password">Hasło</label><input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="200"></div>
             <button class="button" type="submit">Zaloguj się</button>
             <button class="text-button" id="forgot-button" type="button">Nie pamiętam hasła</button>
-          </form>
-        </div>
-
-        <div id="register-panel" role="tabpanel" aria-labelledby="register-tab" hidden>
-          <form id="register-form">
-            <div class="field"><label for="register-email">Adres e-mail</label><input id="register-email" name="email" type="email" autocomplete="email" required maxlength="254"></div>
-            <div class="field">
-              <label for="register-password">Hasło</label>
-              <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="200" aria-describedby="password-hint">
-              <p class="password-hint" id="password-hint">Minimum 8 znaków, mała i wielka litera oraz cyfra.</p>
-            </div>
-            <div class="field"><label for="register-password-confirm">Powtórz hasło</label><input id="register-password-confirm" name="password-confirm" type="password" autocomplete="new-password" required minlength="8" maxlength="200"></div>
-            <button class="button" type="submit">Utwórz konto</button>
-            <p class="privacy">To jest środowisko testowe. Nie używaj hasła wykorzystywanego w innych serwisach.</p>
           </form>
         </div>
 

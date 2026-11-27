@@ -37,6 +37,9 @@ export function renderPreviewHtml(source, siteOrigin) {
 @media(max-width:680px){.axi-nav-actions{gap:7px}.axi-account-link{width:40px;height:40px}.axi-account-link img{width:38px;height:38px}}
 #cookie-banner{display:none!important}
 </style></head>`)
+    .replace('</body>', `<script src="/preview/supabase-config.js"></script>
+<script type="module" src="/preview/saved-customer.mjs"></script>
+</body>`)
   ;
   return html;
 }
@@ -53,7 +56,9 @@ const modules = {
   '/preview/order-form.mjs': new URL('../order-form.mjs', import.meta.url),
   '/preview/pricing.mjs': new URL('../pricing.mjs', import.meta.url),
   '/preview/account.mjs': new URL('../account.mjs', import.meta.url),
-  '/preview/admin.mjs': new URL('../admin.mjs', import.meta.url)
+  '/preview/admin.mjs': new URL('../admin.mjs', import.meta.url),
+  '/preview/preview-success.mjs': new URL('../preview-success.mjs', import.meta.url),
+  '/preview/saved-customer.mjs': new URL('../saved-customer.mjs', import.meta.url)
 };
 
 export async function previewResponse(pathname, method, config) {
@@ -84,12 +89,7 @@ export async function previewResponse(pathname, method, config) {
     return send('window.AXI_SUPABASE = ' + JSON.stringify(publicConfig) + ';\n', 'text/javascript');
   }
   if (pathname === '/preview/success') {
-    return send(`<!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Test zakończony — AXI3D</title>
-<body style="margin:0;padding:10vh 8%;background:#141922;color:#f2f2ed;font:18px/1.7 sans-serif">
-<h1>Powrót z płatności testowej</h1><p>To był test — nie pobrano prawdziwych pieniędzy i nie rozpoczynamy realizacji figurki.</p>
-<p>Podgląd nie wysyła zgłoszeń ani zdjęć do Basin.</p>
-<p>Sama ta strona nie potwierdza zapłaty. Wynik testu można zweryfikować w piaskownicy Stripe.</p>
-<a href="/preview/#zamow" style="color:#ffd881">Wróć do formularza testowego</a></body></html>`, 'text/html');
+    return send(await readFile(new URL('../preview-success.html', import.meta.url), 'utf8'), 'text/html');
   }
   return new Response('Nie znaleziono.', { status: 404, headers });
 }

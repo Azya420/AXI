@@ -43,9 +43,11 @@ export function validateOrder(order) {
   const promotionCode = (order.promotionCode || '').trim().toUpperCase();
   if (promotionCode && !/^[A-Z0-9-]{1,500}$/.test(promotionCode)) throw new Error('Nieprawidłowy kod promocyjny.');
   const customerName = cleanText(order.customerName, 120);
+  const phone = cleanText(order.phone, 30);
+  if (phone && !/^\+?[0-9 ()-]{7,30}$/.test(phone)) throw new Error('Nieprawidłowy numer telefonu.');
   const deliveryDestination = cleanText(order.deliveryDestination, 300);
   if (!customerName || !deliveryDestination) throw new Error('Brak danych odbiorcy.');
-  return { orderId: order.orderId, email: order.email, customerName, deliveryDestination, items, deliveryMethod, promotionCode, termsAccepted: true };
+  return { orderId: order.orderId, email: order.email, customerName, phone, deliveryDestination, items, deliveryMethod, promotionCode, termsAccepted: true };
 }
 
 function discountedShippingAmount(amount, percent) {
@@ -63,7 +65,7 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'automatic_tax[enabled]': 'false',
     'invoice_creation[enabled]': 'false', billing_address_collection: 'auto',
     customer_creation: 'if_required',
-    success_url: siteOrigin + (preview ? '/preview/success' : '/dziekujemy.html?session_id={CHECKOUT_SESSION_ID}'),
+    success_url: siteOrigin + (preview ? '/preview/success?session_id={CHECKOUT_SESSION_ID}' : '/dziekujemy.html?session_id={CHECKOUT_SESSION_ID}'),
     cancel_url: siteOrigin + (preview ? '/preview/#zamow' : '/#zamow'),
     'metadata[order_id]': order.orderId,
     'payment_intent_data[metadata][order_id]': order.orderId,
@@ -78,6 +80,7 @@ export function stripeParameters(order, siteOrigin, preview = false, promotionId
     'metadata[shipping_amount]': String(shippingAmount),
     'metadata[shipping_discount_percent]': String(shippingDiscountPercent),
     'metadata[customer_name]': order.customerName,
+    'metadata[phone]': order.phone,
     'metadata[delivery_destination]': order.deliveryDestination,
     'metadata[regular_subtotal]': String(order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + (item.copies - 1) * getPrice(item.size).additionalCopyAmount, 0)),
     'payment_intent_data[metadata][pricing_version]': PRICING_VERSION,
@@ -148,7 +151,7 @@ async function readJsonBody(request) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
-export async function verifyStripePayment(sessionId, config, stripeFetch = fetch) {
+export async function verifyStripePaymentDetails(sessionId, config, stripeFetch = fetch) {
   const validSession = config.preview ? TEST_SESSION.test(sessionId || '') : LIVE_SESSION.test(sessionId || '');
   if (!validSession) throw new Error('Invalid Stripe session');
   const response = await stripeFetch(
@@ -177,11 +180,34 @@ export async function verifyStripePayment(sessionId, config, stripeFetch = fetch
     : [];
   return {
     paid: session.payment_status === 'paid',
+    livemode: session.livemode === true,
+    preview: session.metadata?.preview === 'true',
     transactionId: session.id,
     orderId: typeof session.client_reference_id === 'string' ? session.client_reference_id : null,
+    customerEmail: typeof session.customer_details?.email === 'string'
+      ? session.customer_details.email
+      : typeof session.customer_email === 'string' ? session.customer_email : null,
+    customerName: cleanText(session.metadata?.customer_name, 120),
+    phone: cleanText(session.metadata?.phone, 30),
+    deliveryMethod: cleanText(session.metadata?.shipping_method, 30),
+    deliveryDestination: cleanText(session.metadata?.delivery_destination, 300),
+    createdAt: Number.isInteger(session.created) && session.created > 0 ? new Date(session.created * 1000).toISOString() : null,
+    amountTotal,
     value: amountTotal === null ? null : amountTotal / 100,
     currency: typeof session.currency === 'string' ? session.currency.toUpperCase() : 'PLN',
     items
+  };
+}
+
+export async function verifyStripePayment(sessionId, config, stripeFetch = fetch) {
+  const payment = await verifyStripePaymentDetails(sessionId, config, stripeFetch);
+  return {
+    paid: payment.paid,
+    transactionId: payment.transactionId,
+    orderId: payment.orderId,
+    value: payment.value,
+    currency: payment.currency,
+    items: payment.items
   };
 }
 

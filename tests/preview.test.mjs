@@ -16,7 +16,7 @@ test('preview assets require a test key and never expose arbitrary repository fi
   assert.ok(isTestKey('sk_test_fixture'));
   for (const stripeKey of [undefined, '', 'pk_test_fixture', 'rk_live_fixture', 'sk_live_fixture']) {
     assert.ok(!isTestKey(stripeKey));
-    for (const path of ['/preview/', '/preview/konto.html', '/preview/admin.html', '/preview/account-icon.svg', '/preview/order-form.mjs', '/preview/admin.mjs', '/preview/checkout-config.js', '/preview/supabase-config.js']) {
+    for (const path of ['/preview/', '/preview/konto.html', '/preview/admin.html', '/preview/success', '/preview/account-icon.svg', '/preview/order-form.mjs', '/preview/admin.mjs', '/preview/preview-success.mjs', '/preview/saved-customer.mjs', '/preview/checkout-config.js', '/preview/supabase-config.js']) {
       assert.equal((await previewResponse(path, 'GET', { ...config, stripeKey })).status, 404);
     }
   }
@@ -56,6 +56,8 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.match(html, /href="#zamow"/);
   assert.match(html, /class="axi-account-link" href="\/preview\/konto\.html" aria-label="Moje konto"/);
   assert.match(html, /src="\/preview\/account-icon\.svg" alt=""/);
+  assert.match(html, /src="\/preview\/supabase-config\.js"/);
+  assert.match(html, /src="\/preview\/saved-customer\.mjs"/);
   assert.ok(!html.includes('data-field="sale-badge"'));
   assert.match(html, /Paczkomat InPost \(16,49 zł\)/);
   assert.match(html, /Na adres \(19,49 zł\)/);
@@ -99,14 +101,14 @@ test('preview exposes only a validated public Supabase configuration', async () 
   })).text();
   assert.equal(disabled, 'window.AXI_SUPABASE = null;\n');
 });
-test('account page supports registration, login, password reset and logout without exposing secrets', async () => {
+test('account page supports login, password reset and logout while registration stays after checkout', async () => {
   const response = await previewResponse('/preview/konto.html', 'GET', config);
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('X-Robots-Tag'), 'noindex, nofollow');
   const html = await response.text();
   assert.doesNotMatch(html, /PODGLĄD TESTOWY/);
   assert.match(html, /id="login-form"/);
-  assert.match(html, /id="register-form"/);
+  assert.doesNotMatch(html, /id="register-form"/);
   assert.match(html, /id="forgot-form"/);
   assert.match(html, /id="reset-form"/);
   assert.match(html, /id="logout-button"/);
@@ -126,12 +128,28 @@ test('account page supports registration, login, password reset and logout witho
   assert.ok(!html.includes(config.supabasePublishableKey));
   const script = await (await previewResponse('/preview/account.mjs', 'GET', config)).text();
   assert.match(script, /signInWithPassword/);
+  assert.doesNotMatch(script, /signUp/);
   assert.match(script, /resetPasswordForEmail/);
   assert.match(script, /updateUser/);
   assert.match(script, /signOut/);
   assert.match(script, /setProfileMenu/);
   assert.match(script, /from\('orders'\)/);
   assert.match(script, /from\('order_status_history'\)/);
+});
+test('paid preview return offers post-order registration, login and optional saved details', async () => {
+  const response = await previewResponse('/preview/success', 'GET', config);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Dziękujemy za zamówienie/);
+  assert.match(html, /id="register-form"/);
+  assert.match(html, /id="login-form"/);
+  assert.match(html, /Zapamiętaj moje dane kontaktowe i dostawy/);
+  assert.match(html, /src="\/preview\/preview-success\.mjs"/);
+  const script = await (await previewResponse('/preview/preview-success.mjs', 'GET', config)).text();
+  assert.match(script, /signUp/);
+  assert.match(script, /signInWithPassword/);
+  assert.match(script, /action: 'claim'/);
+  assert.match(script, /rememberData/);
 });
 test('hidden admin panel manages assignments and statuses without embedding secrets', async () => {
   const response = await previewResponse('/preview/admin.html', 'GET', config);
@@ -164,6 +182,14 @@ test('order portal migration enables RLS and restricts writes to administrators'
   assert.match(sql, /grant select, insert, update on table public\.orders to authenticated/);
   assert.doesNotMatch(sql, /grant\s+(?:all|insert|update)[^;]+\s+to\s+anon/i);
 });
+test('post-order migration stores payment references and optional reusable customer details', async () => {
+  const sql = await readFile(new URL('../supabase/migrations/20261127213000_add_post_order_accounts.sql', import.meta.url), 'utf8');
+  assert.match(sql, /add column if not exists customer_name/);
+  assert.match(sql, /add column if not exists saved_data_at/);
+  assert.match(sql, /add column if not exists payment_reference/);
+  assert.match(sql, /unique index if not exists orders_payment_reference_unique_idx/);
+  assert.doesNotMatch(sql, /grant\s+(?:all|insert|update)[^;]+\s+to\s+anon/i);
+});
 test('preview does not rewrite remote references or empty image placeholders', () => {
   const html = renderPreviewHtml('<html><head></head><body><img src=""><img src="https://cdn.example/photo.png"><a href="regulamin.html">Regulamin</a></body></html>', config.siteOrigin);
   assert.match(html, /src=""/);
@@ -174,7 +200,7 @@ test('preview checkout returns to preview and rejects any non-test Stripe sessio
   const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', customerName: 'Jan Kowalski', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }] };
   const origin = 'https://axi-checkout.onrender.com';
   const params = stripeParameters(order, origin, true);
-  assert.equal(params.get('success_url'), origin + '/preview/success');
+  assert.equal(params.get('success_url'), origin + '/preview/success?session_id={CHECKOUT_SESSION_ID}');
   assert.equal(params.get('cancel_url'), origin + '/preview/#zamow');
   assert.equal(params.get('metadata[preview]'), 'true');
   const request = () => new Request(origin + '/preview/checkout-session', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(order) });

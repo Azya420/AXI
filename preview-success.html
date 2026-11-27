@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Dziękujemy za zamówienie — AXI TEST</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#100916;--surface:#1a1023;--surface-2:#130b1a;--ink:#f4eefb;--muted:#b7a8c9;--faint:#7c6c93;--violet:#6d28d9;--violet-2:#a78bfa;--bronze:#c9a24b;--line:rgba(167,139,250,.2);--danger:#fca5a5;--success:#86efac}
+    *{box-sizing:border-box}html{color-scheme:dark}body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1.55 Sora,sans-serif}body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse 850px 520px at 50% -15%,rgba(109,40,217,.27),transparent 64%);pointer-events:none}
+    a{color:inherit}.wrap{width:min(100% - 32px,760px);margin-inline:auto}header{position:relative;z-index:2;border-bottom:1px solid var(--line);background:rgba(16,9,22,.9)}nav{height:92px;display:grid;place-items:center}.logo img{display:block;width:92px;height:92px;object-fit:contain}
+    main{position:relative;z-index:1;padding:58px 0 80px}.hero{text-align:center;margin-bottom:28px}.eyebrow{color:var(--bronze);font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;margin:0 0 10px}.hero h1{font:600 clamp(2rem,7vw,3.6rem)/1.08 Cinzel,serif;margin:0 0 14px}.hero p{color:var(--muted);margin:0 auto;max-width:620px}
+    .card{background:rgba(26,16,35,.95);border:1px solid var(--line);padding:30px;box-shadow:0 24px 70px rgba(0,0,0,.3)}.payment-state{text-align:center}.payment-state h2,.account-card h2{font:600 1.35rem Cinzel,serif;margin:0 0 8px}.payment-state p,.account-card>p{color:var(--muted);margin:0}.spinner{width:34px;height:34px;border:3px solid rgba(167,139,250,.18);border-top-color:var(--violet-2);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 18px}@keyframes spin{to{transform:rotate(360deg)}}
+    .order-summary{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:18px;color:var(--muted);font-size:.82rem}.order-summary strong{color:var(--ink)}.account-card{margin-top:18px}.tabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);margin:20px 0}.tab{border:0;background:transparent;color:var(--muted);padding:12px;cursor:pointer;font:600 .86rem Sora,sans-serif}.tab[aria-selected="true"]{background:var(--violet);color:#fff}
+    form{display:grid;gap:15px}.field{display:grid;gap:7px}label{font-size:.82rem;color:var(--muted)}input{width:100%;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:13px 14px;font:inherit;border-radius:0}input:focus{outline:2px solid rgba(167,139,250,.45);outline-offset:1px;border-color:var(--violet-2)}input[readonly]{color:var(--muted)}.hint{font-size:.75rem;color:var(--faint);margin:0}.check{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;color:var(--muted);font-size:.8rem}.check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--violet)}
+    .button{appearance:none;border:1px solid var(--violet);background:var(--violet);color:#fff;padding:13px 18px;font:600 .88rem Sora,sans-serif;cursor:pointer;text-decoration:none;text-align:center}.button:hover,.button:focus-visible{background:var(--violet-2);border-color:var(--violet-2);color:#150a22}.button:disabled{opacity:.55;cursor:wait}.button-secondary{background:transparent;border-color:var(--line);color:var(--ink)}.status{font-size:.82rem;padding:11px 12px;border:1px solid var(--line);color:var(--muted);background:var(--surface-2);margin-bottom:16px}.status.error{border-color:rgba(252,165,165,.45);color:var(--danger)}.status.success{border-color:rgba(134,239,172,.4);color:var(--success)}.actions{display:grid;gap:10px;margin-top:20px}.privacy{font-size:.74rem;color:var(--faint);margin:0}.test-note{font-size:.76rem;color:var(--faint);text-align:center;margin-top:18px}[hidden]{display:none!important}
+    @media(max-width:520px){header nav{height:78px}.logo img{width:78px;height:78px}main{padding-top:38px}.card{padding:23px 18px}.tabs{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header><nav><a class="logo" href="/preview/" aria-label="AXI — strona testowa"><img src="https://axi3d.pl/logo%20white.png" alt="AXI"></a></nav></header>
+  <main class="wrap">
+    <section class="hero"><p class="eyebrow">Zamówienie testowe</p><h1>Dziękujemy za zamówienie</h1><p id="hero-copy">Sprawdzamy płatność i przygotowujemy możliwość przypisania zamówienia do konta.</p></section>
+
+    <section class="card payment-state" id="payment-state" aria-live="polite">
+      <div class="spinner" id="payment-spinner" aria-hidden="true"></div>
+      <h2 id="payment-title">Weryfikujemy płatność…</h2>
+      <p id="payment-message">Nie zamykaj tej karty. Zwykle trwa to kilka sekund.</p>
+      <div class="order-summary" id="order-summary" hidden><span>Zamówienie: <strong id="order-number"></strong></span><span>Kwota: <strong id="order-amount"></strong></span></div>
+      <div class="actions" id="payment-actions" hidden><a class="button button-secondary" href="/preview/#zamow">Wróć do formularza</a></div>
+    </section>
+
+    <section class="card account-card" id="account-card" hidden aria-labelledby="account-title">
+      <h2 id="account-title">Dodaj zamówienie do swojego konta</h2>
+      <p id="account-intro">Utwórz konto albo zaloguj się. Historia i status tego zamówienia pojawią się od razu w panelu klienta.</p>
+      <div id="account-status" class="status" role="status" aria-live="polite" hidden></div>
+
+      <div id="auth-area">
+        <div class="tabs" role="tablist" aria-label="Utworzenie konta lub logowanie">
+          <button class="tab" id="register-tab" type="button" role="tab" aria-selected="true" aria-controls="register-panel">Utwórz konto</button>
+          <button class="tab" id="login-tab" type="button" role="tab" aria-selected="false" aria-controls="login-panel">Mam już konto</button>
+        </div>
+        <div id="register-panel" role="tabpanel" aria-labelledby="register-tab">
+          <form id="register-form">
+            <div class="field"><label for="register-email">Adres e-mail z zamówienia</label><input id="register-email" name="email" type="email" autocomplete="email" readonly required></div>
+            <div class="field"><label for="register-password">Hasło</label><input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="200" required aria-describedby="password-hint"><p class="hint" id="password-hint">Minimum 8 znaków, mała i wielka litera oraz cyfra.</p></div>
+            <div class="field"><label for="register-password-confirm">Powtórz hasło</label><input id="register-password-confirm" name="password-confirm" type="password" autocomplete="new-password" minlength="8" maxlength="200" required></div>
+            <label class="check"><input name="remember" type="checkbox" checked><span>Zapamiętaj moje dane kontaktowe i dostawy do kolejnych zamówień.</span></label>
+            <button class="button" type="submit">Utwórz konto i przypisz zamówienie</button>
+            <p class="privacy">To jest środowisko testowe. Nie używaj hasła wykorzystywanego w innych serwisach.</p>
+          </form>
+        </div>
+        <div id="login-panel" role="tabpanel" aria-labelledby="login-tab" hidden>
+          <form id="login-form">
+            <div class="field"><label for="login-email">Adres e-mail z zamówienia</label><input id="login-email" name="email" type="email" autocomplete="email" readonly required></div>
+            <div class="field"><label for="login-password">Hasło</label><input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="200" required></div>
+            <label class="check"><input name="remember" type="checkbox" checked><span>Zapamiętaj moje dane kontaktowe i dostawy do kolejnych zamówień.</span></label>
+            <button class="button" type="submit">Zaloguj się i przypisz zamówienie</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="actions" id="success-actions" hidden><a class="button" href="/preview/konto.html">Zobacz historię zamówień</a><a class="button button-secondary" href="/preview/">Wróć do strony</a></div>
+    </section>
+    <p class="test-note">Płatność i zamówienie w tym widoku są testowe — nie rozpoczynają realizacji figurki.</p>
+  </main>
+  <script src="/preview/supabase-config.js"></script>
+  <script type="module" src="/preview/preview-success.mjs"></script>
+</body>
+</html>

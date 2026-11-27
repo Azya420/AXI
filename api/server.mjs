@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { handleCheckout } from './checkout.mjs';
 import { handleStripeWebhook } from './order-confirmation.mjs';
+import { handlePreviewOrderAccount } from './supabase-orders.mjs';
 import { isTestKey, previewResponse } from './preview.mjs';
 import { P24_PRODUCTION_API, P24_PRODUCTION_GATEWAY, handleP24TestAccess, handleP24Register, handleP24Notification, handleP24Status, p24ReturnLocation } from './p24-sandbox.mjs';
 import { PRICING_VERSION } from '../pricing.mjs';
@@ -13,6 +14,7 @@ const config = {
   stripeKey: process.env.STRIPE_SECRET_KEY,
   supabaseUrl: process.env.SUPABASE_URL,
   supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
+  supabaseSecretKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
   reportStripeError: diagnostic => console.error('[axi-checkout]', JSON.stringify(diagnostic)),
   reportP24Error: diagnostic => console.error('[axi-p24]', JSON.stringify(diagnostic)),
@@ -198,7 +200,22 @@ const server = createServer(async (req, res) => {
     return;
   }
   const previewCheckout = pathname === '/preview/checkout-session';
+  const previewOrderAccount = pathname === '/preview/order-account';
   if (pathname === '/preview' || pathname.startsWith('/preview/')) {
+    if (previewOrderAccount) {
+      if (!isTestKey(config.stripeKey)) { res.writeHead(404); res.end(); return; }
+      try {
+        const options = { method: req.method, headers: req.headers };
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) { options.body = Readable.toWeb(req); options.duplex = 'half'; }
+        const response = await handlePreviewOrderAccount(new Request('https://axi-api.invalid/preview/order-account', options), config);
+        res.writeHead(response.status, Object.fromEntries(response.headers));
+        res.end(await response.text());
+      } catch {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'System kont jest chwilowo niedostępny.' }));
+      }
+      return;
+    }
     if (!previewCheckout) {
       try {
         const response = await previewResponse(pathname, req.method, config);

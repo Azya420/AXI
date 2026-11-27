@@ -676,6 +676,7 @@ export function initOrderForm(win) {
           items: checkoutItems,
           email: byId('email').value.trim(),
           customerName: byId('name').value.trim(),
+          phone: payload.get('telefon'),
           deliveryDestination,
           orderId,
           deliveryMethod: selectedDeliveryMethod,
