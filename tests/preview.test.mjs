@@ -15,7 +15,7 @@ test('preview assets require a test key and never expose arbitrary repository fi
   assert.ok(isTestKey('sk_test_fixture'));
   for (const stripeKey of [undefined, '', 'pk_test_fixture', 'rk_live_fixture', 'sk_live_fixture']) {
     assert.ok(!isTestKey(stripeKey));
-    for (const path of ['/preview/', '/preview/konto.html', '/preview/order-form.mjs', '/preview/checkout-config.js', '/preview/supabase-config.js']) {
+    for (const path of ['/preview/', '/preview/konto.html', '/preview/account-icon.svg', '/preview/order-form.mjs', '/preview/checkout-config.js', '/preview/supabase-config.js']) {
       assert.equal((await previewResponse(path, 'GET', { ...config, stripeKey })).status, 404);
     }
   }
@@ -53,7 +53,8 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('preview-send-basin'));
   assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
-  assert.match(html, /href="\/preview\/konto\.html">Moje konto<\/a>/);
+  assert.match(html, /class="axi-account-link" href="\/preview\/konto\.html" aria-label="Moje konto"/);
+  assert.match(html, /src="\/preview\/account-icon\.svg" alt=""/);
   assert.ok(!html.includes('data-field="sale-badge"'));
   assert.match(html, /Paczkomat InPost \(16,49 zł\)/);
   assert.match(html, /Na adres \(19,49 zł\)/);
@@ -65,6 +66,9 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('1665983241581980'));
   assert.ok(!html.includes(config.stripeKey));
   assert.match(await (await previewResponse('/preview/checkout-config.js', 'GET', config)).text(), /AXI_PREVIEW_MODE = true/);
+  const iconResponse = await previewResponse('/preview/account-icon.svg', 'GET', config);
+  assert.equal(iconResponse.headers.get('Content-Type'), 'image/svg+xml; charset=utf-8');
+  assert.match(await iconResponse.text(), /<title>Moje konto<\/title>/);
   assert.equal(await (await previewResponse('/preview/order-form.mjs', 'HEAD', config)).text(), '');
   assert.equal((await previewResponse('/preview', 'GET', config)).headers.get('Location'), '/preview/');
 });

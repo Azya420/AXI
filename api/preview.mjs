@@ -29,17 +29,20 @@ export function renderPreviewHtml(source, siteOrigin) {
     })
     .replace(/<title>[\s\S]*?<\/title>/i, '<title>TEST — nowy formularz AXI3D</title>')
     .replace('<a class="nav-cta" href="#zamow">Zamów figurkę</a>', `<div class="axi-nav-actions">
-      <a class="axi-account-link" href="/preview/konto.html">Moje konto</a>
       <a class="nav-cta" href="#zamow">Zamów figurkę</a>
+      <a class="axi-account-link" href="/preview/konto.html" aria-label="Moje konto" title="Moje konto">
+        <img src="/preview/account-icon.svg" alt="">
+      </a>
     </div>`)
     .replace('</head>', `<meta name="robots" content="noindex,nofollow">
 <style>
 .axi-preview-notice{position:relative;margin-top:90px;padding:20px 6%;background:#fff1bc;color:#211b0d;font:15px/1.5 sans-serif}
 .axi-preview-notice p{margin:8px 0}.axi-preview-notice a{color:#211b0d;text-decoration:underline}
 .axi-nav-actions{display:flex;align-items:center;gap:10px}
-.axi-account-link{border:1px solid rgba(167,139,250,.45);padding:9px 16px;color:#f4eefb;text-decoration:none;font-size:.82rem;white-space:nowrap}
-.axi-account-link:hover,.axi-account-link:focus-visible{border-color:#a78bfa;background:rgba(109,40,217,.18)}
-@media(max-width:680px){.axi-nav-actions{gap:6px}.axi-account-link{padding:8px 10px;font-size:.72rem}}
+.axi-account-link{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;text-decoration:none;transition:background .2s,filter .2s,transform .2s}
+.axi-account-link img{display:block;width:42px;height:42px}
+.axi-account-link:hover,.axi-account-link:focus-visible{background:rgba(109,40,217,.2);filter:drop-shadow(0 0 7px rgba(167,139,250,.42));transform:translateY(-1px);outline:none}
+@media(max-width:680px){.axi-nav-actions{gap:7px}.axi-account-link{width:40px;height:40px}.axi-account-link img{width:38px;height:38px}}
 #cookie-banner{display:none!important}
 </style></head>`)
     .replace(/(<body\b[^>]*>)/i, '$1' + notice);
@@ -70,6 +73,9 @@ export async function previewResponse(pathname, method, config) {
   }
   if (pathname === '/preview/konto.html') {
     return send(await readFile(new URL('../konto.html', import.meta.url), 'utf8'), 'text/html');
+  }
+  if (pathname === '/preview/account-icon.svg') {
+    return send(await readFile(new URL('../account-icon.svg', import.meta.url), 'utf8'), 'image/svg+xml');
   }
   if (Object.hasOwn(modules, pathname)) return send(await readFile(modules[pathname], 'utf8'), 'text/javascript');
   if (pathname === '/preview/checkout-config.js') {
