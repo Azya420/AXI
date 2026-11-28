@@ -55,11 +55,13 @@ async function supabaseJson(url, options, supabaseFetch) {
 function storageFailure(stage, response, body) {
   const status = response?.status || 0;
   const databaseCode = typeof body?.code === 'string' ? body.code : '';
-  const setupCode = [401, 403].includes(status)
-    ? 'SUPABASE_SECRET'
-    : ['PGRST204', '42703', '42P01'].includes(databaseCode)
-      ? 'SUPABASE_MIGRATION'
-      : 'SUPABASE_API';
+  const setupCode = ['PGRST204', '42703', '42P01'].includes(databaseCode)
+    ? 'SUPABASE_MIGRATION'
+    : databaseCode === '42501'
+      ? 'SUPABASE_PERMISSIONS'
+      : [401, 403].includes(status)
+        ? 'SUPABASE_SECRET'
+        : 'SUPABASE_API';
   return Object.assign(new Error('Supabase order storage failed'), { setupCode, stage, status });
 }
 

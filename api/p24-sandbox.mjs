@@ -274,7 +274,7 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
     await config.onP24Prepared?.({ sessionId, order, amount, currency, environment: environmentName(config) });
   } catch (error) {
     const setupCode = environmentName(config) === 'sandbox' &&
-      ['SUPABASE_SECRET', 'SUPABASE_MIGRATION', 'SUPABASE_API'].includes(error?.setupCode)
+      ['SUPABASE_SECRET', 'SUPABASE_MIGRATION', 'SUPABASE_PERMISSIONS', 'SUPABASE_API'].includes(error?.setupCode)
       ? error.setupCode
       : undefined;
     config.reportP24Error?.({
