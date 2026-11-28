@@ -141,7 +141,9 @@ test('registration stops safely when the prepared order cannot be stored', async
   let providerCalls = 0;
   const callbackConfig = {
     ...config,
-    onP24Prepared: async () => { throw new Error('database unavailable'); }
+    onP24Prepared: async () => {
+      throw Object.assign(new Error('database unavailable'), { setupCode: 'SUPABASE_MIGRATION', stage: 'lookup', status: 400 });
+    }
   };
   const response = await handleP24Register(request(), callbackConfig, async () => {
     providerCalls++;
@@ -149,7 +151,9 @@ test('registration stops safely when the prepared order cannot be stored', async
   });
   assert.equal(response.status, 503);
   assert.equal(providerCalls, 0);
-  assert.match((await response.json()).error, /zapisać zamówienia/);
+  const result = await response.json();
+  assert.match(result.error, /zapisać zamówienia/);
+  assert.equal(result.setupCode, 'SUPABASE_MIGRATION');
 });
 
 test('registration rejects foreign origins, production-independent missing config and Stripe promotion codes', async () => {

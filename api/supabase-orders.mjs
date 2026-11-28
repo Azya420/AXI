@@ -52,6 +52,17 @@ async function supabaseJson(url, options, supabaseFetch) {
   return { response, body };
 }
 
+function storageFailure(stage, response, body) {
+  const status = response?.status || 0;
+  const databaseCode = typeof body?.code === 'string' ? body.code : '';
+  const setupCode = [401, 403].includes(status)
+    ? 'SUPABASE_SECRET'
+    : ['PGRST204', '42703', '42P01'].includes(databaseCode)
+      ? 'SUPABASE_MIGRATION'
+      : 'SUPABASE_API';
+  return Object.assign(new Error('Supabase order storage failed'), { setupCode, stage, status });
+}
+
 async function authenticatedUser(request, config, supabaseFetch) {
   const authorization = request.headers.get('Authorization') || '';
   const match = authorization.match(/^Bearer ([A-Za-z0-9._-]{20,})$/);
@@ -72,7 +83,7 @@ async function orderByPaymentReference(config, sessionId, supabaseFetch) {
   const { response, body } = await supabaseJson(config.supabaseUrl + '/rest/v1/orders?' + query, {
     method: 'GET', headers: supabaseHeaders(config.supabaseSecretKey, { Accept: 'application/json' })
   }, supabaseFetch);
-  if (!response.ok || !Array.isArray(body)) throw new Error('Supabase order lookup failed');
+  if (!response.ok || !Array.isArray(body)) throw storageFailure('lookup', response, body);
   return body[0] || null;
 }
 
@@ -115,7 +126,7 @@ export async function savePendingP24Order(prepared, config, supabaseFetch = fetc
     ? config.supabaseUrl + '/rest/v1/orders?id=eq.' + encodeURIComponent(existing.id)
     : config.supabaseUrl + '/rest/v1/orders';
   const { response, body } = await writeOrder(config, target, existing ? 'PATCH' : 'POST', record, supabaseFetch);
-  if (!response.ok || !Array.isArray(body) || !body[0]) throw new Error('Supabase pending order save failed');
+  if (!response.ok || !Array.isArray(body) || !body[0]) throw storageFailure('write', response, body);
   return body[0];
 }
 
@@ -131,7 +142,7 @@ export async function markP24OrderPaid(sessionId, config, supabaseFetch = fetch)
     { status: 'paid', status_message: 'Płatność testowa Przelewy24 została potwierdzona.' },
     supabaseFetch
   );
-  if (!response.ok || !Array.isArray(body) || !body[0]) throw new Error('Supabase paid order update failed');
+  if (!response.ok || !Array.isArray(body) || !body[0]) throw storageFailure('paid_update', response, body);
   return body[0];
 }
 
