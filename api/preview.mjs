@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 
 export const isTestKey = key => typeof key === 'string' && /^(?:rk|sk)_test_/.test(key);
 
@@ -17,13 +17,26 @@ export function isSupabasePublicConfig(config) {
     url.hostname.endsWith('.supabase.co') && /^sb_publishable_[A-Za-z0-9_-]{20,}$/.test(config.supabasePublishableKey);
 }
 
+function previewAssetPath(value) {
+  const match = value.match(/^([^?#]*)([?#].*)?$/);
+  let filename = match?.[1] || value;
+  try { filename = decodeURIComponent(filename); } catch { /* Whitelista odrzuci nieprawidłowy adres. */ }
+  return '/preview/assets/' + encodeURIComponent(filename) + (match?.[2] || '');
+}
+
 export function renderPreviewHtml(source, siteOrigin) {
   let html = source
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, script => script.includes('var GA_ID') ? '' : script)
     .replace(/<script\b[^>]*\bdata-analytics\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/\b(src|href|data-full|data-ref)="([^"]+)"/g, (full, attribute, value) => {
       if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(value)) return full;
-      if (/\.(?:png|jpe?g|webp|svg|gif|ico)(?:[?#]|$)/i.test(value) || value === 'regulamin.html') {
+      if (/\.(?:png|jpe?g|webp|svg|gif|ico)(?:[?#]|$)/i.test(value)) {
+        const rewritten = attribute === 'data-ref'
+          ? value.split(',').map(previewAssetPath).join(',')
+          : previewAssetPath(value);
+        return attribute + '="' + rewritten + '"';
+      }
+      if (value === 'regulamin.html') {
         return attribute + '="' + new URL(value, siteOrigin + '/').href + '"';
       }
       return full;
@@ -68,6 +81,20 @@ const modules = {
   '/preview/saved-customer.mjs': new URL('../saved-customer.mjs', import.meta.url)
 };
 
+const assetTypes = new Map([
+  ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'],
+  ['.svg', 'image/svg+xml'], ['.gif', 'image/gif'], ['.ico', 'image/x-icon']
+]);
+const assetRoot = new URL('../', import.meta.url);
+const assets = new Map((await readdir(assetRoot, { withFileTypes: true }))
+  .filter(entry => entry.isFile())
+  .map(entry => [entry, entry.name.slice(entry.name.lastIndexOf('.')).toLowerCase()])
+  .filter(([, extension]) => assetTypes.has(extension))
+  .map(([entry, extension]) => [
+    '/preview/assets/' + encodeURIComponent(entry.name),
+    { file: new URL(entry.name, assetRoot), type: assetTypes.get(extension) }
+  ]));
+
 export async function previewResponse(pathname, method, config) {
   if (!isP24PreviewConfig(config)) return new Response('Podgląd testowy jest wyłączony.', { status: 404, headers });
   if (!['GET', 'HEAD'].includes(method)) return new Response(null, { status: 405, headers });
@@ -84,6 +111,12 @@ export async function previewResponse(pathname, method, config) {
   }
   if (pathname === '/preview/account-icon.svg') {
     return send(await readFile(new URL('../account-icon.svg', import.meta.url), 'utf8'), 'image/svg+xml');
+  }
+  if (assets.has(pathname)) {
+    const asset = assets.get(pathname);
+    return new Response(method === 'HEAD' ? null : await readFile(asset.file), {
+      headers: { ...headers, 'Content-Type': asset.type }
+    });
   }
   if (Object.hasOwn(modules, pathname)) return send(await readFile(modules[pathname], 'utf8'), 'text/javascript');
   if (pathname === '/preview/checkout-config.js') {

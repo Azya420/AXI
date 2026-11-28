@@ -53,7 +53,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(html.indexOf('id="promo-spotlight"') < html.indexOf('<form id="commission-form"'));
   assert.ok(!html.includes('id="shipping-cost-label"'));
   assert.ok(!html.includes('preview-send-basin'));
-  assert.match(html, /src="https:\/\/axi3d.pl\/logo%20white.png"/);
+  assert.match(html, /src="\/preview\/assets\/logo%20white.png"/);
   assert.match(html, /href="#zamow"/);
   assert.match(html, /class="axi-account-link" href="\/preview\/konto\.html" aria-label="Moje konto"/);
   assert.match(html, /src="\/preview\/account-icon\.svg" alt=""/);
@@ -209,6 +209,16 @@ test('preview does not rewrite remote references or empty image placeholders', (
   assert.match(html, /src=""/);
   assert.match(html, /src="https:\/\/cdn.example\/photo.png"/);
   assert.match(html, /href="https:\/\/axi3d.pl\/regulamin.html"/);
+});
+test('preview serves only whitelisted image assets from the test branch', async () => {
+  const html = renderPreviewHtml('<img src="logo%20white.png" data-ref="DUCHMIN.png,PTAKMIN.png">', config.siteOrigin);
+  assert.match(html, /src="\/preview\/assets\/logo%20white.png"/);
+  assert.match(html, /data-ref="\/preview\/assets\/DUCHMIN.png,\/preview\/assets\/PTAKMIN.png"/);
+  const image = await previewResponse('/preview/assets/logo%20white.png', 'GET', config);
+  assert.equal(image.status, 200);
+  assert.equal(image.headers.get('Content-Type'), 'image/png');
+  assert.ok((await image.arrayBuffer()).byteLength > 100);
+  assert.equal((await previewResponse('/preview/assets/api%2Fserver.mjs', 'GET', config)).status, 404);
 });
 test('preview checkout uses only Przelewy24 sandbox and returns to the account success page', async () => {
   const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', customerName: 'Jan Kowalski', phone: '+48600123456', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }] };
