@@ -21,7 +21,7 @@ function previewAssetPath(value) {
   const match = value.match(/^([^?#]*)([?#].*)?$/);
   let filename = match?.[1] || value;
   try { filename = decodeURIComponent(filename); } catch { /* Whitelista odrzuci nieprawidłowy adres. */ }
-  return '/preview/assets/' + encodeURIComponent(filename) + (match?.[2] || '');
+  return '/preview/assets/' + encodeURIComponent(filename) + (match?.[2] || '?v=20261128-preview-assets-v1');
 }
 
 export function renderPreviewHtml(source, siteOrigin) {

@@ -53,7 +53,7 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(html.indexOf('id="promo-spotlight"') < html.indexOf('<form id="commission-form"'));
   assert.ok(!html.includes('id="shipping-cost-label"'));
   assert.ok(!html.includes('preview-send-basin'));
-  assert.match(html, /src="\/preview\/assets\/logo%20white.png"/);
+  assert.match(html, /src="\/preview\/assets\/logo%20white.png\?v=20261128-preview-assets-v1"/);
   assert.match(html, /href="#zamow"/);
   assert.match(html, /class="axi-account-link" href="\/preview\/konto\.html" aria-label="Moje konto"/);
   assert.match(html, /src="\/preview\/account-icon\.svg" alt=""/);
@@ -212,8 +212,8 @@ test('preview does not rewrite remote references or empty image placeholders', (
 });
 test('preview serves only whitelisted image assets from the test branch', async () => {
   const html = renderPreviewHtml('<img src="logo%20white.png" data-ref="DUCHMIN.png,PTAKMIN.png">', config.siteOrigin);
-  assert.match(html, /src="\/preview\/assets\/logo%20white.png"/);
-  assert.match(html, /data-ref="\/preview\/assets\/DUCHMIN.png,\/preview\/assets\/PTAKMIN.png"/);
+  assert.match(html, /src="\/preview\/assets\/logo%20white.png\?v=20261128-preview-assets-v1"/);
+  assert.match(html, /data-ref="\/preview\/assets\/DUCHMIN.png\?v=20261128-preview-assets-v1,\/preview\/assets\/PTAKMIN.png\?v=20261128-preview-assets-v1"/);
   const image = await previewResponse('/preview/assets/logo%20white.png', 'GET', config);
   assert.equal(image.status, 200);
   assert.equal(image.headers.get('Content-Type'), 'image/png');
