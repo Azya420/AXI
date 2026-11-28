@@ -511,13 +511,13 @@ export function initOrderForm(win) {
       error.retryable = true;
       throw error;
     }
-    const validPreview = preview && url.protocol === 'https:' && url.hostname === 'checkout.stripe.com' &&
-      /^\/[A-Za-z0-9_-]+\/pay\/cs_test_[A-Za-z0-9]+\/?$/.test(url.pathname);
+    const validPreview = preview && url.protocol === 'https:' && url.hostname === 'sandbox.przelewy24.pl' &&
+      /^\/trnRequest\/[A-Za-z0-9-]{10,100}\/?$/.test(url.pathname);
     const validProduction = !preview && url.protocol === 'https:' && url.hostname === 'secure.przelewy24.pl' &&
       /^\/trnRequest\/[A-Za-z0-9-]{10,100}\/?$/.test(url.pathname);
     if (!validPreview && !validProduction) {
       const error = new Error(preview
-        ? 'Podgląd obsługuje wyłącznie płatności testowe.'
+        ? 'Podgląd obsługuje wyłącznie testowe płatności Przelewy24.'
         : 'Płatności są chwilowo niedostępne. Skontaktuj się z nami: kontakt@axi3d.pl.');
       // Zła domena lub tryb sesji to błąd bezpieczeństwa, a nie przejściowa awaria.
       error.retryable = false;
@@ -687,7 +687,7 @@ export function initOrderForm(win) {
         const { data, url } = prepared;
         paymentUrl = url.href;
         // Wymagane również BEZ kodu: starszy backend może naliczać dawną cenę.
-        const expectedCheckoutVersion = preview ? 5 : 'p24-production-v1';
+        const expectedCheckoutVersion = preview ? 'p24-preview-v1' : 'p24-production-v1';
         const invalidShipping = !Number.isInteger(data.shippingAmount) || data.shippingAmount < 0 ||
           data.shippingAmount > shippingAmount || (!promotionCode && data.shippingAmount !== shippingAmount);
         if (data.checkoutVersion !== expectedCheckoutVersion || data.pricingVersion !== PRICING_VERSION ||

@@ -271,6 +271,13 @@ export async function handleP24Register(request, config, p24Fetch = fetch) {
   if (!fixedAmount) payload.shipping = promotion.shippingAmount;
 
   try {
+    await config.onP24Prepared?.({ sessionId, order, amount, currency, environment: environmentName(config) });
+  } catch {
+    config.reportP24Error?.({ event: 'p24_order_storage_failed' });
+    return json(503, { error: 'Nie udało się bezpiecznie zapisać zamówienia przed płatnością. Spróbuj ponownie.' }, headers);
+  }
+
+  try {
     const response = await p24Fetch(apiBase(config) + '/transaction/register', {
       method: 'POST',
       headers: { Authorization: auth(config), 'Content-Type': 'application/json' },

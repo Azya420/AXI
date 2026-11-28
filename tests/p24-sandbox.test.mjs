@@ -116,6 +116,42 @@ test('registration calculates the trusted server total and returns only a sandbo
   assert.deepEqual(parseP24SessionId(sent.sessionId, config.p24.crc), { orderId, amount: 13449 });
 });
 
+test('registration stores the prepared order before contacting Przelewy24', async () => {
+  const events = [];
+  const callbackConfig = {
+    ...config,
+    onP24Prepared: prepared => {
+      events.push('stored');
+      assert.equal(prepared.order.orderId, orderId);
+      assert.equal(prepared.amount, 13449);
+      assert.equal(prepared.currency, 'PLN');
+      assert.equal(prepared.environment, 'sandbox');
+    }
+  };
+  const provider = async () => {
+    events.push('provider');
+    return Response.json({ data: { token: 'prepared-12345678-abcd-4321-abcd-123456789012' }, responseCode: 0 });
+  };
+  const response = await handleP24Register(request(), callbackConfig, provider);
+  assert.equal(response.status, 200);
+  assert.deepEqual(events, ['stored', 'provider']);
+});
+
+test('registration stops safely when the prepared order cannot be stored', async () => {
+  let providerCalls = 0;
+  const callbackConfig = {
+    ...config,
+    onP24Prepared: async () => { throw new Error('database unavailable'); }
+  };
+  const response = await handleP24Register(request(), callbackConfig, async () => {
+    providerCalls++;
+    return Response.json({ data: { token: 'must-not-be-used' } });
+  });
+  assert.equal(response.status, 503);
+  assert.equal(providerCalls, 0);
+  assert.match((await response.json()).error, /zapisać zamówienia/);
+});
+
 test('registration rejects foreign origins, production-independent missing config and Stripe promotion codes', async () => {
   const never = () => { throw new Error('Unexpected P24 request'); };
   assert.equal((await handleP24Register(request(order, 'https://attacker.example'), config, never)).status, 403);

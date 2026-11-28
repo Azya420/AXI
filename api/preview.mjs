@@ -2,6 +2,13 @@ import { readFile } from 'node:fs/promises';
 
 export const isTestKey = key => typeof key === 'string' && /^(?:rk|sk)_test_/.test(key);
 
+export function isP24PreviewConfig(config) {
+  return Number.isSafeInteger(config?.p24?.merchantId) && config.p24.merchantId > 0 &&
+    Number.isSafeInteger(config?.p24?.posId) && config.p24.posId > 0 &&
+    typeof config?.p24?.apiKey === 'string' && config.p24.apiKey.length > 0 &&
+    typeof config?.p24?.crc === 'string' && config.p24.crc.length > 0;
+}
+
 export function isSupabasePublicConfig(config) {
   if (!config || typeof config.supabaseUrl !== 'string' || typeof config.supabasePublishableKey !== 'string') return false;
   let url;
@@ -62,7 +69,7 @@ const modules = {
 };
 
 export async function previewResponse(pathname, method, config) {
-  if (!isTestKey(config.stripeKey)) return new Response('Podgląd testowy jest wyłączony.', { status: 404, headers });
+  if (!isP24PreviewConfig(config)) return new Response('Podgląd testowy jest wyłączony.', { status: 404, headers });
   if (!['GET', 'HEAD'].includes(method)) return new Response(null, { status: 405, headers });
   const send = (body, type) => new Response(method === 'HEAD' ? null : body, { headers: { ...headers, 'Content-Type': type + '; charset=utf-8' } });
   if (pathname === '/preview') return new Response(null, { status: 307, headers: { ...headers, Location: '/preview/' } });
@@ -80,7 +87,7 @@ export async function previewResponse(pathname, method, config) {
   }
   if (Object.hasOwn(modules, pathname)) return send(await readFile(modules[pathname], 'utf8'), 'text/javascript');
   if (pathname === '/preview/checkout-config.js') {
-    return send("window.AXI_PREVIEW_MODE = true;\nwindow.AXI_CHECKOUT_ENDPOINT = window.location.origin + '/preview/checkout-session';\n", 'text/javascript');
+    return send("window.AXI_PREVIEW_MODE = true;\nwindow.AXI_CHECKOUT_ENDPOINT = window.location.origin + '/preview/p24/register';\n", 'text/javascript');
   }
   if (pathname === '/preview/supabase-config.js') {
     const publicConfig = isSupabasePublicConfig(config)

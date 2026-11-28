@@ -12,8 +12,8 @@ function priceResponse(order, preview = false) {
   const saleSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).saleAmount + ((item.copies ?? 1) - 1) * getPrice(item.size).additionalCopyAmount, 0);
   const regularSubtotal = order.items.reduce((sum, item) => sum + getPrice(item.size).regularAmount + ((item.copies ?? 1) - 1) * getPrice(item.size).additionalCopyAmount, 0);
   const shippingAmount = getDeliveryOption(order.deliveryMethod || 'address').amount;
-  return { url: preview ? 'https://checkout.stripe.com/c/pay/cs_test_preview' : 'https://secure.przelewy24.pl/trnRequest/ProductionFixture123',
-    checkoutVersion: preview ? 5 : 'p24-production-v1', pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
+  return { url: preview ? 'https://sandbox.przelewy24.pl/trnRequest/PreviewFixture123' : 'https://secure.przelewy24.pl/trnRequest/ProductionFixture123',
+    checkoutVersion: preview ? 'p24-preview-v1' : 'p24-production-v1', pricingVersion: PRICING_VERSION, subtotal, saleSubtotal, regularSubtotal,
     automaticDiscount: regularSubtotal - saleSubtotal, bulkDiscount: saleSubtotal - subtotal,
     bulkPricing: order.items.length >= BULK_MIN_FIGURINES, deliveryMethod: order.deliveryMethod || 'address', shippingAmount,
     total: subtotal + shippingAmount, discount: 0, currency: 'pln', promotionCode: '' };
@@ -364,15 +364,15 @@ test('preview skips Basin and uploads while retaining the real order flow', asyn
   assert.equal(s.calls.length, 1);
   assert.ok(s.calls[0].url.includes('/checkout-session'));
   assert.deepEqual(JSON.parse(s.calls[0].body).items, [{ size: 32, copies: 1, baseMode: 'standard', baseDiameter: null, baseHeight: null, measurementPoint: 'head', description: '' }]);
-  assert.deepEqual(s.redirects, ['https://checkout.stripe.com/c/pay/cs_test_preview']);
+  assert.deepEqual(s.redirects, ['https://sandbox.przelewy24.pl/trnRequest/PreviewFixture123']);
   s.dom.window.close();
 });
-test('preview cannot use a live Stripe URL or fall back to a legacy live Payment Link', async () => {
+test('preview cannot use a live payment URL or fall back to a legacy live Payment Link', async () => {
   const s = setup(true); s.size(0, '32'); s.fillShipping();
-  s.win.fetch = async () => Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_live_wrong' });
+  s.win.fetch = async () => Response.json({ url: 'https://secure.przelewy24.pl/trnRequest/ProductionFixture123' });
   await s.submit();
   assert.equal(s.redirects.length, 0);
-  assert.match(s.$('order-error').textContent, /wyłącznie płatności testowe/);
+  assert.match(s.$('order-error').textContent, /wyłącznie testowe płatności Przelewy24/);
   s.win.AXI_CHECKOUT_ENDPOINT = ''; s.$('open-shipping-btn').click(); await s.submit();
   assert.equal(s.redirects.length, 0);
   assert.match(s.$('order-error').textContent, /nie jest jeszcze dostępna/);

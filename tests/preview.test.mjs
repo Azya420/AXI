@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { isSupabasePublicConfig, isTestKey, previewResponse, renderPreviewHtml } from '../api/preview.mjs';
-import { handleCheckout, stripeParameters } from '../api/checkout.mjs';
+import { isP24PreviewConfig, isSupabasePublicConfig, previewResponse, renderPreviewHtml } from '../api/preview.mjs';
+import { P24_SANDBOX_GATEWAY, handleP24Register } from '../api/p24-sandbox.mjs';
 
 import { PRICING_VERSION } from '../pricing.mjs';
 
@@ -10,14 +10,15 @@ const config = {
   stripeKey: 'rk_test_fixture',
   siteOrigin: 'https://axi3d.pl',
   supabaseUrl: 'https://exampleproject.supabase.co',
-  supabasePublishableKey: `sb_publishable_${'a'.repeat(30)}`
+  supabasePublishableKey: `sb_publishable_${'a'.repeat(30)}`,
+  p24: { merchantId: 12345, posId: 12345, apiKey: 'sandbox-api', crc: 'sandbox-crc' }
 };
-test('preview assets require a test key and never expose arbitrary repository files', async () => {
-  assert.ok(isTestKey('sk_test_fixture'));
-  for (const stripeKey of [undefined, '', 'pk_test_fixture', 'rk_live_fixture', 'sk_live_fixture']) {
-    assert.ok(!isTestKey(stripeKey));
+test('preview assets require Przelewy24 sandbox configuration and never expose arbitrary repository files', async () => {
+  assert.ok(isP24PreviewConfig(config));
+  for (const p24 of [undefined, {}, { ...config.p24, merchantId: 0 }, { ...config.p24, apiKey: '' }, { ...config.p24, crc: '' }]) {
+    assert.ok(!isP24PreviewConfig({ ...config, p24 }));
     for (const path of ['/preview/', '/preview/konto.html', '/preview/admin.html', '/preview/success', '/preview/account-icon.svg', '/preview/order-form.mjs', '/preview/admin.mjs', '/preview/preview-success.mjs', '/preview/saved-customer.mjs', '/preview/checkout-config.js', '/preview/supabase-config.js']) {
-      assert.equal((await previewResponse(path, 'GET', { ...config, stripeKey })).status, 404);
+      assert.equal((await previewResponse(path, 'GET', { ...config, p24 })).status, 404);
     }
   }
   for (const path of ['/preview/.env', '/preview/api/server.mjs', '/preview/../api/checkout.mjs', '/preview/constructor']) {
@@ -68,7 +69,10 @@ test('preview renders the actual form, preserves navigation, loads public images
   assert.ok(!html.includes('connect.facebook.net'));
   assert.ok(!html.includes('1665983241581980'));
   assert.ok(!html.includes(config.stripeKey));
-  assert.match(await (await previewResponse('/preview/checkout-config.js', 'GET', config)).text(), /AXI_PREVIEW_MODE = true/);
+  const checkoutConfig = await (await previewResponse('/preview/checkout-config.js', 'GET', config)).text();
+  assert.match(checkoutConfig, /AXI_PREVIEW_MODE = true/);
+  assert.match(checkoutConfig, /\/preview\/p24\/register/);
+  assert.doesNotMatch(checkoutConfig, /stripe/i);
   const iconResponse = await previewResponse('/preview/account-icon.svg', 'GET', config);
   assert.equal(iconResponse.headers.get('Content-Type'), 'image/svg+xml; charset=utf-8');
   assert.match(await iconResponse.text(), /<title>Moje konto<\/title>/);
@@ -190,24 +194,44 @@ test('post-order migration stores payment references and optional reusable custo
   assert.match(sql, /unique index if not exists orders_payment_reference_unique_idx/);
   assert.doesNotMatch(sql, /grant\s+(?:all|insert|update)[^;]+\s+to\s+anon/i);
 });
+test('Przelewy24 preview migration stores the phone needed for optional profile reuse', async () => {
+  const sql = await readFile(new URL('../supabase/migrations/20261128100000_add_p24_preview_orders.sql', import.meta.url), 'utf8');
+  assert.match(sql, /add column if not exists customer_phone/);
+});
 test('preview does not rewrite remote references or empty image placeholders', () => {
   const html = renderPreviewHtml('<html><head></head><body><img src=""><img src="https://cdn.example/photo.png"><a href="regulamin.html">Regulamin</a></body></html>', config.siteOrigin);
   assert.match(html, /src=""/);
   assert.match(html, /src="https:\/\/cdn.example\/photo.png"/);
   assert.match(html, /href="https:\/\/axi3d.pl\/regulamin.html"/);
 });
-test('preview checkout returns to preview and rejects any non-test Stripe session', async () => {
-  const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', customerName: 'Jan Kowalski', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }] };
+test('preview checkout uses only Przelewy24 sandbox and returns to the account success page', async () => {
+  const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', customerName: 'Jan Kowalski', phone: '+48600123456', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }] };
   const origin = 'https://axi-checkout.onrender.com';
-  const params = stripeParameters(order, origin, true);
-  assert.equal(params.get('success_url'), origin + '/preview/success?session_id={CHECKOUT_SESSION_ID}');
-  assert.equal(params.get('cancel_url'), origin + '/preview/#zamow');
-  assert.equal(params.get('metadata[preview]'), 'true');
-  const request = () => new Request(origin + '/preview/checkout-session', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(order) });
-  const previewConfig = { ...config, preview: true, siteOrigin: origin, allowedOrigins: [origin] };
-  for (const livemode of [true, undefined, false]) {
-    const response = await handleCheckout(request(), previewConfig, async () => Response.json({ livemode, url: 'https://checkout.stripe.com/c/pay/cs_test_preview', amount_subtotal: 11800, amount_total: 13449, currency: 'pln', total_details: { amount_discount: 0, amount_shipping: 1649 } }));
-    assert.equal(response.status, livemode === false ? 200 : 502);
-  }
+  let sent;
+  let prepared;
+  const previewConfig = {
+    ...config, siteOrigin: origin, backendOrigin: origin, allowedOrigins: [origin],
+    p24Environment: 'sandbox', p24CheckoutVersion: 'p24-preview-v1',
+    p24ReturnPath: '/preview/p24/return', p24NotificationPath: '/preview/p24/notification',
+    onP24Prepared: value => { prepared = value; }
+  };
+  const response = await handleP24Register(new Request(origin + '/preview/p24/register', {
+    method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(order)
+  }), previewConfig, async (url, options) => {
+    assert.equal(new URL(url).hostname, 'sandbox.przelewy24.pl');
+    sent = JSON.parse(options.body);
+    return Response.json({ data: { token: 'preview-12345678-abcd-4321-abcd-123456789012' } });
+  });
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.url, P24_SANDBOX_GATEWAY + 'preview-12345678-abcd-4321-abcd-123456789012');
+  assert.equal(result.checkoutVersion, 'p24-preview-v1');
+  assert.equal(prepared.sessionId, sent.sessionId);
+  assert.equal(prepared.order.phone, '+48600123456');
+  assert.equal(sent.urlReturn, origin + '/preview/p24/return?sessionId=' + encodeURIComponent(sent.sessionId));
+  assert.equal(sent.urlStatus, origin + '/preview/p24/notification');
+  const formScript = await (await previewResponse('/preview/order-form.mjs', 'GET', config)).text();
+  assert.match(formScript, /sandbox\.przelewy24\.pl/);
+  assert.doesNotMatch(formScript, /checkout\.stripe\.com/);
 });
 

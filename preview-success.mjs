@@ -9,7 +9,7 @@ const elements = {
   registerTab: byId('register-tab'), loginTab: byId('login-tab'), registerPanel: byId('register-panel'), loginPanel: byId('login-panel'),
   registerForm: byId('register-form'), loginForm: byId('login-form')
 };
-const sessionId = new URLSearchParams(location.search).get('session_id') || '';
+const sessionId = new URLSearchParams(location.search).get('sessionId') || '';
 let order = null;
 let supabase = null;
 
@@ -64,7 +64,7 @@ async function claim(session, rememberData) {
   setStatus(result.remembered ? 'Zamówienie przypisano do konta, a dane zapisano na przyszłość.' : 'Zamówienie przypisano do konta.', 'success');
 }
 async function inspectPayment() {
-  if (!/^cs_test_[A-Za-z0-9]+$/.test(sessionId)) throw new Error('Brakuje prawidłowego identyfikatora płatności testowej.');
+  if (!/^axitest\.[0-9a-f-]{36}\.\d{2,9}\.[0-9a-f]{24}$/i.test(sessionId)) throw new Error('Brakuje prawidłowego identyfikatora płatności testowej Przelewy24.');
   order = await api({ action: 'inspect', sessionId });
   elements.paymentSpinner.hidden = true;
   elements.paymentTitle.textContent = 'Zamówienie zostało przyjęte';

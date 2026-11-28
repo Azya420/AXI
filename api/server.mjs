@@ -2,8 +2,8 @@ import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { handleCheckout } from './checkout.mjs';
 import { handleStripeWebhook } from './order-confirmation.mjs';
-import { handlePreviewOrderAccount } from './supabase-orders.mjs';
-import { isTestKey, previewResponse } from './preview.mjs';
+import { handlePreviewOrderAccount, markP24OrderPaid, savePendingP24Order } from './supabase-orders.mjs';
+import { previewResponse } from './preview.mjs';
 import { P24_PRODUCTION_API, P24_PRODUCTION_GATEWAY, handleP24TestAccess, handleP24Register, handleP24Notification, handleP24Status, p24ReturnLocation } from './p24-sandbox.mjs';
 import { PRICING_VERSION } from '../pricing.mjs';
 
@@ -25,6 +25,12 @@ const config = {
     posId: Number(process.env.P24_POS_ID || process.env.P24_SANDBOX_POS_ID || process.env.P24_MERCHANT_ID || process.env.P24_SANDBOX_MERCHANT_ID),
     apiKey: process.env.P24_API_KEY || process.env.P24_SECRET_ID || process.env.P24_SANDBOX_API_KEY,
     crc: process.env.P24_CRC || process.env.P24_CRC_KEY || process.env.P24_SANDBOX_CRC
+  },
+  p24Sandbox: {
+    merchantId: Number(process.env.P24_SANDBOX_MERCHANT_ID),
+    posId: Number(process.env.P24_SANDBOX_POS_ID || process.env.P24_SANDBOX_MERCHANT_ID),
+    apiKey: process.env.P24_SANDBOX_API_KEY,
+    crc: process.env.P24_SANDBOX_CRC
   },
   p24Live: {
     merchantId: Number(process.env.P24_LIVE_MERCHANT_ID),
@@ -85,6 +91,24 @@ const p24ProductionConfig = {
   p24NotificationPath: '/p24/notification',
   p24ResultPath: '/dziekujemy.html'
 };
+const previewP24Config = {
+  ...config,
+  siteOrigin: previewOrigin,
+  backendOrigin: previewOrigin,
+  allowedOrigins: [previewOrigin],
+  p24: config.p24Sandbox,
+  p24Environment: 'sandbox',
+  p24EnablePromotions: false,
+  p24IncludeOrderData: true,
+  p24SessionPrefix: 'axitest',
+  p24CheckoutVersion: 'p24-preview-v1',
+  p24Description: 'TEST AXI3D',
+  p24ReturnPath: '/preview/p24/return',
+  p24NotificationPath: '/preview/p24/notification',
+  p24ResultPath: '/preview/success',
+  onP24Prepared: prepared => savePendingP24Order(prepared, previewP24Config),
+  onP24Verified: ({ notification }) => markP24OrderPaid(notification.sessionId, previewP24Config)
+};
 // Ograniczenie globalne na proces; nie ufamy nagłówkom IP od klienta.
 // Przy skalowaniu do wielu procesów dodaj limit również w hostingu/proxy.
 let windowStarted = Date.now();
@@ -94,13 +118,18 @@ const server = createServer(async (req, res) => {
   if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     const confirmationConfigured = Boolean(config.stripeKey && config.webhookSecret && config.smtp.host && config.smtp.user && config.smtp.pass && config.smtp.from && config.smtp.secure);
-    const p24SandboxConfigured = Number.isSafeInteger(config.p24.merchantId) && config.p24.merchantId > 0 && Number.isSafeInteger(config.p24.posId) && config.p24.posId > 0 && Boolean(config.p24.apiKey && config.p24.crc);
+    const p24SandboxConfigured = Number.isSafeInteger(config.p24Sandbox.merchantId) && config.p24Sandbox.merchantId > 0 && Number.isSafeInteger(config.p24Sandbox.posId) && config.p24Sandbox.posId > 0 && Boolean(config.p24Sandbox.apiKey && config.p24Sandbox.crc);
     const p24LiveConfigured = Number.isSafeInteger(config.p24Live.merchantId) && config.p24Live.merchantId > 0 && Number.isSafeInteger(config.p24Live.posId) && config.p24Live.posId > 0 && Boolean(config.p24Live.apiKey && config.p24Live.crc);
     res.end(JSON.stringify({ ok: true, paymentProvider: 'przelewy24', checkoutConfigured: p24LiveConfigured, confirmationConfigured, p24SandboxConfigured, p24LiveConfigured, pricingVersion: PRICING_VERSION, revision: process.env.RENDER_GIT_COMMIT || null }));
     return;
   }
   if (pathname === '/p24-test/return' && req.method === 'GET') {
     res.writeHead(302, { Location: p24ReturnLocation(new Request('https://axi-api.invalid' + req.url), config), 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+  if (pathname === '/preview/p24/return' && req.method === 'GET') {
+    res.writeHead(302, { Location: p24ReturnLocation(new Request('https://axi-api.invalid' + req.url), previewP24Config), 'Cache-Control': 'no-store' });
     res.end();
     return;
   }
@@ -199,15 +228,38 @@ const server = createServer(async (req, res) => {
     }
     return;
   }
-  const previewCheckout = pathname === '/preview/checkout-session';
   const previewOrderAccount = pathname === '/preview/order-account';
+  const previewP24Route = ['/preview/p24/access', '/preview/p24/register', '/preview/p24/notification', '/preview/p24/status'].includes(pathname);
   if (pathname === '/preview' || pathname.startsWith('/preview/')) {
-    if (previewOrderAccount) {
-      if (!isTestKey(config.stripeKey)) { res.writeHead(404); res.end(); return; }
+    if (previewP24Route) {
+      if (Date.now() - windowStarted >= 60000) { windowStarted = Date.now(); requestsInWindow = 0; }
+      if (pathname === '/preview/p24/register' && req.method === 'POST' && ++requestsInWindow > 120) {
+        res.writeHead(429, { 'Retry-After': '60', 'Cache-Control': 'no-store' }); res.end(); return;
+      }
       try {
         const options = { method: req.method, headers: req.headers };
         if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) { options.body = Readable.toWeb(req); options.duplex = 'half'; }
-        const response = await handlePreviewOrderAccount(new Request('https://axi-api.invalid/preview/order-account', options), config);
+        const request = new Request('https://axi-api.invalid' + req.url, options);
+        const response = pathname === '/preview/p24/access'
+          ? await handleP24TestAccess(request, previewP24Config)
+          : pathname === '/preview/p24/register'
+            ? await handleP24Register(request, previewP24Config)
+            : pathname === '/preview/p24/notification'
+              ? await handleP24Notification(request, previewP24Config)
+              : await handleP24Status(request, previewP24Config);
+        res.writeHead(response.status, Object.fromEntries(response.headers));
+        res.end(await response.text());
+      } catch {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'Testowa usługa Przelewy24 jest chwilowo niedostępna.' }));
+      }
+      return;
+    }
+    if (previewOrderAccount) {
+      try {
+        const options = { method: req.method, headers: req.headers };
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) { options.body = Readable.toWeb(req); options.duplex = 'half'; }
+        const response = await handlePreviewOrderAccount(new Request('https://axi-api.invalid/preview/order-account', options), previewP24Config, previewP24Config);
         res.writeHead(response.status, Object.fromEntries(response.headers));
         res.end(await response.text());
       } catch {
@@ -216,20 +268,17 @@ const server = createServer(async (req, res) => {
       }
       return;
     }
-    if (!previewCheckout) {
-      try {
-        const response = await previewResponse(pathname, req.method, config);
-        res.writeHead(response.status, Object.fromEntries(response.headers));
-        res.end(await response.text());
-      } catch {
-        res.writeHead(500, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
-        res.end('Nie udało się wczytać podglądu.');
-      }
-      return;
+    try {
+      const response = await previewResponse(pathname, req.method, previewP24Config);
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      res.end(await response.text());
+    } catch {
+      res.writeHead(500, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
+      res.end('Nie udało się wczytać podglądu.');
     }
-    if (!isTestKey(config.stripeKey)) { res.writeHead(404); res.end(); return; }
+    return;
   }
-  if (pathname !== '/checkout-session' && !previewCheckout) { res.writeHead(404); res.end(); return; }
+  if (pathname !== '/checkout-session') { res.writeHead(404); res.end(); return; }
   if (Date.now() - windowStarted >= 60000) { windowStarted = Date.now(); requestsInWindow = 0; }
   if (req.method === 'POST' && ++requestsInWindow > 120) {
     res.writeHead(429, { 'Retry-After': '60' }); res.end(); return;
@@ -240,8 +289,7 @@ const server = createServer(async (req, res) => {
       options.body = Readable.toWeb(req);
       options.duplex = 'half';
     }
-    const checkoutConfig = previewCheckout ? { ...config, preview: true, siteOrigin: previewOrigin, allowedOrigins: [previewOrigin] } : config;
-    const response = await handleCheckout(new Request('https://axi-api.invalid/checkout-session', options), checkoutConfig);
+    const response = await handleCheckout(new Request('https://axi-api.invalid/checkout-session', options), config);
     res.writeHead(response.status, Object.fromEntries(response.headers));
     res.end(await response.text());
   } catch {
