@@ -219,6 +219,8 @@ test('preview serves only whitelisted image assets from the test branch', async 
   assert.equal(image.headers.get('Content-Type'), 'image/png');
   assert.ok((await image.arrayBuffer()).byteLength > 100);
   assert.equal((await previewResponse('/preview/assets/api%2Fserver.mjs', 'GET', config)).status, 404);
+  const serverSource = await readFile(new URL('../api/server.mjs', import.meta.url), 'utf8');
+  assert.match(serverSource, /previewResponse\(pathname, req\.method, previewP24Config\)[\s\S]*?Buffer\.from\(await response\.arrayBuffer\(\)\)/);
 });
 test('preview checkout uses only Przelewy24 sandbox and returns to the account success page', async () => {
   const order = { pricingVersion: PRICING_VERSION, termsAccepted: true, orderId: '3b6ad9b4-1c7d-42e2-b05d-3475a78c4d1e', email: 'test@example.com', customerName: 'Jan Kowalski', phone: '+48600123456', deliveryDestination: 'GLI01 — Rynek 1, Gliwice', deliveryMethod: 'locker', items: [{ size: 32 }] };

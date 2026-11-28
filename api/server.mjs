@@ -271,7 +271,7 @@ const server = createServer(async (req, res) => {
     try {
       const response = await previewResponse(pathname, req.method, previewP24Config);
       res.writeHead(response.status, Object.fromEntries(response.headers));
-      res.end(await response.text());
+      res.end(Buffer.from(await response.arrayBuffer()));
     } catch {
       res.writeHead(500, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
       res.end('Nie udało się wczytać podglądu.');
