@@ -198,6 +198,12 @@ test('Przelewy24 preview migration stores the phone needed for optional profile 
   const sql = await readFile(new URL('../supabase/migrations/20261128100000_add_p24_preview_orders.sql', import.meta.url), 'utf8');
   assert.match(sql, /add column if not exists customer_phone/);
 });
+test('server-side order storage grants only the required tables to service_role', async () => {
+  const sql = await readFile(new URL('../supabase/migrations/20261128113000_grant_order_service_role.sql', import.meta.url), 'utf8');
+  assert.match(sql, /grant select, insert, update on table public\.orders to service_role/);
+  assert.match(sql, /grant select, update on table public\.profiles to service_role/);
+  assert.doesNotMatch(sql, /\b(?:anon|authenticated)\b/i);
+});
 test('preview does not rewrite remote references or empty image placeholders', () => {
   const html = renderPreviewHtml('<html><head></head><body><img src=""><img src="https://cdn.example/photo.png"><a href="regulamin.html">Regulamin</a></body></html>', config.siteOrigin);
   assert.match(html, /src=""/);
